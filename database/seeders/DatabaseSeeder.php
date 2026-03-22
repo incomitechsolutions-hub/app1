@@ -6,7 +6,6 @@ use App\Domain\Taxonomy\Models\Audience;
 use App\Domain\Taxonomy\Models\Category;
 use App\Domain\Taxonomy\Models\DifficultyLevel;
 use App\Domain\Taxonomy\Models\Tag;
-use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -16,10 +15,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $this->call(AdminUserSeeder::class);
 
         Category::query()->firstOrCreate(
             ['slug' => 'allgemein'],
