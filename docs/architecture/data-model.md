@@ -1,0 +1,280 @@
+# Data Model
+
+## Purpose
+Define the relational data model for the Laravel-based SEO training platform.
+
+## Modeling Principles
+- normalized schema
+- explicit relationships
+- SEO-first structure
+- migration-driven schema evolution
+- future operational extensibility
+
+## Core Entity Groups
+1. Core Content
+2. Taxonomy
+3. Page Management
+4. SEO Layer
+5. Locations
+6. Media
+7. Leads / Inquiries
+8. Future Operations
+
+## Core Content
+
+### courses
+Fields:
+- id
+- title
+- slug
+- short_description
+- long_description
+- duration_hours
+- language_code
+- status
+- primary_category_id
+- difficulty_level_id
+- hero_media_asset_id
+- created_at
+- updated_at
+- published_at
+
+### course_modules
+- id
+- course_id
+- title
+- description
+- duration_hours
+- sort_order
+- created_at
+- updated_at
+
+### learning_objectives
+- id
+- course_id
+- objective_text
+- sort_order
+- created_at
+- updated_at
+
+### prerequisites
+- id
+- course_id
+- prerequisite_text
+- sort_order
+- created_at
+- updated_at
+
+## Taxonomy
+
+### categories
+- id
+- name
+- slug
+- description
+- parent_id
+- status
+- created_at
+- updated_at
+
+### tags
+- id
+- name
+- slug
+- created_at
+- updated_at
+
+### audiences
+- id
+- name
+- slug
+- description
+- created_at
+- updated_at
+
+### difficulty_levels
+- id
+- code
+- label
+- sort_order
+- created_at
+- updated_at
+
+### course_categories
+- course_id
+- category_id
+
+### course_tags
+- course_id
+- tag_id
+
+### course_audiences
+- course_id
+- audience_id
+
+## Page Management
+
+### pages
+Generic editorial / landing page entity.
+
+Fields:
+- id
+- title
+- slug
+- page_type
+- entity_type
+- entity_id
+- status
+- created_at
+- updated_at
+- published_at
+
+### content_blocks
+- id
+- page_id
+- block_type
+- content_json
+- sort_order
+- created_at
+- updated_at
+
+### faqs
+- id
+- owner_type
+- owner_id
+- question
+- answer
+- sort_order
+- is_schema_enabled
+- created_at
+- updated_at
+
+## SEO Layer
+
+### seo_meta
+- id
+- owner_type
+- owner_id
+- seo_title
+- meta_description
+- canonical_url
+- robots_index
+- robots_follow
+- og_title
+- og_description
+- og_image_media_asset_id
+- schema_json
+- created_at
+- updated_at
+
+### redirects
+- id
+- source_path
+- target_path
+- redirect_type
+- is_active
+- created_at
+- updated_at
+
+### alternate_locales
+- id
+- owner_type
+- owner_id
+- locale_code
+- target_url
+- created_at
+- updated_at
+
+## Locations
+
+### locations
+- id
+- city
+- country
+- slug
+- latitude
+- longitude
+- intro_text
+- status
+- created_at
+- updated_at
+
+### location_translations
+- id
+- location_id
+- locale_code
+- title
+- body_content
+- created_at
+- updated_at
+
+### course_locations
+- id
+- course_id
+- location_id
+- unique_intro
+- unique_body
+- status
+- created_at
+- updated_at
+
+## Media
+
+### media_assets
+- id
+- disk
+- file_name
+- file_path
+- mime_type
+- alt_text
+- created_at
+- updated_at
+
+## Leads / Inquiries
+
+### inquiries
+- id
+- first_name
+- last_name
+- email
+- company
+- phone
+- message
+- consent_privacy
+- consent_marketing
+- source_url
+- source_entity_type
+- source_entity_id
+- utm_json
+- sync_status
+- created_at
+- updated_at
+
+## Users / Admin
+
+### users
+- id
+- name
+- email
+- password
+- status
+- created_at
+- updated_at
+
+### roles
+- id
+- name
+- slug
+- created_at
+- updated_at
+
+### role_user
+- user_id
+- role_id
+
+## Key Constraints
+- unique slugs for relevant entities
+- unique redirects.source_path
+- no circular category hierarchy
+- foreign keys where relevant
+- indexes on slugs, owner refs, and foreign keys

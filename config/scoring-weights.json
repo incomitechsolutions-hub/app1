@@ -1,0 +1,9 @@
+{
+  "future_trainer_selection": {
+    "skill_match": 0.4,
+    "availability": 0.2,
+    "feedback": 0.2,
+    "response_time": 0.1,
+    "acceptance_rate": 0.1
+  }
+}
