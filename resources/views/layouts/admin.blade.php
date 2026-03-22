@@ -9,7 +9,7 @@
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
     <header class="border-b border-slate-200 bg-white">
         <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-            <a href="{{ route('admin.course-catalog.courses.index') }}" class="font-semibold text-slate-800">Admin</a>
+            <a href="{{ route('admin.dashboard') }}" class="font-semibold text-slate-800">Admin</a>
             <nav class="flex items-center gap-3 text-sm">
                 <a href="{{ route('admin.course-catalog.courses.index') }}" class="text-slate-600 hover:text-slate-900">Kurse</a>
                 @auth
