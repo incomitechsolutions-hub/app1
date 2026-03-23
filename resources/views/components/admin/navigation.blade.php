@@ -17,8 +17,8 @@
                     <li>
                         <a href="{{ route($item['route']) }}"
                             @class([
-                                'block rounded-md px-3 py-2 font-medium',
-                                'bg-slate-800 text-white' => $isActive,
+                                'block rounded-lg px-3 py-2 font-medium',
+                                'bg-sky-100 text-sky-900' => $isActive,
                                 'text-slate-700 hover:bg-slate-100' => ! $isActive,
                             ])
                             @if ($isActive) aria-current="page" @endif>
