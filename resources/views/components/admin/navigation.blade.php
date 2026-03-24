@@ -2,10 +2,10 @@
     $groups = config('admin.navigation', []);
 @endphp
 
-<nav class="space-y-7 text-sm" aria-label="{{ __('Admin navigation') }}">
+<nav class="space-y-7 text-sm no-scrollbar" aria-label="{{ __('Admin navigation') }}">
     @foreach ($groups as $group)
         <div class="space-y-2">
-            <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+            <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400" x-show="sidebarExpanded || sidebarToggle">
                 {{ $group['heading'] }}
             </p>
             <ul class="space-y-1">
@@ -26,22 +26,22 @@
                         }
                         $isExpanded = $isActive || $childActive;
                     @endphp
-                    <li @if ($hasChildren) x-data="{ open: {{ $isExpanded ? 'true' : 'false' }} }" @endif>
-                        <div class="space-y-1">
+                    <li
+                        @if ($hasChildren)
+                            x-data="{ open: {{ $isExpanded ? 'true' : 'false' }}, flyoutOpen: false }"
+                            @mouseenter="if (!sidebarExpanded && !sidebarToggle) flyoutOpen = true"
+                            @mouseleave="if (!sidebarExpanded && !sidebarToggle) flyoutOpen = false"
+                        @endif>
+                        <div class="relative space-y-1">
                             <div class="flex items-center gap-1">
                                 <a href="{{ route($item['route']) }}"
                                     @class([
-                                        'group flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300',
-                                        'bg-indigo-50 text-indigo-600 shadow-sm' => $isActive || $childActive,
-                                        'text-slate-600 hover:bg-slate-100 hover:text-slate-900' => !($isActive || $childActive),
+                                        'admin-menu-item group min-w-0 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300',
+                                        'admin-menu-item-active' => $isActive || $childActive,
+                                        'admin-menu-item-inactive' => !($isActive || $childActive),
                                     ])
                                     @if ($isActive || $childActive) aria-current="page" @endif>
-                                    <span
-                                        @class([
-                                            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition',
-                                            'border-indigo-100 bg-white text-indigo-500' => $isActive || $childActive,
-                                            'border-slate-200 bg-white text-slate-400 group-hover:text-slate-600' => !($isActive || $childActive),
-                                        ])>
+                                    <span class="admin-icon-wrap">
                                         @switch($item['icon'] ?? 'dot')
                                             @case('dashboard')
                                                 <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3 3.75A.75.75 0 0 1 3.75 3h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-.75.75h-4.5A.75.75 0 0 1 3 8.25v-4.5ZM11 3.75a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75v-2.5ZM3 11.75a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75v-4.5ZM11 10.75a.75.75 0 0 1 1.5 0v5.5a.75.75 0 0 1-1.5 0v-5.5Zm3 1a.75.75 0 0 1 1.5 0v4.5a.75.75 0 0 1-1.5 0v-4.5Z" /></svg>
@@ -80,13 +80,14 @@
                                                 <span class="h-2 w-2 rounded-full bg-current"></span>
                                         @endswitch
                                     </span>
-                                    <span class="truncate">{{ $item['label'] }}</span>
+                                    <span class="truncate transition-opacity duration-300" x-show="sidebarExpanded || sidebarToggle" x-cloak>{{ $item['label'] }}</span>
                                 </a>
 
                                 @if ($hasChildren)
                                     <button
                                         type="button"
                                         class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                                        x-show="sidebarExpanded || sidebarToggle"
                                         @click="open = !open"
                                         :aria-expanded="open.toString()"
                                         aria-label="Untermenü umschalten">
@@ -99,7 +100,7 @@
                             </div>
 
                             @if ($hasChildren)
-                                <ul x-cloak x-show="open" x-transition class="space-y-1 pl-12">
+                                <ul x-cloak x-show="open && (sidebarExpanded || sidebarToggle)" x-transition class="space-y-1 pl-12">
                                     @foreach ($item['children'] as $childItem)
                                         @php
                                             $childPattern = $childItem['active'] ?? $childItem['route'];
@@ -111,6 +112,29 @@
                                                     'block rounded-lg px-3 py-2 text-xs font-medium transition',
                                                     'bg-slate-100 text-slate-900' => $isChildActive,
                                                     'text-slate-500 hover:bg-slate-50 hover:text-slate-700' => ! $isChildActive,
+                                                ])>
+                                                {{ $childItem['label'] }}
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+
+                                <ul
+                                    x-cloak
+                                    x-show="flyoutOpen && !sidebarExpanded && !sidebarToggle"
+                                    x-transition
+                                    class="absolute left-[74px] top-0 z-50 min-w-[210px] space-y-1 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                                    @foreach ($item['children'] as $childItem)
+                                        @php
+                                            $childPattern = $childItem['active'] ?? $childItem['route'];
+                                            $isChildActive = request()->routeIs($childPattern);
+                                        @endphp
+                                        <li>
+                                            <a href="{{ route($childItem['route']) }}"
+                                                @class([
+                                                    'block rounded-lg px-3 py-2 text-xs font-medium transition',
+                                                    'bg-slate-100 text-slate-900' => $isChildActive,
+                                                    'text-slate-600 hover:bg-slate-50 hover:text-slate-700' => ! $isChildActive,
                                                 ])>
                                                 {{ $childItem['label'] }}
                                             </a>

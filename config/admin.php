@@ -25,6 +25,23 @@ return [
                     'route' => 'admin.inquiries.index',
                     'active' => 'admin.inquiries.*',
                     'icon' => 'inbox',
+                    'children' => [
+                        [
+                            'label' => 'Anfragen',
+                            'route' => 'admin.inquiries.index',
+                            'active' => 'admin.inquiries.*',
+                        ],
+                        [
+                            'label' => 'Newsletter',
+                            'route' => 'admin.inquiries.index',
+                            'active' => 'admin.inquiries.*',
+                        ],
+                        [
+                            'label' => 'SMTP-Einstellungen',
+                            'route' => 'admin.seo.index',
+                            'active' => 'admin.seo.index',
+                        ],
+                    ],
                 ],
                 [
                     'label' => 'Kategorien',
@@ -49,6 +66,18 @@ return [
                     'route' => 'admin.course-catalog.courses.index',
                     'active' => 'admin.course-catalog.courses.*',
                     'icon' => 'document',
+                    'children' => [
+                        [
+                            'label' => 'Alle Kurse',
+                            'route' => 'admin.course-catalog.courses.index',
+                            'active' => 'admin.course-catalog.courses.*',
+                        ],
+                        [
+                            'label' => 'Einstellungen',
+                            'route' => 'admin.seo.index',
+                            'active' => 'admin.seo.index',
+                        ],
+                    ],
                 ],
                 [
                     'label' => 'Seiten',
@@ -66,12 +95,46 @@ return [
                     'route' => 'admin.identity.users.index',
                     'active' => 'admin.identity.*',
                     'icon' => 'sliders',
+                    'children' => [
+                        [
+                            'label' => 'Benutzer',
+                            'route' => 'admin.identity.users.index',
+                            'active' => 'admin.identity.*',
+                        ],
+                        [
+                            'label' => 'SEO',
+                            'route' => 'admin.seo.index',
+                            'active' => 'admin.seo.index',
+                        ],
+                        [
+                            'label' => 'Header',
+                            'route' => 'admin.pages.index',
+                            'active' => 'admin.pages.*',
+                        ],
+                        [
+                            'label' => 'Footer',
+                            'route' => 'admin.pages.index',
+                            'active' => 'admin.pages.*',
+                        ],
+                        [
+                            'label' => 'Länder',
+                            'route' => 'admin.locations.index',
+                            'active' => 'admin.locations.*',
+                        ],
+                    ],
                 ],
                 [
                     'label' => 'Extensions',
                     'route' => 'admin.seo.index',
                     'active' => 'admin.seo.*',
                     'icon' => 'puzzle',
+                    'children' => [
+                        [
+                            'label' => 'Manager',
+                            'route' => 'admin.media.index',
+                            'active' => 'admin.media.*',
+                        ],
+                    ],
                 ],
                 [
                     'label' => 'Standorte',

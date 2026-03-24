@@ -38,7 +38,7 @@
     $prereqRows = array_pad(array_values($prereqRows), 5, []);
 @endphp
 
-<div class="space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+<div class="admin-panel space-y-6 p-6">
     <h2 class="text-lg font-medium text-slate-900">Stammdaten</h2>
 
     <div class="grid gap-4 sm:grid-cols-2">
@@ -136,7 +136,7 @@
     </div>
 </div>
 
-<div class="space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+<div class="admin-panel space-y-6 p-6">
     <h2 class="text-lg font-medium text-slate-900">Taxonomie</h2>
 
     <div class="grid gap-4 sm:grid-cols-2">
@@ -205,7 +205,7 @@
     </div>
 </div>
 
-<div class="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+<div class="admin-panel space-y-4 p-6">
     <h2 class="text-lg font-medium text-slate-900">Module (optional)</h2>
     @foreach ($moduleRows as $i => $row)
         <div class="rounded border border-slate-100 bg-slate-50 p-4">
@@ -241,7 +241,7 @@
     @enderror
 </div>
 
-<div class="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+<div class="admin-panel space-y-4 p-6">
     <h2 class="text-lg font-medium text-slate-900">Lernziele (optional)</h2>
     @foreach ($objectiveRows as $i => $row)
         <div>
@@ -256,7 +256,7 @@
     @enderror
 </div>
 
-<div class="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+<div class="admin-panel space-y-4 p-6">
     <h2 class="text-lg font-medium text-slate-900">Voraussetzungen (optional)</h2>
     @foreach ($prereqRows as $i => $row)
         <div>
