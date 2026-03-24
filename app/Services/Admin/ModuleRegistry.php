@@ -3,7 +3,9 @@
 namespace App\Services\Admin;
 
 use App\Models\ModuleState;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 
 class ModuleRegistry
@@ -24,9 +26,19 @@ class ModuleRegistry
         $this->assertDefined($moduleKey);
 
         return Cache::rememberForever($this->cacheKey($moduleKey), function () use ($moduleKey): bool {
-            return (bool) ModuleState::query()
-                ->where('module_key', $moduleKey)
-                ->value('enabled') ?? true;
+            // Defensive fallback: if migrations are not yet applied on a host,
+            // do not break admin rendering. Treat modules as enabled.
+            try {
+                if (! Schema::hasTable('module_states')) {
+                    return true;
+                }
+
+                return (bool) (ModuleState::query()
+                    ->where('module_key', $moduleKey)
+                    ->value('enabled') ?? true);
+            } catch (QueryException) {
+                return true;
+            }
         });
     }
 
