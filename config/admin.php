@@ -56,14 +56,14 @@ return [
                     'children' => [
                         [
                             'label' => 'Hauptkategorien',
-                            'route' => 'admin.taxonomy.categories.index',
-                            'active' => 'admin.taxonomy.*',
+                            'route' => 'admin.taxonomy.categories.main',
+                            'active' => 'admin.taxonomy.categories.main',
                             'module' => 'taxonomy',
                         ],
                         [
                             'label' => 'Unterkategorien',
-                            'route' => 'admin.taxonomy.categories.index',
-                            'active' => 'admin.taxonomy.*',
+                            'route' => 'admin.taxonomy.categories.sub',
+                            'active' => 'admin.taxonomy.categories.sub',
                             'module' => 'taxonomy',
                         ],
                     ],

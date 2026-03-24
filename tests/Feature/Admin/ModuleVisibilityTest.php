@@ -41,6 +41,23 @@ class ModuleVisibilityTest extends TestCase
             ->assertDontSee('Kursverwaltung');
     }
 
+    public function test_disabled_taxonomy_module_hides_categories_navigation_entries(): void
+    {
+        $user = User::factory()->create();
+
+        ModuleState::query()->updateOrCreate(
+            ['module_key' => 'taxonomy'],
+            ['enabled' => false]
+        );
+
+        $this->actingAs($user)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee('Kategorien')
+            ->assertDontSee('Hauptkategorien')
+            ->assertDontSee('Unterkategorien');
+    }
+
     public function test_module_toggle_endpoint_returns_json_for_ajax_requests(): void
     {
         $user = User::factory()->create();

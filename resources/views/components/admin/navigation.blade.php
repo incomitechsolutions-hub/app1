@@ -10,6 +10,8 @@
                 continue;
             }
 
+            $hadChildren = !empty($item['children']);
+
             if (!empty($item['children'])) {
                 $children = [];
 
@@ -22,6 +24,11 @@
                 }
 
                 $item['children'] = $children;
+            }
+
+            // If all children were removed by module filters, hide the empty parent entry too.
+            if ($hadChildren && empty($item['children'])) {
+                continue;
             }
 
             $items[] = $item;
