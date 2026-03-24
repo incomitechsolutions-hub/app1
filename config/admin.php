@@ -68,6 +68,12 @@ return [
                             'active' => 'admin.taxonomy.categories.*',
                             'module' => 'taxonomy',
                         ],
+                        [
+                            'label' => 'CSV-Import',
+                            'route' => 'admin.taxonomy.categories.import',
+                            'active' => 'admin.taxonomy.categories.import*',
+                            'module' => 'taxonomy',
+                        ],
                     ],
                 ],
                 [

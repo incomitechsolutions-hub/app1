@@ -55,7 +55,8 @@ class ModuleVisibilityTest extends TestCase
             ->assertOk()
             ->assertDontSee('Kategorien')
             ->assertDontSee('Hauptkategorien')
-            ->assertDontSee('Unterkategorien');
+            ->assertDontSee('Unterkategorien')
+            ->assertDontSee('CSV-Import');
     }
 
     public function test_module_toggle_endpoint_returns_json_for_ajax_requests(): void

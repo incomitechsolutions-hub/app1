@@ -51,10 +51,16 @@
                 <h1 class="text-3xl font-bold text-slate-900">Kategorien</h1>
                 <p class="mt-1 text-sm text-slate-500">Verwaltung von Kurskategorien und Unterkategorien</p>
             </div>
-            <a href="{{ route('admin.taxonomy.categories.create') }}"
-                class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
-                Neue Kategorie
-            </a>
+            <div class="inline-flex items-center gap-2">
+                <a href="{{ route('admin.taxonomy.categories.import') }}"
+                    class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                    Einstellungen
+                </a>
+                <a href="{{ route('admin.taxonomy.categories.create') }}"
+                    class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+                    Neue Kategorie
+                </a>
+            </div>
         </div>
 
         <form method="get" action="{{ route('admin.taxonomy.categories.index') }}"
