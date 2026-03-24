@@ -59,6 +59,7 @@ class CategoryManagementTest extends TestCase
                 'slug' => 'security',
                 'description' => null,
                 'parent_id' => $category->id,
+                'sort_order' => 0,
                 'status' => 'published',
             ])
             ->assertRedirect(route('admin.taxonomy.categories.edit', $category))
@@ -87,6 +88,7 @@ class CategoryManagementTest extends TestCase
                 'slug' => 'root',
                 'description' => null,
                 'parent_id' => $child->id,
+                'sort_order' => 0,
                 'status' => 'published',
             ])
             ->assertRedirect(route('admin.taxonomy.categories.edit', $root))
@@ -228,7 +230,7 @@ class CategoryManagementTest extends TestCase
             ->get(route('admin.taxonomy.categories.create', ['parent_id' => $parent->id]))
             ->assertOk()
             ->assertSee('Unterkategorie erstellen')
-            ->assertSee('value="'.$parent->id.'" selected', false);
+            ->assertSee('data-selected="'.$parent->id.'"', false);
     }
 
     public function test_index_renders_status_labels_for_new_model(): void

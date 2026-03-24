@@ -12,6 +12,14 @@ class StoreCategoryRequest extends FormRequest
         return $this->user() !== null;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $raw = $this->input('sort_order');
+        if ($raw === '' || $raw === null) {
+            $this->merge(['sort_order' => 0]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */

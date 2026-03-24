@@ -90,6 +90,7 @@ Unique: `(course_id, locale_id)`, `(locale_id, slug)` where applicable.
 - slug
 - description
 - parent_id
+- sort_order (manual sibling order within the same parent; lower values first)
 - status
 - created_at
 - updated_at

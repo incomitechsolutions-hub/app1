@@ -8,6 +8,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/admin-category-index.js',
+                'resources/js/admin-category-parent-select.js',
             ],
             refresh: true,
         }),

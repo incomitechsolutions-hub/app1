@@ -10,6 +10,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
+    /**
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'sort_order' => 'integer',
+    ];
+
     protected $fillable = [
         'name',
         'slug',
