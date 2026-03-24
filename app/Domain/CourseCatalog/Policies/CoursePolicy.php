@@ -41,4 +41,9 @@ class CoursePolicy
     {
         return false;
     }
+
+    public function manageCatalogSettings(User $user): bool
+    {
+        return true;
+    }
 }

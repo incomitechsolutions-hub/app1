@@ -24,6 +24,10 @@ class ModuleVisibilityTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.course-catalog.courses.index'))
             ->assertForbidden();
+
+        $this->actingAs($user)
+            ->get(route('admin.course-catalog.settings.edit'))
+            ->assertForbidden();
     }
 
     public function test_disabled_course_catalog_module_hides_navigation_entry(): void

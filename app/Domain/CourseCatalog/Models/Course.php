@@ -4,6 +4,7 @@ namespace App\Domain\CourseCatalog\Models;
 
 use App\Domain\CourseCatalog\Enums\CourseStatus;
 use App\Domain\CourseCatalog\Enums\DeliveryFormat;
+use App\Domain\CourseCatalog\Enums\DeliveryMode;
 use App\Domain\Media\Models\MediaAsset;
 use App\Domain\Taxonomy\Models\Audience;
 use App\Domain\Taxonomy\Models\Category;
@@ -24,21 +25,42 @@ class Course extends Model
 
     protected $fillable = [
         'title',
+        'subtitle',
         'slug',
+        'external_course_code',
         'short_description',
         'long_description',
+        'target_audience_text',
+        'prerequisites_text',
         'duration_hours',
+        'duration_days',
         'language_code',
+        'currency_code',
         'status',
         'primary_category_id',
         'difficulty_level_id',
         'hero_media_asset_id',
         'published_at',
+        'author_name',
+        'content_version',
         'price',
         'delivery_format',
+        'delivery_mode',
+        'lessons_count',
+        'min_participants',
+        'instructor_name',
+        'certificate_label',
         'is_featured',
         'booking_url',
         'offer_url',
+        'ai_prompt_source',
+        'internal_notes',
+        'average_rating',
+        'ratings_count',
+        'media_icon_enabled',
+        'media_header_enabled',
+        'media_video_enabled',
+        'media_gallery_enabled',
     ];
 
     protected function casts(): array
@@ -47,9 +69,19 @@ class Course extends Model
             'status' => CourseStatus::class,
             'published_at' => 'datetime',
             'duration_hours' => 'decimal:2',
+            'duration_days' => 'integer',
             'delivery_format' => DeliveryFormat::class,
+            'delivery_mode' => DeliveryMode::class,
             'is_featured' => 'boolean',
             'price' => 'decimal:2',
+            'average_rating' => 'decimal:2',
+            'ratings_count' => 'integer',
+            'lessons_count' => 'integer',
+            'min_participants' => 'integer',
+            'media_icon_enabled' => 'boolean',
+            'media_header_enabled' => 'boolean',
+            'media_video_enabled' => 'boolean',
+            'media_gallery_enabled' => 'boolean',
         ];
     }
 

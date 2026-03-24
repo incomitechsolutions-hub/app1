@@ -27,23 +27,42 @@ Define the relational data model for the Laravel-based SEO training platform.
 Fields:
 - id
 - title
+- subtitle (nullable)
 - slug
+- external_course_code (nullable, unique business reference e.g. `KURS0001`)
 - short_description
 - long_description
+- target_audience_text (nullable longtext)
+- prerequisites_text (nullable longtext)
 - duration_hours
+- duration_days (nullable unsigned smallint)
 - language_code
+- currency_code (char 3, default EUR)
 - status
 - primary_category_id
 - difficulty_level_id
 - hero_media_asset_id
-- price (decimal, nullable, EUR net amount)
+- price (decimal, nullable, net amount in `currency_code`)
 - delivery_format (nullable enum: `online` | `presence` | `hybrid`)
+- delivery_mode (nullable enum: `live_online` | `self_study` | `blended_learning`)
+- lessons_count (nullable unsigned int)
+- min_participants (nullable unsigned int)
+- instructor_name (nullable)
+- certificate_label (nullable)
+- author_name (nullable)
+- content_version (nullable string)
 - is_featured (boolean, default false)
 - booking_url (nullable URL)
 - offer_url (nullable URL)
+- ai_prompt_source (nullable longtext)
+- internal_notes (nullable longtext)
+- average_rating (decimal 3,2, default 0)
+- ratings_count (unsigned int, default 0)
+- media_icon_enabled, media_header_enabled, media_video_enabled, media_gallery_enabled (booleans, default false)
 - created_at
 - updated_at
 - published_at
+- deleted_at (soft deletes)
 
 ### course_translations
 Per-locale titles and slugs for courses (aligned with default locale `de` on `courses` via sync).
@@ -86,6 +105,39 @@ Unique: `(course_id, locale_id)`, `(locale_id, slug)` where applicable.
 - sort_order
 - created_at
 - updated_at
+
+### course_catalog_global_settings
+Singleton row (`id = 1`) for default course creation and commercial defaults in admin.
+
+- id
+- default_currency (ISO 4217)
+- default_delivery_format (enum string)
+- default_language_code
+- default_min_participants
+- tax_rate_percent
+- early_bird_enabled, early_bird_days_before, early_bird_discount_percent
+- group_discount_enabled, group_discount_layout (`layout_1` | `layout_2`)
+- created_at, updated_at
+
+### course_group_discount_tiers
+Tiered group discounts linked to `course_catalog_global_settings`.
+
+- id
+- course_catalog_global_setting_id (FK)
+- sort_order
+- min_participants
+- discount_percent
+- created_at, updated_at
+
+### course_coupons
+Minimal coupon codes for future checkout (admin-managed).
+
+- id
+- code (unique)
+- discount_percent
+- is_active
+- notes (nullable)
+- created_at, updated_at
 
 ## Taxonomy
 
@@ -239,6 +291,10 @@ Polymorphic SEO metadata per content owner (`owner_type` / `owner_id`).
 - owner_id
 - seo_title
 - meta_description
+- focus_keyword (nullable)
+- tags_csv (nullable, comma-separated free tags for SEO)
+- preview_image_url (nullable)
+- landing_page_url (nullable)
 - canonical_url
 - robots_index
 - robots_follow

@@ -57,8 +57,8 @@
                 @endif
                 @if ($course->price !== null)
                     <div>
-                        <dt class="font-medium text-gray-500 dark:text-gray-400">Preis (EUR)</dt>
-                        <dd class="text-gray-900 dark:text-white">{{ number_format((float) $course->price, 2, ',', '.') }} €</dd>
+                        <dt class="font-medium text-gray-500 dark:text-gray-400">Preis</dt>
+                        <dd class="text-gray-900 dark:text-white">{{ number_format((float) $course->price, 2, ',', '.') }} {{ $course->currency_code ?? 'EUR' }}</dd>
                     </div>
                 @endif
                 @if ($course->delivery_format)

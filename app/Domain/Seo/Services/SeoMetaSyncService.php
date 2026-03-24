@@ -21,6 +21,10 @@ class SeoMetaSyncService
         $payload = [
             'seo_title' => $this->nullIfEmptyString($input['seo_title'] ?? null),
             'meta_description' => $this->nullIfEmptyString($input['meta_description'] ?? null),
+            'focus_keyword' => $this->nullIfEmptyString($input['focus_keyword'] ?? null),
+            'tags_csv' => $this->nullIfEmptyString($input['tags_csv'] ?? null),
+            'preview_image_url' => $this->nullIfEmptyString($input['preview_image_url'] ?? null),
+            'landing_page_url' => $this->nullIfEmptyString($input['landing_page_url'] ?? null),
             'canonical_url' => $this->canonicalValue($input['canonical_url'] ?? null, $canonical),
             'robots_index' => array_key_exists('robots_index', $input) ? $this->boolish($input['robots_index']) : true,
             'robots_follow' => array_key_exists('robots_follow', $input) ? $this->boolish($input['robots_follow']) : true,

@@ -3,7 +3,8 @@
     "type": "module",
     "dependencies": {
         "alpinejs": "^3.14.9",
-        "tom-select": "^2.4.3"
+        "tom-select": "^2.4.3",
+        "trix": "^2.1.7"
     },
     "scripts": {
         "build": "vite build",

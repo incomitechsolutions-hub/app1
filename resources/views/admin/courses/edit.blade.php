@@ -3,59 +3,74 @@
 @section('title', 'Kurs bearbeiten')
 @section('breadcrumb', 'Kurse')
 
+@push('scripts')
+    @vite(['resources/js/admin-course-editor.js'])
+@endpush
+
 @section('content')
     <div class="mx-auto max-w-7xl space-y-6">
-        <div class="flex items-center justify-between gap-4">
-            <h1 class="text-3xl font-bold text-slate-900">Kurs bearbeiten</h1>
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900">Kurs bearbeiten</h1>
+                <p class="mt-1 text-sm text-slate-500">Bearbeiten Sie einen bestehenden Kurs.</p>
+            </div>
             <a href="{{ route('admin.course-catalog.courses.show', $course) }}"
                 class="inline-flex items-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
                 Anzeigen
             </a>
         </div>
 
-        <form method="post" action="{{ route('admin.course-catalog.courses.update', $course) }}" class="space-y-6" x-data="{ tab: 'details' }">
+        <form method="post" action="{{ route('admin.course-catalog.courses.update', $course) }}" class="space-y-6" x-data="{ tab: 'content' }">
             @csrf
             @method('PUT')
             <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-1">
+                <button type="button" @click="tab = 'content'"
+                    :class="tab === 'content' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                    class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold transition">
+                    Content
+                </button>
                 <button type="button" @click="tab = 'details'"
                     :class="tab === 'details' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
                     class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold transition">
-                    Details &amp; Taxonomie
-                </button>
-                <button type="button" @click="tab = 'marketing'"
-                    :class="tab === 'marketing' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
-                    class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold transition">
-                    Preis &amp; Links
+                    Details
                 </button>
                 <button type="button" @click="tab = 'seo'"
                     :class="tab === 'seo' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
                     class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold transition">
                     SEO
                 </button>
-                <button type="button" @click="tab = 'content'"
-                    :class="tab === 'content' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                <button type="button" @click="tab = 'media'"
+                    :class="tab === 'media' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
                     class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold transition">
-                    Inhalt
+                    Media
                 </button>
             </div>
 
-            <div x-show="tab === 'details'">
-                @include('admin.courses._form_details', [
+            <div x-show="tab === 'content'">
+                @include('admin.courses._form_tab_content', [
                     'course' => $course,
                     'categories' => $categories,
                     'difficultyLevels' => $difficultyLevels,
                     'tags' => $tags,
                     'audiences' => $audiences,
+                    'catalogDefaults' => $catalogDefaults,
                 ])
             </div>
-            <div x-show="tab === 'marketing'" x-cloak>
-                @include('admin.courses._form_marketing', ['course' => $course])
+            <div x-show="tab === 'details'" x-cloak>
+                @include('admin.courses._form_tab_details', [
+                    'course' => $course,
+                    'catalogDefaults' => $catalogDefaults,
+                ])
             </div>
             <div x-show="tab === 'seo'" x-cloak>
-                @include('admin.seo._form', ['seoMeta' => $seoMeta, 'mediaAssets' => $mediaAssets])
+                @include('admin.seo._form_course', [
+                    'seoMeta' => $seoMeta,
+                    'mediaAssets' => $mediaAssets,
+                    'course' => $course,
+                ])
             </div>
-            <div x-show="tab === 'content'" x-cloak>
-                @include('admin.courses._form_content', ['course' => $course])
+            <div x-show="tab === 'media'" x-cloak>
+                @include('admin.courses._form_tab_media', ['course' => $course])
             </div>
 
             <div class="admin-panel p-4">

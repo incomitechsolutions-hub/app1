@@ -7,6 +7,7 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/js/app.js',
+                'resources/js/admin-course-editor.js',
                 'resources/js/admin-category-index.js',
                 'resources/js/admin-category-parent-select.js',
             ],

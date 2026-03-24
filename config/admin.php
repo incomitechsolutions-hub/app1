@@ -77,7 +77,7 @@ return [
                 [
                     'label' => 'Kursverwaltung',
                     'route' => 'admin.course-catalog.courses.index',
-                    'active' => 'admin.course-catalog.courses.*',
+                    'active' => 'admin.course-catalog.*',
                     'icon' => 'document',
                     'module' => 'course_catalog',
                     'children' => [
@@ -89,9 +89,9 @@ return [
                         ],
                         [
                             'label' => 'Einstellungen',
-                            'route' => 'admin.seo.index',
-                            'active' => 'admin.seo.index',
-                            'module' => 'seo',
+                            'route' => 'admin.course-catalog.settings.edit',
+                            'active' => 'admin.course-catalog.settings.*',
+                            'module' => 'course_catalog',
                         ],
                     ],
                 ],
