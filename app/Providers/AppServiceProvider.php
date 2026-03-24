@@ -26,7 +26,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Course::class, CoursePolicy::class);
 
         Route::bind('course', function (string $value): Course {
-            return Course::query()->whereKey($value)->firstOrFail();
+            return Course::query()->withTrashed()->whereKey($value)->firstOrFail();
         });
     }
 }

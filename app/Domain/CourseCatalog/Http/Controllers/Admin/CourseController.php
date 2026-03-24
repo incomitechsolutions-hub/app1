@@ -12,6 +12,7 @@ use App\Domain\Taxonomy\Models\Category;
 use App\Domain\Taxonomy\Models\DifficultyLevel;
 use App\Domain\Taxonomy\Models\Tag;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class CourseController extends Controller
@@ -22,14 +23,21 @@ class CourseController extends Controller
         $this->authorizeResource(Course::class, 'course');
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $courses = Course::query()
-            ->with('primaryCategory')
-            ->latest()
-            ->paginate(20);
+        $trashed = $request->boolean('trashed');
 
-        return view('admin.courses.index', compact('courses'));
+        $query = Course::query()
+            ->with('primaryCategory')
+            ->latest();
+
+        if ($trashed) {
+            $query->onlyTrashed();
+        }
+
+        $courses = $query->paginate(20)->withQueryString();
+
+        return view('admin.courses.index', compact('courses', 'trashed'));
     }
 
     public function create(): View
@@ -63,8 +71,14 @@ class CourseController extends Controller
         return view('admin.courses.show', compact('course'));
     }
 
-    public function edit(Course $course): View
+    public function edit(Course $course): View|RedirectResponse
     {
+        if ($course->trashed()) {
+            return redirect()
+                ->route('admin.course-catalog.courses.show', $course)
+                ->with('status', __('Bitte zuerst wiederherstellen, dann bearbeiten.'));
+        }
+
         $course->load([
             'categories',
             'tags',
@@ -82,6 +96,12 @@ class CourseController extends Controller
 
     public function update(UpdateCourseRequest $request, Course $course): RedirectResponse
     {
+        if ($course->trashed()) {
+            return redirect()
+                ->route('admin.course-catalog.courses.show', $course)
+                ->with('status', __('Bitte zuerst wiederherstellen, dann bearbeiten.'));
+        }
+
         $this->courses->update($course, $request->validated());
 
         return redirect()
@@ -91,11 +111,34 @@ class CourseController extends Controller
 
     public function destroy(Course $course): RedirectResponse
     {
+        if ($course->trashed()) {
+            return redirect()
+                ->route('admin.course-catalog.courses.index', ['trashed' => true])
+                ->with('status', __('Der Kurs ist bereits im Papierkorb.'));
+        }
+
         $this->courses->delete($course);
 
         return redirect()
             ->route('admin.course-catalog.courses.index')
             ->with('status', __('Course removed.'));
+    }
+
+    public function restore(Course $course): RedirectResponse
+    {
+        $this->authorize('restore', $course);
+
+        if (! $course->trashed()) {
+            return redirect()
+                ->route('admin.course-catalog.courses.show', $course)
+                ->with('status', __('Der Kurs liegt nicht im Papierkorb.'));
+        }
+
+        $course->restore();
+
+        return redirect()
+            ->route('admin.course-catalog.courses.show', $course)
+            ->with('status', __('Kurs wurde wiederhergestellt.'));
     }
 
     /**
