@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\ModuleState;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class ModuleVisibilityTest extends TestCase
@@ -61,5 +62,22 @@ class ModuleVisibilityTest extends TestCase
             'module_key' => 'course_catalog',
             'enabled' => 0,
         ]);
+    }
+
+    public function test_module_toggle_endpoint_returns_service_unavailable_when_table_is_missing(): void
+    {
+        $user = User::factory()->create();
+        Schema::drop('module_states');
+
+        $response = $this->actingAs($user)
+            ->patchJson(route('admin.modules.update', 'course_catalog'), [
+                'enabled' => false,
+            ]);
+
+        $response->assertStatus(503)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Modulstatus kann aktuell nicht gespeichert werden. Bitte Migrationen ausführen.',
+            ]);
     }
 }

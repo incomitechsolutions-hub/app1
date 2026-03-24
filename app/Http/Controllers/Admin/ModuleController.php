@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 use Illuminate\View\View;
+use RuntimeException;
 
 class ModuleController extends Controller
 {
@@ -47,6 +48,17 @@ class ModuleController extends Controller
             return redirect()
                 ->route('admin.modules.index')
                 ->with('status', __('Unbekannter Modul-Schlüssel.'));
+        } catch (RuntimeException) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('Modulstatus kann aktuell nicht gespeichert werden. Bitte Migrationen ausführen.'),
+                ], 503);
+            }
+
+            return redirect()
+                ->route('admin.modules.index')
+                ->with('status', __('Modulstatus kann aktuell nicht gespeichert werden. Bitte Migrationen ausführen.'));
         }
 
         if ($request->expectsJson()) {

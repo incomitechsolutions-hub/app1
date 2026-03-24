@@ -7,6 +7,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
+use RuntimeException;
 
 class ModuleRegistry
 {
@@ -66,10 +67,18 @@ class ModuleRegistry
     {
         $this->assertDefined($moduleKey);
 
-        ModuleState::query()->updateOrCreate(
-            ['module_key' => $moduleKey],
-            ['enabled' => $enabled]
-        );
+        if (! Schema::hasTable('module_states')) {
+            throw new RuntimeException('Module states table is missing.');
+        }
+
+        try {
+            ModuleState::query()->updateOrCreate(
+                ['module_key' => $moduleKey],
+                ['enabled' => $enabled]
+            );
+        } catch (QueryException $exception) {
+            throw new RuntimeException('Module state cannot be persisted.', previous: $exception);
+        }
 
         Cache::forget($this->cacheKey($moduleKey));
     }
