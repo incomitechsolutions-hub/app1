@@ -60,15 +60,33 @@ class CategoryImportController extends Controller
         try {
             $result = $importService->import($request->validated());
         } catch (ValidationException $exception) {
-            return redirect()
+            $token = (string) $request->input('upload_token', '');
+            $preview = $token !== '' ? $importService->getCachedPreview($token) : null;
+
+            $redirect = redirect()
                 ->route('admin.taxonomy.categories.import')
                 ->withErrors($exception->errors())
                 ->withInput();
+
+            if ($preview !== null) {
+                $redirect->with('category_import_preview', $preview);
+            }
+
+            return $redirect;
         } catch (RuntimeException $exception) {
-            return redirect()
+            $token = (string) $request->input('upload_token', '');
+            $preview = $token !== '' ? $importService->getCachedPreview($token) : null;
+
+            $redirect = redirect()
                 ->route('admin.taxonomy.categories.import')
                 ->withErrors(['import' => $exception->getMessage()])
                 ->withInput();
+
+            if ($preview !== null) {
+                $redirect->with('category_import_preview', $preview);
+            }
+
+            return $redirect;
         }
 
         return redirect()

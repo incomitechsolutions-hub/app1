@@ -489,6 +489,16 @@ class CategoryCsvImportService
         return $max;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getCachedPreview(string $token): ?array
+    {
+        $preview = Cache::get($this->cacheKey($token));
+
+        return is_array($preview) ? $preview : null;
+    }
+
     private function cacheKey(string $token): string
     {
         return 'taxonomy_category_import_'.$token;

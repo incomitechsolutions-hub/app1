@@ -2,7 +2,9 @@
 
 namespace App\Domain\Taxonomy\Http\Requests\Admin;
 
+use App\Domain\Localization\Models\Locale;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class ExecuteCategoryImportRequest extends FormRequest
@@ -41,7 +43,25 @@ class ExecuteCategoryImportRequest extends FormRequest
             'mapping.status' => ['nullable', 'string'],
             'fallback_status' => ['required', 'string', Rule::in(['draft', 'published', 'archived'])],
             'duplicate_strategy' => ['required', 'string', Rule::in(['skip', 'update', 'fail'])],
-            'import_locale_code' => ['nullable', 'string', 'max:16', Rule::exists('locales', 'code')],
+            'import_locale_code' => [
+                'nullable',
+                'string',
+                'max:16',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    if (! Schema::hasTable('locales')) {
+                        return;
+                    }
+                    if (! Locale::query()->exists()) {
+                        return;
+                    }
+                    if (! Locale::query()->where('code', $value)->exists()) {
+                        $fail(__('Die gewählte Sprache existiert nicht in der Datenbank. Bitte unter „Sprachen“ anlegen oder Locale-Seeder ausführen.'));
+                    }
+                },
+            ],
         ];
     }
 }

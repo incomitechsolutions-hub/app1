@@ -77,7 +77,7 @@
                 x-data="{ confirmOpen: false, strategy: '{{ $duplicateStrategy }}' }">
                 @csrf
                 <input type="hidden" name="upload_token" value="{{ $preview['token'] }}">
-                <input type="hidden" name="duplicate_strategy" :value="strategy">
+                <input type="hidden" name="duplicate_strategy" value="{{ $duplicateStrategy }}" :value="strategy">
 
                 <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
                     <div class="text-sm text-slate-700">
@@ -169,6 +169,7 @@
                 </div>
 
                 <div class="flex flex-wrap items-center justify-end gap-3">
+                    <p class="mr-auto max-w-md text-xs text-slate-500">Im nächsten Dialog die Duplikat-Strategie wählen und auf <span class="font-semibold">Jetzt importieren</span> klicken (nur dieser Schritt startet den Import).</p>
                     <button type="button" @click="confirmOpen = true"
                         class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
                         Import ausführen
