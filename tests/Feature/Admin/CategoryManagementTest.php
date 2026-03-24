@@ -93,32 +93,72 @@ class CategoryManagementTest extends TestCase
             ->assertSessionHasErrors('parent_id');
     }
 
+    public function test_legacy_main_and_sub_routes_redirect_to_index_with_level(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('admin.taxonomy.categories.main'))
+            ->assertRedirect(route('admin.taxonomy.categories.index', ['level' => 'root']));
+
+        $this->actingAs($user)
+            ->get(route('admin.taxonomy.categories.sub'))
+            ->assertRedirect(route('admin.taxonomy.categories.index', ['level' => 'child']));
+    }
+
     public function test_level_filters_show_root_and_child_categories(): void
     {
         $user = User::factory()->create();
         $root = Category::query()->create([
-            'name' => 'Hauptkategorie',
-            'slug' => 'hauptkategorie',
+            'name' => 'Filter Root Only',
+            'slug' => 'filter-root-only',
             'status' => 'draft',
         ]);
-        $child = Category::query()->create([
-            'name' => 'Unterkategorie',
-            'slug' => 'unterkategorie',
+        Category::query()->create([
+            'name' => 'Filter Child Only',
+            'slug' => 'filter-child-only',
             'parent_id' => $root->id,
             'status' => 'draft',
         ]);
 
         $this->actingAs($user)
-            ->get(route('admin.taxonomy.categories.main'))
+            ->get(route('admin.taxonomy.categories.index', ['level' => 'root']))
             ->assertOk()
-            ->assertSee('Hauptkategorie')
-            ->assertDontSee('Unterkategorie');
+            ->assertSee('Filter Root Only')
+            ->assertDontSee('Filter Child Only');
 
         $this->actingAs($user)
-            ->get(route('admin.taxonomy.categories.sub'))
+            ->get(route('admin.taxonomy.categories.index', ['level' => 'child']))
             ->assertOk()
-            ->assertSee('Unterkategorie')
-            ->assertDontSee('Hauptkategorie');
+            ->assertSee('Filter Child Only');
+    }
+
+    public function test_index_tree_orders_three_levels_depth_first(): void
+    {
+        $user = User::factory()->create();
+
+        $root = Category::query()->create([
+            'name' => 'Root A',
+            'slug' => 'root-a',
+            'status' => 'draft',
+        ]);
+        $child = Category::query()->create([
+            'name' => 'Child B',
+            'slug' => 'child-b',
+            'parent_id' => $root->id,
+            'status' => 'draft',
+        ]);
+        Category::query()->create([
+            'name' => 'Grandchild C',
+            'slug' => 'grandchild-c',
+            'parent_id' => $child->id,
+            'status' => 'draft',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.taxonomy.categories.index', ['level' => 'all', 'sort' => 'name', 'order' => 'asc']))
+            ->assertOk()
+            ->assertSeeInOrder(['Root A', 'Child B', 'Grandchild C']);
     }
 
     public function test_index_supports_search_and_status_filter(): void

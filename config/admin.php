@@ -55,16 +55,8 @@ return [
                     'module' => 'taxonomy',
                     'children' => [
                         [
-                            'label' => 'Hauptkategorien',
+                            'label' => 'Verwaltung',
                             'route' => 'admin.taxonomy.categories.index',
-                            'params' => ['level' => 'root'],
-                            'active' => 'admin.taxonomy.categories.*',
-                            'module' => 'taxonomy',
-                        ],
-                        [
-                            'label' => 'Unterkategorien',
-                            'route' => 'admin.taxonomy.categories.index',
-                            'params' => ['level' => 'child'],
                             'active' => 'admin.taxonomy.categories.*',
                             'module' => 'taxonomy',
                         ],

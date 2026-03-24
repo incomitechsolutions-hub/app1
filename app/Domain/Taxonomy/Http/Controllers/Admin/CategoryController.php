@@ -7,6 +7,7 @@ use App\Domain\Localization\Services\DefaultLocaleTranslationSync;
 use App\Domain\Taxonomy\Http\Requests\Admin\StoreCategoryRequest;
 use App\Domain\Taxonomy\Http\Requests\Admin\UpdateCategoryRequest;
 use App\Domain\Taxonomy\Models\Category;
+use App\Domain\Taxonomy\Services\CategoryAdminTreeService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,8 @@ use Illuminate\View\View;
 class CategoryController extends Controller
 {
     public function __construct(
-        private readonly DefaultLocaleTranslationSync $translationSync
+        private readonly DefaultLocaleTranslationSync $translationSync,
+        private readonly CategoryAdminTreeService $categoryTree,
     ) {}
 
     public function index(Request $request): View
@@ -26,44 +28,15 @@ class CategoryController extends Controller
         $sort = $this->resolveSort($request);
         $order = $this->resolveOrder($request);
 
-        $query = Category::query()
-            ->with('parent')
-            ->withCount(['children', 'courses'])
-            ->when($search !== '', function ($builder) use ($search) {
-                $builder->where(function ($inner) use ($search): void {
-                    $inner
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhere('slug', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
-                });
-            });
-
-        if ($level === 'root') {
-            $query->whereNull('parent_id');
-        } elseif ($level === 'child') {
-            $query->whereNotNull('parent_id');
-        }
-
-        if ($status !== '') {
-            $query->where('status', $status);
-        }
-
-        $query->orderBy($sort, $order);
-        if ($sort !== 'id') {
-            $query->orderBy('id', 'asc');
-        }
-
-        $categories = $query->paginate(20)->withQueryString();
-        $depthMap = $this->buildDepthMap();
+        $treeRows = $this->categoryTree->buildIndexRows($level, $status, $search, $sort, $order);
 
         return view('admin.categories.index', [
-            'categories' => $categories,
+            'treeRows' => $treeRows,
             'level' => $level,
             'status' => $status,
             'search' => $search,
             'sort' => $sort,
             'order' => $order,
-            'depthMap' => $depthMap,
             'stats' => [
                 'all' => Category::query()->count(),
                 'root' => Category::query()->whereNull('parent_id')->count(),
@@ -168,38 +141,5 @@ class CategoryController extends Controller
     private function resolveOrder(Request $request): string
     {
         return strtolower((string) $request->query('order', 'asc')) === 'desc' ? 'desc' : 'asc';
-    }
-
-    /**
-     * @return array<int, int>
-     */
-    private function buildDepthMap(): array
-    {
-        /** @var array<int, int|null> $parents */
-        $parents = Category::query()->pluck('parent_id', 'id')->map(
-            static fn ($parent) => $parent === null ? null : (int) $parent
-        )->all();
-
-        $depthMap = [];
-
-        foreach ($parents as $id => $parentId) {
-            $depth = 0;
-            $cursor = $parentId;
-            $visited = [(int) $id => true];
-
-            while ($cursor !== null && isset($parents[$cursor])) {
-                if (isset($visited[$cursor])) {
-                    break;
-                }
-
-                $visited[$cursor] = true;
-                $depth++;
-                $cursor = $parents[$cursor];
-            }
-
-            $depthMap[(int) $id] = $depth;
-        }
-
-        return $depthMap;
     }
 }
