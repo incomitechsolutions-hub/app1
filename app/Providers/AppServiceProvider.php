@@ -24,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Course::class, CoursePolicy::class);
+        Gate::define('manage-modules', fn () => true);
 
         Route::bind('course', function (string $value): Course {
             return Course::query()->withTrashed()->whereKey($value)->firstOrFail();

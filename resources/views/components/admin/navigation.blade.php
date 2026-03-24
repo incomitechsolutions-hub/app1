@@ -1,5 +1,39 @@
 @php
-    $groups = config('admin.navigation', []);
+    $registry = app(\App\Services\Admin\ModuleRegistry::class);
+    $groups = [];
+
+    foreach (config('admin.navigation', []) as $group) {
+        $items = [];
+
+        foreach ($group['items'] as $item) {
+            if (isset($item['module']) && ! $registry->isEnabled($item['module'])) {
+                continue;
+            }
+
+            if (!empty($item['children'])) {
+                $children = [];
+
+                foreach ($item['children'] as $child) {
+                    if (isset($child['module']) && ! $registry->isEnabled($child['module'])) {
+                        continue;
+                    }
+
+                    $children[] = $child;
+                }
+
+                $item['children'] = $children;
+            }
+
+            $items[] = $item;
+        }
+
+        if ($items === []) {
+            continue;
+        }
+
+        $group['items'] = $items;
+        $groups[] = $group;
+    }
 @endphp
 
 <nav class="space-y-7 text-sm no-scrollbar" aria-label="{{ __('Admin navigation') }}">

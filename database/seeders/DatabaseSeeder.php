@@ -15,6 +15,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(ModuleStateSeeder::class);
+
         DefaultAdminSeeding::seed();
 
         Category::query()->firstOrCreate(

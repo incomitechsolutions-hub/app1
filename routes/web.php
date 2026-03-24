@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,6 +11,9 @@ Route::get('/', function () {
 
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('modules', [ModuleController::class, 'index'])->name('modules.index');
+    Route::patch('modules/{moduleKey}', [ModuleController::class, 'update'])->name('modules.update');
+    Route::post('modules/{moduleKey}', [ModuleController::class, 'update'])->name('modules.update.post');
 });
 
 Route::middleware('guest')->group(function () {
