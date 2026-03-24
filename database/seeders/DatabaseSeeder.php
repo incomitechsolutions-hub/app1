@@ -17,6 +17,9 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(ModuleStateSeeder::class);
 
+        $this->call(LocaleSeeder::class);
+        $this->call(MarketSeeder::class);
+
         DefaultAdminSeeding::seed();
 
         Category::query()->firstOrCreate(
@@ -51,5 +54,7 @@ class DatabaseSeeder extends Seeder
                 'description' => null,
             ]
         );
+
+        $this->call(TranslationBackfillSeeder::class);
     }
 }

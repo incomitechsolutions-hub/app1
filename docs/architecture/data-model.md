@@ -13,12 +13,13 @@ Define the relational data model for the Laravel-based SEO training platform.
 ## Core Entity Groups
 1. Core Content
 2. Taxonomy
-3. Page Management
-4. SEO Layer
-5. Locations
-6. Media
-7. Leads / Inquiries
-8. Future Operations
+3. Localization (locales, markets, per-entity translations)
+4. Page Management
+5. SEO Layer
+6. Locations
+7. Media
+8. Leads / Inquiries
+9. Future Operations
 
 ## Core Content
 
@@ -38,6 +39,22 @@ Fields:
 - created_at
 - updated_at
 - published_at
+
+### course_translations
+Per-locale titles and slugs for courses (aligned with default locale `de` on `courses` via sync).
+
+Fields:
+- id
+- course_id
+- locale_id
+- title
+- slug
+- short_description
+- long_description
+- created_at
+- updated_at
+
+Unique: `(course_id, locale_id)`, `(locale_id, slug)` where applicable.
 
 ### course_modules
 - id
@@ -77,6 +94,21 @@ Fields:
 - created_at
 - updated_at
 
+### category_translations
+Per-locale names and slugs for categories (aligned with default locale `de` on `categories` via sync).
+
+Fields:
+- id
+- category_id
+- locale_id
+- name
+- slug
+- description
+- created_at
+- updated_at
+
+Unique: `(category_id, locale_id)`, `(locale_id, slug)` where applicable.
+
 ### tags
 - id
 - name
@@ -111,6 +143,37 @@ Fields:
 ### course_audiences
 - course_id
 - audience_id
+
+## Localization
+
+### locales
+Content languages (BCP 47 style codes, e.g. `de`, `en`).
+
+Fields:
+- id
+- code
+- name
+- is_active
+- sort_order
+- created_at
+- updated_at
+
+### markets
+Country / domain configuration (VAT, default locale, optional flag media).
+
+Fields:
+- id
+- label
+- country_code (nullable ISO 3166-1 alpha-2 where applicable)
+- display_code
+- domain
+- vat_rate (decimal)
+- is_active
+- default_locale_id (FK → locales)
+- flag_media_asset_id (nullable FK → media_assets)
+- sort_order
+- created_at
+- updated_at
 
 ## Page Management
 
@@ -152,6 +215,8 @@ Fields:
 ## SEO Layer
 
 ### seo_meta
+Polymorphic SEO metadata per content owner (`owner_type` / `owner_id`).
+
 - id
 - owner_type
 - owner_id

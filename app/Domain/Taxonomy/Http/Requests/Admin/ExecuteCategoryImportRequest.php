@@ -12,6 +12,14 @@ class ExecuteCategoryImportRequest extends FormRequest
         return $this->user() !== null;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $code = $this->input('import_locale_code');
+        if ($code === '' || $code === null) {
+            $this->merge(['import_locale_code' => null]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -28,6 +36,7 @@ class ExecuteCategoryImportRequest extends FormRequest
             'mapping.status' => ['nullable', 'string'],
             'fallback_status' => ['required', 'string', Rule::in(['draft', 'published', 'archived'])],
             'duplicate_strategy' => ['required', 'string', Rule::in(['skip', 'update', 'fail'])],
+            'import_locale_code' => ['nullable', 'string', 'max:16', Rule::exists('locales', 'code')],
         ];
     }
 }

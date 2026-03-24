@@ -32,4 +32,9 @@ class Category extends Model
     {
         return $this->belongsToMany(Course::class, 'course_categories');
     }
+
+    public function translations(): HasMany
+    {
+        return $this->hasMany(CategoryTranslation::class);
+    }
 }

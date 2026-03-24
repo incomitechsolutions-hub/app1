@@ -4,11 +4,16 @@ namespace App\Domain\CourseCatalog\Services;
 
 use App\Domain\CourseCatalog\Enums\CourseStatus;
 use App\Domain\CourseCatalog\Models\Course;
+use App\Domain\Localization\Services\DefaultLocaleTranslationSync;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CourseService
 {
+    public function __construct(
+        private readonly DefaultLocaleTranslationSync $translationSync
+    ) {}
+
     public function create(array $data): Course
     {
         return DB::transaction(function () use ($data) {
@@ -19,6 +24,7 @@ class CourseService
             $this->syncChildren($course, $data);
             $course->refresh();
             $this->assertPublishRules($course);
+            $this->translationSync->syncCourse($course);
 
             return $course->load([
                 'primaryCategory',
@@ -44,6 +50,7 @@ class CourseService
             $this->syncChildren($course, $data);
             $course->refresh();
             $this->assertPublishRules($course);
+            $this->translationSync->syncCourse($course);
 
             return $course->load([
                 'primaryCategory',

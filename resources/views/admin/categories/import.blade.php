@@ -8,6 +8,7 @@
         $mapping = old('mapping', $defaultMapping ?? []);
         $fallbackStatus = old('fallback_status', 'draft');
         $duplicateStrategy = old('duplicate_strategy', 'skip');
+        $importLocaleCode = old('import_locale_code', 'de');
     @endphp
 
     <div class="mx-auto max-w-7xl space-y-6">
@@ -106,6 +107,23 @@
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-slate-700" for="import_locale_code">Import-Sprache (Übersetzungen)</label>
+                        <select id="import_locale_code" name="import_locale_code"
+                            class="w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500">
+                            @forelse ($contentLocales ?? [] as $locale)
+                                <option value="{{ $locale->code }}" @selected($importLocaleCode === $locale->code)>
+                                    {{ $locale->name }} ({{ $locale->code }})
+                                </option>
+                            @empty
+                                <option value="de" @selected($importLocaleCode === 'de')>Deutsch (de)</option>
+                            @endforelse
+                        </select>
+                        <p class="mt-1 text-xs text-slate-500">Name, Slug und Beschreibung werden für diese Locale in <code class="rounded bg-slate-100 px-1">category_translations</code> gespeichert (sofern die Sprache in der Verwaltung aktiv ist).</p>
+                        @error('import_locale_code')
+                            <p class="mt-1 text-xs text-rose-600">{{ $message }}</p>
+                        @enderror
+                    </div>
                     <div>
                         <label class="mb-1 block text-sm font-medium text-slate-700" for="fallback_status">Fallback-Status</label>
                         <select id="fallback_status" name="fallback_status"

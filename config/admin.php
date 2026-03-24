@@ -142,9 +142,15 @@ return [
                         ],
                         [
                             'label' => 'Länder',
-                            'route' => 'admin.locations.index',
-                            'active' => 'admin.locations.*',
-                            'module' => 'locations',
+                            'route' => 'admin.localization.markets.index',
+                            'active' => 'admin.localization.markets.*',
+                            'module' => 'localization',
+                        ],
+                        [
+                            'label' => 'Sprachen',
+                            'route' => 'admin.localization.locales.index',
+                            'active' => 'admin.localization.locales.*',
+                            'module' => 'localization',
                         ],
                     ],
                 ],

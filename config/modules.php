@@ -46,4 +46,9 @@ return [
         'version' => '1.0.0',
         'description' => 'Benutzer- und Zugriffsverwaltung.',
     ],
+    'localization' => [
+        'name' => 'Lokalisierung',
+        'version' => '1.0.0',
+        'description' => 'Märkte (Länder/Domains), Sprachen und Übersetzungen.',
+    ],
 ];

@@ -2,7 +2,9 @@
 
 namespace App\Domain\Taxonomy\Services;
 
+use App\Domain\Localization\Models\Locale;
 use App\Domain\Taxonomy\Models\Category;
+use App\Domain\Taxonomy\Models\CategoryTranslation;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -69,6 +71,8 @@ class CategoryCsvImportService
         $mapping = $this->normalizeMapping($payload['mapping'] ?? []);
         $fallbackStatus = (string) $payload['fallback_status'];
         $duplicateStrategy = (string) $payload['duplicate_strategy'];
+        $importLocaleCode = (string) ($payload['import_locale_code'] ?? 'de');
+        $localeId = Locale::query()->where('code', $importLocaleCode)->value('id');
         $rows = $this->readCsv(Storage::disk('local')->path((string) $preview['path']), (string) $preview['delimiter']);
         $dataRows = (bool) $preview['has_header'] ? array_slice($rows, 1) : $rows;
         $maxColumns = $this->maxColumns($rows);
@@ -89,6 +93,7 @@ class CategoryCsvImportService
             $mapping,
             $fallbackStatus,
             $duplicateStrategy,
+            $localeId,
             $preview,
             &$summary,
             &$errors
@@ -161,6 +166,20 @@ class CategoryCsvImportService
                 } else {
                     $category = Category::query()->create(array_merge($attributes, ['parent_id' => null]));
                     $summary['created']++;
+                }
+
+                if ($localeId !== null) {
+                    CategoryTranslation::query()->updateOrCreate(
+                        [
+                            'category_id' => $category->id,
+                            'locale_id' => $localeId,
+                        ],
+                        [
+                            'name' => $name,
+                            'slug' => $slug,
+                            'description' => $description !== '' ? $description : null,
+                        ]
+                    );
                 }
 
                 if (! $parentFieldMapped) {

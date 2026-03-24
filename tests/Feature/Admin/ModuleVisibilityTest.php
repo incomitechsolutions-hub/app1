@@ -41,6 +41,22 @@ class ModuleVisibilityTest extends TestCase
             ->assertDontSee('Kursverwaltung');
     }
 
+    public function test_disabled_localization_module_hides_markets_and_locales_navigation_entries(): void
+    {
+        $user = User::factory()->create();
+
+        ModuleState::query()->updateOrCreate(
+            ['module_key' => 'localization'],
+            ['enabled' => false]
+        );
+
+        $this->actingAs($user)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee('Länder')
+            ->assertDontSee('Sprachen');
+    }
+
     public function test_disabled_taxonomy_module_hides_categories_navigation_entries(): void
     {
         $user = User::factory()->create();

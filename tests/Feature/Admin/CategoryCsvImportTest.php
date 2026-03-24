@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Domain\Localization\Models\Locale;
 use App\Domain\Taxonomy\Models\Category;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -88,6 +89,45 @@ CSV);
             'name' => 'Neu Name',
             'slug' => 'update-slug',
             'status' => 'archived',
+        ]);
+    }
+
+    public function test_csv_import_persists_category_translations_for_import_locale(): void
+    {
+        Locale::query()->firstOrCreate(
+            ['code' => 'de'],
+            ['name' => 'Deutsch', 'is_active' => true, 'sort_order' => 10]
+        );
+
+        $user = User::factory()->create();
+        $token = $this->previewCsv($user, <<<CSV
+name;slug;status
+CSV Import;csv-import-locale;published
+CSV);
+
+        $this->actingAs($user)->post(route('admin.taxonomy.categories.import.execute'), [
+            'upload_token' => $token,
+            'mapping' => [
+                'name' => '0',
+                'slug' => '1',
+                'status' => '2',
+                'description' => '',
+                'parent_id' => '',
+                'parent_slug' => '',
+            ],
+            'fallback_status' => 'draft',
+            'duplicate_strategy' => 'skip',
+            'import_locale_code' => 'de',
+        ])->assertRedirect(route('admin.taxonomy.categories.import'));
+
+        $category = Category::query()->where('slug', 'csv-import-locale')->first();
+        $this->assertNotNull($category);
+        $localeId = Locale::query()->where('code', 'de')->value('id');
+        $this->assertDatabaseHas('category_translations', [
+            'category_id' => $category->id,
+            'locale_id' => $localeId,
+            'name' => 'CSV Import',
+            'slug' => 'csv-import-locale',
         ]);
     }
 

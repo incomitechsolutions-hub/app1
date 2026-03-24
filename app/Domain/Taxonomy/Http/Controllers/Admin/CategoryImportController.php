@@ -2,6 +2,7 @@
 
 namespace App\Domain\Taxonomy\Http\Controllers\Admin;
 
+use App\Domain\Localization\Models\Locale;
 use App\Domain\Taxonomy\Http\Requests\Admin\ExecuteCategoryImportRequest;
 use App\Domain\Taxonomy\Http\Requests\Admin\PreviewCategoryImportRequest;
 use App\Domain\Taxonomy\Services\CategoryCsvImportService;
@@ -24,6 +25,7 @@ class CategoryImportController extends Controller
             'preview' => is_array($preview) ? $preview : null,
             'result' => is_array($result) ? $result : null,
             'defaultMapping' => $this->buildDefaultMapping(is_array($preview) ? ($preview['headers'] ?? []) : []),
+            'contentLocales' => Locale::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(),
         ]);
     }
 

@@ -3,6 +3,7 @@
 namespace App\Domain\Taxonomy\Http\Controllers\Admin;
 
 use App\Domain\CourseCatalog\Models\Course;
+use App\Domain\Localization\Services\DefaultLocaleTranslationSync;
 use App\Domain\Taxonomy\Http\Requests\Admin\StoreCategoryRequest;
 use App\Domain\Taxonomy\Http\Requests\Admin\UpdateCategoryRequest;
 use App\Domain\Taxonomy\Models\Category;
@@ -13,6 +14,10 @@ use Illuminate\View\View;
 
 class CategoryController extends Controller
 {
+    public function __construct(
+        private readonly DefaultLocaleTranslationSync $translationSync
+    ) {}
+
     public function index(Request $request): View
     {
         $level = $this->resolveLevel($request);
@@ -79,7 +84,8 @@ class CategoryController extends Controller
 
     public function store(StoreCategoryRequest $request): RedirectResponse
     {
-        Category::query()->create($request->validated());
+        $category = Category::query()->create($request->validated());
+        $this->translationSync->syncCategory($category);
 
         return redirect()
             ->route('admin.taxonomy.categories.index')
@@ -100,6 +106,7 @@ class CategoryController extends Controller
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
         $category->update($request->validated());
+        $this->translationSync->syncCategory($category->fresh());
 
         return redirect()
             ->route('admin.taxonomy.categories.index')

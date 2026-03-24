@@ -12,4 +12,5 @@ return [
     App\Domain\Media\MediaServiceProvider::class,
     App\Domain\Inquiries\InquiriesServiceProvider::class,
     App\Domain\Identity\IdentityServiceProvider::class,
+    App\Domain\Localization\LocalizationServiceProvider::class,
 ];
