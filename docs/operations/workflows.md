@@ -66,3 +66,34 @@ Content becomes publicly available and eligible for sitemap output if indexable.
 ## 8. Future Operations Workflow
 Later extension:
 Lead -> qualification -> proposal -> trainer assignment -> delivery -> feedback
+
+## 9. Category CSV Import (Admin)
+
+### Purpose
+Bulk create or update categories from a CSV file (taxonomy module).
+
+### Data written
+- **`categories`**: name, slug, description, status (and parent resolution when mapped).
+- **`category_translations`**: only when a matching row exists in **`locales`** for the selected import language (e.g. `de`). If you only see rows in `categories`, ensure migrations ran and **`LocaleSeeder`** (or equivalent) created the locale codes you use.
+
+### Required deployment steps
+1. Run migrations: `php artisan migrate`
+2. Seed locales at least once: `php artisan db:seed --class=LocaleSeeder` (or full `DatabaseSeeder` as per your process)
+
+### Multi-server / load-balanced environments
+The import uses two steps:
+
+1. **Preview** stores the uploaded file under **`storage/app/private/imports/categories`** (local disk) and stores preview metadata in the **application cache** (keyed by token).
+2. **Execute** reads the same file path and cache entry.
+
+If preview and execute hit **different PHP nodes**, the file may exist only on one server and the import fails or reads zero rows. Mitigations:
+
+- **Shared storage**: mount the same `storage/app/private` (or whole `storage`) on all app servers, **or**
+- **Sticky sessions** so preview and execute stay on the same node, **and**
+- **Shared cache** (`CACHE_STORE=database`, `redis`, etc.) so the preview token resolves on every node.
+
+Also ensure the **cache** table or Redis is available if using those drivers.
+
+### Operational checks
+- After import, use the on-screen **Import-Ergebnis** (totals, errors list).
+- For “nothing written”, verify: delimiter/encoding, slug rules (ASCII slug), duplicate strategy (skip vs update), and Laravel log under `storage/logs/laravel.log`.

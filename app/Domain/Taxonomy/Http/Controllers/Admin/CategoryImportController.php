@@ -9,6 +9,7 @@ use App\Domain\Taxonomy\Services\CategoryCsvImportService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -25,7 +26,9 @@ class CategoryImportController extends Controller
             'preview' => is_array($preview) ? $preview : null,
             'result' => is_array($result) ? $result : null,
             'defaultMapping' => $this->buildDefaultMapping(is_array($preview) ? ($preview['headers'] ?? []) : []),
-            'contentLocales' => Locale::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(),
+            'contentLocales' => Schema::hasTable('locales')
+                ? Locale::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get()
+                : collect(),
         ]);
     }
 

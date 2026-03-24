@@ -15,7 +15,7 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-slate-900">Kategorie CSV-Import</h1>
-                <p class="mt-1 text-sm text-slate-500">CSV hochladen, Felder mappen und Importstrategie im Dialog wählen.</p>
+                <p class="mt-1 text-sm text-slate-500">CSV hochladen, Felder mappen und Importstrategie im Dialog wählen. Bei mehreren App-Servern müssen Vorschau und Import dieselbe Datei und denselben Cache sehen (siehe Dokumentation).</p>
             </div>
             <a href="{{ route('admin.taxonomy.categories.index') }}"
                 class="inline-flex items-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
@@ -23,9 +23,14 @@
             </a>
         </div>
 
-        @if ($errors->has('import') || $errors->has('upload_token') || $errors->has('mapping'))
-            <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                {{ $errors->first('import') ?: $errors->first('upload_token') ?: $errors->first('mapping') }}
+        @if ($errors->any())
+            <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+                <p class="font-medium text-rose-900">Bitte Eingaben prüfen:</p>
+                <ul class="mt-2 list-disc space-y-1 pl-5">
+                    @foreach ($errors->all() as $message)
+                        <li>{{ $message }}</li>
+                    @endforeach
+                </ul>
             </div>
         @endif
 
@@ -208,8 +213,28 @@
         @endif
 
         @if ($result)
+            @php
+                $sum = $result['summary'];
+                $errCount = count($result['errors'] ?? []);
+                $written = ($sum['created'] ?? 0) + ($sum['updated'] ?? 0);
+                $total = (int) ($sum['total_rows'] ?? 0);
+                $skipped = (int) ($sum['skipped'] ?? 0);
+            @endphp
             <div class="admin-panel space-y-3 p-5">
                 <h2 class="text-lg font-semibold text-slate-900">Import-Ergebnis</h2>
+                @if ($total > 0 && $written === 0 && $errCount === 0 && $skipped === $total)
+                    <p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                        Alle Zeilen wurden übersprungen (Duplikat-Strategie „Überspringen“ und bestehende Slugs). Zum Aktualisieren vorhandener Kategorien die Strategie „Aktualisieren“ wählen.
+                    </p>
+                @elseif ($total > 0 && $errCount > 0)
+                    <p class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                        Häufige Ursachen: Slug nur <span class="font-mono">a-z</span>, Ziffern und Bindestriche (keine Leerzeichen/Umlaute); Status muss <span class="font-mono">draft</span>, <span class="font-mono">published</span> oder <span class="font-mono">archived</span> sein.
+                    </p>
+                @elseif ($written > 0)
+                    <p class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                        Stammdaten liegen in <span class="font-mono">categories</span>. Einträge in <span class="font-mono">category_translations</span> erscheinen nur, wenn die gewählte Sprache in der Verwaltung existiert (z.&nbsp;B. Locale <span class="font-mono">de</span> per Migration/Seeder).
+                    </p>
+                @endif
                 <div class="grid grid-cols-2 gap-3 text-sm md:grid-cols-5">
                     <div class="rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">Gesamt</span><p class="font-semibold text-slate-900">{{ $result['summary']['total_rows'] }}</p></div>
                     <div class="rounded-lg bg-emerald-50 px-3 py-2"><span class="text-emerald-700">Neu</span><p class="font-semibold text-emerald-900">{{ $result['summary']['created'] }}</p></div>

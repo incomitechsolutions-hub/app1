@@ -77,6 +77,13 @@ class CategoryCsvImportService
         $dataRows = (bool) $preview['has_header'] ? array_slice($rows, 1) : $rows;
         $maxColumns = $this->maxColumns($rows);
 
+        $previewRowCount = (int) ($preview['row_count'] ?? 0);
+        if ($previewRowCount > 0 && $dataRows === []) {
+            throw ValidationException::withMessages([
+                'import' => __('Beim Einlesen wurden keine Datenzeilen gefunden (Vorschau: :count Zeilen). Prüfen Sie das Trennzeichen, UTF-8/Encoding und ob die CSV-Datei auf demselben Anwendungsserver liegt wie bei der Vorschau (bei mehreren Servern gemeinsames Storage oder Sticky Sessions).', ['count' => $previewRowCount]),
+            ]);
+        }
+
         $this->assertRequiredMapping($mapping, $maxColumns);
 
         $summary = [

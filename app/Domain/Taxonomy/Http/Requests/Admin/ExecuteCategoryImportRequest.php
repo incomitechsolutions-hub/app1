@@ -18,6 +18,11 @@ class ExecuteCategoryImportRequest extends FormRequest
         if ($code === '' || $code === null) {
             $this->merge(['import_locale_code' => null]);
         }
+
+        $strategy = $this->input('duplicate_strategy');
+        if (! is_string($strategy) || ! in_array($strategy, ['skip', 'update', 'fail'], true)) {
+            $this->merge(['duplicate_strategy' => 'skip']);
+        }
     }
 
     /**

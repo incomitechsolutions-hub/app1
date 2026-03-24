@@ -13,6 +13,38 @@ class CategoryCsvImportTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_csv_import_defaults_duplicate_strategy_to_skip_when_missing(): void
+    {
+        $user = User::factory()->create();
+        $token = $this->previewCsv($user, <<<CSV
+name;slug;status
+Ohne Strategie;ohne-strategie-feld;draft
+CSV);
+
+        $payload = [
+            'upload_token' => $token,
+            'mapping' => [
+                'name' => '0',
+                'slug' => '1',
+                'status' => '2',
+                'description' => '',
+                'parent_id' => '',
+                'parent_slug' => '',
+            ],
+            'fallback_status' => 'draft',
+        ];
+
+        $this->actingAs($user)
+            ->post(route('admin.taxonomy.categories.import.execute'), $payload)
+            ->assertRedirect(route('admin.taxonomy.categories.import'));
+
+        $this->assertDatabaseHas('categories', [
+            'name' => 'Ohne Strategie',
+            'slug' => 'ohne-strategie-feld',
+            'status' => 'draft',
+        ]);
+    }
+
     public function test_csv_import_skip_strategy_creates_new_and_skips_existing_slug(): void
     {
         $user = User::factory()->create();
