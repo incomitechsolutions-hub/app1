@@ -92,6 +92,17 @@ Unique: `(course_id, locale_id)`, `(locale_id, slug)` where applicable.
 - parent_id
 - sort_order (manual sibling order within the same parent; lower values first)
 - status
+- icon_media_asset_id (nullable FK → `media_assets`, optional category icon)
+- header_media_asset_id (nullable FK → `media_assets`, optional header/hero image)
+- created_at
+- updated_at
+
+### category_taxonomy_settings
+Singleton-style settings row for taxonomy defaults (typically `id = 1`).
+
+Fields:
+- id
+- default_new_category_status (`draft` | `published` | `archived`) — preselect in admin “Neue Kategorie”
 - created_at
 - updated_at
 

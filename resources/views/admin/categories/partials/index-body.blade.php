@@ -112,9 +112,40 @@
     </form>
 
     <div class="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+        <form id="category-bulk-form" method="post" action="{{ route('admin.taxonomy.categories.bulk-update') }}"
+            class="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3">
+            @csrf
+            <input type="hidden" name="level" value="{{ $level }}">
+            <input type="hidden" name="sort" value="{{ $sort }}">
+            <input type="hidden" name="order" value="{{ $order }}">
+            @if ($status !== '')
+                <input type="hidden" name="status" value="{{ $status }}">
+            @endif
+            @if ($search !== '')
+                <input type="hidden" name="search" value="{{ $search }}">
+            @endif
+            <input type="hidden" name="action" value="set_status">
+            <span class="text-sm font-medium text-slate-700">Mehrfachaktion</span>
+            <label class="sr-only" for="bulk-status">Neuer Status</label>
+            <select id="bulk-status" name="bulk_status"
+                class="rounded-lg border-slate-300 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500">
+                <option value="draft">Entwurf</option>
+                <option value="published" selected>Veröffentlicht</option>
+                <option value="archived">Archiviert</option>
+            </select>
+            <button type="submit"
+                class="inline-flex items-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+                Anwenden
+            </button>
+        </form>
         <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50/80">
                 <tr>
+                    <th class="w-10 px-2 py-3 text-left font-medium text-slate-700" scope="col">
+                        <input type="checkbox" form="category-bulk-form"
+                            class="js-category-select-all rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                            data-row-action aria-label="Alle sichtbaren Kategorien auswählen">
+                    </th>
                     <th class="px-4 py-3 text-left font-medium text-slate-700">
                         <a href="{{ $sortUrl('id') }}" class="js-category-ajax inline-flex items-center gap-1 hover:text-slate-900">
                             ID
@@ -161,6 +192,11 @@
                     ])
                         data-edit-url="{{ route('admin.taxonomy.categories.edit', $category) }}"
                         title="Zeile anklicken zum Bearbeiten">
+                        <td class="px-2 py-3 align-middle" data-row-action>
+                            <input type="checkbox" form="category-bulk-form" name="ids[]" value="{{ $category->id }}"
+                                class="js-category-row-checkbox rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                data-row-action aria-label="Kategorie {{ $category->name }} auswählen">
+                        </td>
                         <td class="px-4 py-3 text-slate-500">{{ $category->id }}</td>
                         <td class="px-4 py-3">
                             <div class="flex min-w-0 items-start gap-2">
@@ -236,7 +272,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-slate-500">Keine Kategorien für den aktuellen Filter gefunden.</td>
+                        <td colspan="9" class="px-4 py-8 text-center text-slate-500">Keine Kategorien für den aktuellen Filter gefunden.</td>
                     </tr>
                 @endforelse
             </tbody>

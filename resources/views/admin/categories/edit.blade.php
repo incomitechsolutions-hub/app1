@@ -13,10 +13,29 @@
             </a>
         </div>
 
-        <form method="post" action="{{ route('admin.taxonomy.categories.update', $category) }}" class="space-y-6">
+        <form method="post" action="{{ route('admin.taxonomy.categories.update', $category) }}" enctype="multipart/form-data" class="space-y-6"
+            x-data="{ tab: 'details' }">
             @csrf
             @method('PUT')
-            @include('admin.categories._form', ['category' => $category, 'parentPickerOptions' => $parentPickerOptions])
+            <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-1">
+                <button type="button" @click="tab = 'details'"
+                    :class="tab === 'details' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                    class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold transition">
+                    Details
+                </button>
+                <button type="button" @click="tab = 'media'"
+                    :class="tab === 'media' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                    class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold transition">
+                    Medien
+                </button>
+            </div>
+
+            <div x-show="tab === 'details'">
+                @include('admin.categories._form', ['category' => $category, 'parentPickerOptions' => $parentPickerOptions])
+            </div>
+            <div x-show="tab === 'media'" x-cloak>
+                @include('admin.categories._form_media', ['mediaAssets' => $mediaAssets, 'category' => $category])
+            </div>
 
             <div class="flex flex-wrap items-center justify-end gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm md:px-6">
                 <a href="{{ route('admin.taxonomy.categories.index') }}"

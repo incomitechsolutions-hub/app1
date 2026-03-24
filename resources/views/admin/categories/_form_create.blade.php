@@ -1,7 +1,6 @@
 @php
     $descOld = (string) old('description', '');
-    $statusOld = (string) old('status', 'draft');
-    $isPublished = $statusOld === 'published';
+    $selectedStatus = (string) old('status', $defaultNewCategoryStatus ?? 'draft');
 @endphp
 
 <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
@@ -45,19 +44,14 @@
         ])
 
         <div class="md:col-span-2">
-            <span class="mb-1 block text-sm font-medium text-slate-700">Status</span>
-            <div x-data="{ active: @json($isPublished) }" class="flex items-center gap-3">
-                <input type="hidden" name="status" :value="active ? 'published' : 'draft'">
-                <button type="button" role="switch" :aria-checked="active"
-                    @click="active = !active"
-                    :class="active ? 'bg-sky-600' : 'bg-slate-200'"
-                    class="relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
-                    <span :class="active ? 'translate-x-5' : 'translate-x-0'"
-                        class="pointer-events-none inline-block h-6 w-6 translate-x-0.5 transform rounded-full bg-white shadow ring-0 transition"></span>
-                </button>
-                <span class="text-sm font-medium text-slate-700">Aktiv</span>
-            </div>
-            <p class="mt-1 text-xs text-slate-500">Aktiv = veröffentlicht sichtbar, inaktiv = Entwurf.</p>
+            <label for="status" class="mb-1 block text-sm font-medium text-slate-700">Status *</label>
+            <select id="status" name="status" required
+                class="w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500">
+                <option value="draft" @selected($selectedStatus === 'draft')>Entwurf</option>
+                <option value="published" @selected($selectedStatus === 'published')>Veröffentlicht</option>
+                <option value="archived" @selected($selectedStatus === 'archived')>Archiviert</option>
+            </select>
+            <p class="mt-1 text-xs text-slate-500">Entwurf = intern, Veröffentlicht = aktiv sichtbar, Archiviert = inaktiv.</p>
             @error('status')
                 <p class="mt-1 text-xs text-rose-600">{{ $message }}</p>
             @enderror

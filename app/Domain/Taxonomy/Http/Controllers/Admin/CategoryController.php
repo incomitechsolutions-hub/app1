@@ -4,14 +4,19 @@ namespace App\Domain\Taxonomy\Http\Controllers\Admin;
 
 use App\Domain\CourseCatalog\Models\Course;
 use App\Domain\Localization\Services\DefaultLocaleTranslationSync;
+use App\Domain\Media\Models\MediaAsset;
+use App\Domain\Media\Services\MediaStorageService;
+use App\Domain\Taxonomy\Http\Requests\Admin\BulkUpdateCategoriesRequest;
 use App\Domain\Taxonomy\Http\Requests\Admin\StoreCategoryRequest;
 use App\Domain\Taxonomy\Http\Requests\Admin\UpdateCategoryRequest;
 use App\Domain\Taxonomy\Models\Category;
+use App\Domain\Taxonomy\Models\CategoryTaxonomySetting;
 use App\Domain\Taxonomy\Services\CategoryAdminTreeService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class CategoryController extends Controller
@@ -19,6 +24,7 @@ class CategoryController extends Controller
     public function __construct(
         private readonly DefaultLocaleTranslationSync $translationSync,
         private readonly CategoryAdminTreeService $categoryTree,
+        private readonly MediaStorageService $mediaStorage,
     ) {}
 
     public function index(Request $request): View
@@ -30,6 +36,29 @@ class CategoryController extends Controller
         }
 
         return view('admin.categories.index', $data);
+    }
+
+    public function bulkUpdate(BulkUpdateCategoriesRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+        $ids = $validated['ids'];
+        $status = $validated['bulk_status'];
+
+        DB::transaction(function () use ($ids, $status): void {
+            $categories = Category::query()->whereIn('id', $ids)->get();
+
+            foreach ($categories as $category) {
+                $category->update(['status' => $status]);
+                $this->translationSync->syncCategory($category->fresh());
+            }
+        });
+
+        $query = $request->only(['level', 'status', 'search', 'sort', 'order']);
+        $query = array_filter($query, fn ($v) => $v !== null && $v !== '');
+
+        return redirect()
+            ->route('admin.taxonomy.categories.index', $query)
+            ->with('status', __(':count Kategorien wurden aktualisiert.', ['count' => count($ids)]));
     }
 
     /**
@@ -67,12 +96,16 @@ class CategoryController extends Controller
         return view('admin.categories.create', [
             'parentPickerOptions' => $this->categoryTree->buildParentPickerOptions(null),
             'presetParentId' => is_numeric($presetParentId) ? (int) $presetParentId : null,
+            'mediaAssets' => MediaAsset::query()->orderByDesc('id')->limit(200)->get(),
+            'defaultNewCategoryStatus' => CategoryTaxonomySetting::singleton()->default_new_category_status,
         ]);
     }
 
     public function store(StoreCategoryRequest $request): RedirectResponse
     {
-        $category = Category::query()->create($request->validated());
+        $data = collect($request->validated())->except(['icon_upload', 'header_upload'])->all();
+        $data = $this->applyCategoryMediaUploads($request, $data);
+        $category = Category::query()->create($data);
         $this->translationSync->syncCategory($category);
 
         return redirect()
@@ -83,14 +116,17 @@ class CategoryController extends Controller
     public function edit(Category $category): View
     {
         return view('admin.categories.edit', [
-            'category' => $category,
+            'category' => $category->load(['iconMedia', 'headerMedia']),
             'parentPickerOptions' => $this->categoryTree->buildParentPickerOptions((int) $category->getKey()),
+            'mediaAssets' => MediaAsset::query()->orderByDesc('id')->limit(200)->get(),
         ]);
     }
 
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
-        $category->update($request->validated());
+        $data = collect($request->validated())->except(['icon_upload', 'header_upload'])->all();
+        $data = $this->applyCategoryMediaUploads($request, $data);
+        $category->update($data);
         $this->translationSync->syncCategory($category->fresh());
 
         return redirect()
@@ -171,5 +207,21 @@ class CategoryController extends Controller
     private function resolveOrder(Request $request): string
     {
         return strtolower((string) $request->query('order', 'asc')) === 'desc' ? 'desc' : 'asc';
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function applyCategoryMediaUploads(Request $request, array $data): array
+    {
+        if ($request->hasFile('icon_upload')) {
+            $data['icon_media_asset_id'] = $this->mediaStorage->store($request->file('icon_upload'))->getKey();
+        }
+        if ($request->hasFile('header_upload')) {
+            $data['header_media_asset_id'] = $this->mediaStorage->store($request->file('header_upload'))->getKey();
+        }
+
+        return $data;
     }
 }

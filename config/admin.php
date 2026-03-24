@@ -66,6 +66,12 @@ return [
                             'active' => 'admin.taxonomy.categories.import*',
                             'module' => 'taxonomy',
                         ],
+                        [
+                            'label' => 'Einstellungen',
+                            'route' => 'admin.taxonomy.category-taxonomy-settings.edit',
+                            'active' => 'admin.taxonomy.category-taxonomy-settings.*',
+                            'module' => 'taxonomy',
+                        ],
                     ],
                 ],
                 [

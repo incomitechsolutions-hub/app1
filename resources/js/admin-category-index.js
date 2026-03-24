@@ -69,6 +69,25 @@ function initCategoryIndex() {
     }
 
     root.addEventListener('change', (e) => {
+        if (e.target.classList.contains('js-category-select-all')) {
+            const checked = e.target.checked;
+            swap.querySelectorAll('.js-category-row-checkbox').forEach((cb) => {
+                cb.checked = checked;
+            });
+            e.target.indeterminate = false;
+            return;
+        }
+        if (e.target.classList.contains('js-category-row-checkbox')) {
+            const all = swap.querySelectorAll('.js-category-row-checkbox');
+            const selectAll = swap.querySelector('.js-category-select-all');
+            if (selectAll) {
+                const n = all.length;
+                const checkedCount = [...all].filter((cb) => cb.checked).length;
+                selectAll.checked = n > 0 && checkedCount === n;
+                selectAll.indeterminate = checkedCount > 0 && checkedCount < n;
+            }
+            return;
+        }
         const form = e.target.closest('form.admin-panel');
         if (!form || !swap.contains(e.target)) {
             return;

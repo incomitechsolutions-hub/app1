@@ -3,6 +3,7 @@
 namespace App\Domain\Taxonomy\Models;
 
 use App\Domain\CourseCatalog\Models\Course;
+use App\Domain\Media\Models\MediaAsset;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -24,6 +25,8 @@ class Category extends Model
         'parent_id',
         'sort_order',
         'status',
+        'icon_media_asset_id',
+        'header_media_asset_id',
     ];
 
     public function parent(): BelongsTo
@@ -44,5 +47,15 @@ class Category extends Model
     public function translations(): HasMany
     {
         return $this->hasMany(CategoryTranslation::class);
+    }
+
+    public function iconMedia(): BelongsTo
+    {
+        return $this->belongsTo(MediaAsset::class, 'icon_media_asset_id');
+    }
+
+    public function headerMedia(): BelongsTo
+    {
+        return $this->belongsTo(MediaAsset::class, 'header_media_asset_id');
     }
 }

@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Domain\CourseCatalog\Models\Course;
 use App\Domain\Taxonomy\Models\Category;
+use App\Domain\Taxonomy\Models\CategoryTaxonomySetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -259,6 +260,73 @@ class CategoryManagementTest extends TestCase
             ->assertSee('Entwurf')
             ->assertSee('Veröffentlicht')
             ->assertSee('Archiviert');
+    }
+
+    public function test_bulk_update_sets_status_for_selected_categories(): void
+    {
+        $user = User::factory()->create();
+        $first = Category::query()->create([
+            'name' => 'Bulk One',
+            'slug' => 'bulk-one',
+            'status' => 'draft',
+        ]);
+        $second = Category::query()->create([
+            'name' => 'Bulk Two',
+            'slug' => 'bulk-two',
+            'status' => 'draft',
+        ]);
+
+        $this->actingAs($user)
+            ->from(route('admin.taxonomy.categories.index', [
+                'level' => 'all',
+                'search' => 'bulk',
+            ]))
+            ->post(route('admin.taxonomy.categories.bulk-update'), [
+                'level' => 'all',
+                'search' => 'bulk',
+                'sort' => 'name',
+                'order' => 'asc',
+                'action' => 'set_status',
+                'bulk_status' => 'published',
+                'ids' => [$first->id, $second->id],
+            ])
+            ->assertRedirect(route('admin.taxonomy.categories.index', [
+                'level' => 'all',
+                'search' => 'bulk',
+            ]))
+            ->assertSessionHas('status');
+
+        $this->assertDatabaseHas('categories', ['id' => $first->id, 'status' => 'published']);
+        $this->assertDatabaseHas('categories', ['id' => $second->id, 'status' => 'published']);
+    }
+
+    public function test_taxonomy_settings_page_updates_default_new_category_status(): void
+    {
+        $user = User::factory()->create();
+
+        $this->assertSame('draft', CategoryTaxonomySetting::singleton()->default_new_category_status);
+
+        $this->actingAs($user)
+            ->put(route('admin.taxonomy.category-taxonomy-settings.update'), [
+                'default_new_category_status' => 'published',
+            ])
+            ->assertRedirect(route('admin.taxonomy.category-taxonomy-settings.edit'))
+            ->assertSessionHas('status');
+
+        $this->assertSame('published', CategoryTaxonomySetting::singleton()->fresh()->default_new_category_status);
+    }
+
+    public function test_bulk_update_requires_at_least_one_id(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('admin.taxonomy.categories.bulk-update'), [
+                'action' => 'set_status',
+                'bulk_status' => 'published',
+                'ids' => [],
+            ])
+            ->assertSessionHasErrors('ids');
     }
 
     public function test_category_with_dependencies_cannot_be_deleted(): void
