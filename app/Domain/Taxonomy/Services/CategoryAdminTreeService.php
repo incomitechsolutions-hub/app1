@@ -25,6 +25,113 @@ final class CategoryAdminTreeService
     }
 
     /**
+     * Flat options for parent select: DFS order, dash-indented labels.
+     * When editing, pass the category id to exclude it and its entire subtree.
+     *
+     * @return list<array{id: int, depth: int, name: string, label: string, searchName: string}>
+     */
+    public function buildParentPickerOptions(?int $excludeSubtreeRootId): array
+    {
+        $excludeIds = [];
+        if ($excludeSubtreeRootId !== null) {
+            $excludeIds = array_merge(
+                [$excludeSubtreeRootId],
+                $this->collectDescendantIds($excludeSubtreeRootId)
+            );
+        }
+        $exclude = array_flip($excludeIds);
+
+        $categories = Category::query()
+            ->orderBy('name')
+            ->orderBy('id')
+            ->get(['id', 'name', 'parent_id', 'sort_order']);
+        $categories = $categories->filter(fn (Category $c) => ! isset($exclude[$c->getKey()]));
+
+        /** @var array<int|null, list<Category>> $byParent */
+        $byParent = [];
+
+        foreach ($categories as $category) {
+            $parentKey = $category->parent_id;
+            if (! isset($byParent[$parentKey])) {
+                $byParent[$parentKey] = [];
+            }
+
+            $byParent[$parentKey][] = $category;
+        }
+
+        foreach ($byParent as $key => $siblings) {
+            usort($byParent[$key], fn (Category $a, Category $b): int => $this->comparePickerSiblings($a, $b));
+        }
+
+        $options = [];
+        foreach ($byParent[null] ?? [] as $root) {
+            $this->appendPickerOptions($root, 0, $byParent, $options);
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function collectDescendantIds(int $rootId): array
+    {
+        $ids = [];
+        $queue = [$rootId];
+
+        while ($queue !== []) {
+            $id = array_shift($queue);
+            $childIds = Category::query()->where('parent_id', $id)->pluck('id');
+
+            foreach ($childIds as $childId) {
+                $childId = (int) $childId;
+                $ids[] = $childId;
+                $queue[] = $childId;
+            }
+        }
+
+        return $ids;
+    }
+
+    private function comparePickerSiblings(Category $a, Category $b): int
+    {
+        $so = ($a->sort_order ?? 0) <=> ($b->sort_order ?? 0);
+        if ($so !== 0) {
+            return $so;
+        }
+
+        $nameCmp = strcmp((string) $a->name, (string) $b->name);
+
+        if ($nameCmp !== 0) {
+            return $nameCmp;
+        }
+
+        return $a->getKey() <=> $b->getKey();
+    }
+
+    /**
+     * @param  array<int|null, list<Category>>  $byParent
+     * @param  list<array{id: int, depth: int, name: string, label: string, searchName: string}>  $options
+     */
+    private function appendPickerOptions(Category $node, int $depth, array $byParent, array &$options): void
+    {
+        $prefix = $depth > 0 ? str_repeat('— ', $depth) : '';
+        $label = $prefix.$node->name;
+
+        $options[] = [
+            'id' => (int) $node->getKey(),
+            'depth' => $depth,
+            'name' => (string) $node->name,
+            'label' => $label,
+            'searchName' => mb_strtolower((string) $node->name),
+        ];
+
+        foreach ($byParent[$node->getKey()] ?? [] as $child) {
+            $this->appendPickerOptions($child, $depth + 1, $byParent, $options);
+        }
+    }
+
+    /**
      * @return list<CategoryTreeRow>
      */
     private function buildTreeRows(string $status, string $sort, string $order): array
@@ -139,12 +246,12 @@ final class CategoryAdminTreeService
 
         $cmp = match ($sort) {
             'id' => $a->getKey() <=> $b->getKey(),
-            'name' => strcmp((string) $a->name, (string) $b->name),
+            'name' => $this->compareBySortOrderThenName($a, $b, $order),
             'slug' => strcmp((string) $a->slug, (string) $b->slug),
             'status' => strcmp((string) $a->status, (string) $b->status),
             'children_count' => ($a->children_count ?? 0) <=> ($b->children_count ?? 0),
             'courses_count' => ($a->courses_count ?? 0) <=> ($b->courses_count ?? 0),
-            default => strcmp((string) $a->name, (string) $b->name),
+            default => $this->compareBySortOrderThenName($a, $b, $order),
         };
 
         if ($cmp !== 0) {
@@ -152,6 +259,25 @@ final class CategoryAdminTreeService
         }
 
         return $a->getKey() <=> $b->getKey();
+    }
+
+    /**
+     * Siblings: sort_order ascending, then name per $order.
+     */
+    private function compareBySortOrderThenName(Category $a, Category $b, string $order): int
+    {
+        $so = ($a->sort_order ?? 0) <=> ($b->sort_order ?? 0);
+        if ($so !== 0) {
+            return $so;
+        }
+
+        $nameCmp = strcmp((string) $a->name, (string) $b->name);
+
+        if ($order === 'desc') {
+            return -$nameCmp;
+        }
+
+        return $nameCmp;
     }
 
     /**

@@ -9,6 +9,7 @@ use App\Domain\Taxonomy\Http\Requests\Admin\UpdateCategoryRequest;
 use App\Domain\Taxonomy\Models\Category;
 use App\Domain\Taxonomy\Services\CategoryAdminTreeService;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -22,6 +23,20 @@ class CategoryController extends Controller
 
     public function index(Request $request): View
     {
+        $data = $this->buildIndexViewData($request);
+
+        if ($request->ajax() && $request->boolean('fragment')) {
+            return view('admin.categories.partials.index-body', $data);
+        }
+
+        return view('admin.categories.index', $data);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildIndexViewData(Request $request): array
+    {
         $level = $this->resolveLevel($request);
         $status = $this->resolveStatus($request);
         $search = trim((string) $request->query('search', ''));
@@ -30,7 +45,7 @@ class CategoryController extends Controller
 
         $treeRows = $this->categoryTree->buildIndexRows($level, $status, $search, $sort, $order);
 
-        return view('admin.categories.index', [
+        return [
             'treeRows' => $treeRows,
             'level' => $level,
             'status' => $status,
@@ -42,7 +57,7 @@ class CategoryController extends Controller
                 'root' => Category::query()->whereNull('parent_id')->count(),
                 'child' => Category::query()->whereNotNull('parent_id')->count(),
             ],
-        ]);
+        ];
     }
 
     public function create(Request $request): View
@@ -50,7 +65,7 @@ class CategoryController extends Controller
         $presetParentId = $request->query('parent_id');
 
         return view('admin.categories.create', [
-            'parentOptions' => Category::query()->orderBy('name')->get(['id', 'name']),
+            'parentPickerOptions' => $this->categoryTree->buildParentPickerOptions(null),
             'presetParentId' => is_numeric($presetParentId) ? (int) $presetParentId : null,
         ]);
     }
@@ -69,10 +84,7 @@ class CategoryController extends Controller
     {
         return view('admin.categories.edit', [
             'category' => $category,
-            'parentOptions' => Category::query()
-                ->whereKeyNot($category->getKey())
-                ->orderBy('name')
-                ->get(['id', 'name']),
+            'parentPickerOptions' => $this->categoryTree->buildParentPickerOptions((int) $category->getKey()),
         ]);
     }
 
@@ -86,25 +98,43 @@ class CategoryController extends Controller
             ->with('status', __('Kategorie wurde aktualisiert.'));
     }
 
-    public function destroy(Category $category): RedirectResponse
+    public function destroy(Request $request, Category $category): RedirectResponse|JsonResponse
     {
         if ($category->children()->exists()) {
+            $message = __('Kategorie kann nicht gelöscht werden, solange Unterkategorien existieren.');
+
+            if ($request->ajax()) {
+                return response()->json(['message' => $message], 422);
+            }
+
             return redirect()
                 ->route('admin.taxonomy.categories.index')
-                ->with('status', __('Kategorie kann nicht gelöscht werden, solange Unterkategorien existieren.'));
+                ->with('status', $message);
         }
 
         if ($category->courses()->exists() || Course::query()->where('primary_category_id', $category->getKey())->exists()) {
+            $message = __('Kategorie kann nicht gelöscht werden, solange Kurse zugeordnet sind.');
+
+            if ($request->ajax()) {
+                return response()->json(['message' => $message], 422);
+            }
+
             return redirect()
                 ->route('admin.taxonomy.categories.index')
-                ->with('status', __('Kategorie kann nicht gelöscht werden, solange Kurse zugeordnet sind.'));
+                ->with('status', $message);
         }
 
         $category->delete();
 
+        $success = __('Kategorie wurde gelöscht.');
+
+        if ($request->ajax()) {
+            return response()->json(['message' => $success]);
+        }
+
         return redirect()
             ->route('admin.taxonomy.categories.index')
-            ->with('status', __('Kategorie wurde gelöscht.'));
+            ->with('status', $success);
     }
 
     private function resolveLevel(Request $request): string
