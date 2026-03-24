@@ -1,6 +1,6 @@
 @php
     /** @var \App\Domain\Taxonomy\Models\Category|null $category */
-    $selectedParent = old('parent_id', $category?->parent_id);
+    $selectedParent = old('parent_id', $presetParentId ?? $category?->parent_id);
     $selectedStatus = old('status', $category?->status ?? 'draft');
 @endphp
 
@@ -33,6 +33,7 @@
                 <option value="published" @selected($selectedStatus === 'published')>Veröffentlicht</option>
                 <option value="archived" @selected($selectedStatus === 'archived')>Archiviert</option>
             </select>
+            <p class="mt-1 text-xs text-slate-500">Entwurf = intern, Veröffentlicht = aktiv sichtbar, Archiviert = inaktiv.</p>
             @error('status')
                 <p class="mt-1 text-xs text-rose-600">{{ $message }}</p>
             @enderror
@@ -49,6 +50,9 @@
                     </option>
                 @endforeach
             </select>
+            @if (!empty($presetParentId))
+                <p class="mt-1 text-xs text-slate-500">Unterkategorie-Modus: Parent ist vorausgewählt, kann aber geändert werden.</p>
+            @endif
             @error('parent_id')
                 <p class="mt-1 text-xs text-rose-600">{{ $message }}</p>
             @enderror

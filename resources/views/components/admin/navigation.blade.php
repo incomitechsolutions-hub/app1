@@ -75,7 +75,7 @@
                         @endif>
                         <div class="relative space-y-1">
                             <div class="flex items-center gap-1">
-                                <a href="{{ route($item['route']) }}"
+                                <a href="{{ route($item['route'], $item['params'] ?? []) }}"
                                     @class([
                                         'admin-menu-item group min-w-0 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300',
                                         'admin-menu-item-active' => $isActive || $childActive,
@@ -148,7 +148,7 @@
                                             $isChildActive = request()->routeIs($childPattern);
                                         @endphp
                                         <li>
-                                            <a href="{{ route($childItem['route']) }}"
+                                            <a href="{{ route($childItem['route'], $childItem['params'] ?? []) }}"
                                                 @class([
                                                     'block rounded-lg px-3 py-2 text-xs font-medium transition',
                                                     'bg-slate-100 text-slate-900' => $isChildActive,
@@ -171,7 +171,7 @@
                                             $isChildActive = request()->routeIs($childPattern);
                                         @endphp
                                         <li>
-                                            <a href="{{ route($childItem['route']) }}"
+                                            <a href="{{ route($childItem['route'], $childItem['params'] ?? []) }}"
                                                 @class([
                                                     'block rounded-lg px-3 py-2 text-xs font-medium transition',
                                                     'bg-slate-100 text-slate-900' => $isChildActive,

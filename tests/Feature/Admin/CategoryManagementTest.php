@@ -121,6 +121,104 @@ class CategoryManagementTest extends TestCase
             ->assertDontSee('Hauptkategorie');
     }
 
+    public function test_index_supports_search_and_status_filter(): void
+    {
+        $user = User::factory()->create();
+
+        Category::query()->create([
+            'name' => 'Azure Cloud',
+            'slug' => 'azure-cloud',
+            'status' => 'published',
+        ]);
+        Category::query()->create([
+            'name' => 'Legacy Office',
+            'slug' => 'legacy-office',
+            'status' => 'archived',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.taxonomy.categories.index', [
+                'search' => 'azure',
+                'status' => 'published',
+            ]))
+            ->assertOk()
+            ->assertSee('Azure Cloud')
+            ->assertDontSee('Legacy Office');
+    }
+
+    public function test_index_supports_sorting_by_id_desc(): void
+    {
+        $user = User::factory()->create();
+
+        $first = Category::query()->create([
+            'name' => 'Alpha',
+            'slug' => 'alpha',
+            'status' => 'draft',
+        ]);
+        $second = Category::query()->create([
+            'name' => 'Beta',
+            'slug' => 'beta',
+            'status' => 'draft',
+        ]);
+
+        $this->assertTrue($second->id > $first->id);
+
+        $this->actingAs($user)
+            ->get(route('admin.taxonomy.categories.index', [
+                'sort' => 'id',
+                'order' => 'desc',
+            ]))
+            ->assertOk()
+            ->assertSeeInOrder([
+                (string) $second->id,
+                (string) $first->id,
+            ]);
+    }
+
+    public function test_create_form_can_prefill_parent_for_child_creation(): void
+    {
+        $user = User::factory()->create();
+        $parent = Category::query()->create([
+            'name' => 'Parent Root',
+            'slug' => 'parent-root',
+            'status' => 'draft',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.taxonomy.categories.create', ['parent_id' => $parent->id]))
+            ->assertOk()
+            ->assertSee('Unterkategorie erstellen')
+            ->assertSee('value="'.$parent->id.'" selected', false);
+    }
+
+    public function test_index_renders_status_labels_for_new_model(): void
+    {
+        $user = User::factory()->create();
+
+        Category::query()->create([
+            'name' => 'Draft Cat',
+            'slug' => 'draft-cat',
+            'status' => 'draft',
+        ]);
+        Category::query()->create([
+            'name' => 'Published Cat',
+            'slug' => 'published-cat',
+            'status' => 'published',
+        ]);
+        Category::query()->create([
+            'name' => 'Archived Cat',
+            'slug' => 'archived-cat',
+            'status' => 'archived',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.taxonomy.categories.index'))
+            ->assertOk()
+            ->assertSee('Entwurf')
+            ->assertSee('Veröffentlicht')
+            ->assertSee('Archiviert');
+    }
+
     public function test_category_with_dependencies_cannot_be_deleted(): void
     {
         $user = User::factory()->create();

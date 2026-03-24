@@ -15,16 +15,23 @@ class CategoryController extends Controller
 {
     public function index(Request $request): View
     {
-        $level = (string) $request->query('level', (string) $request->route('level', 'all'));
-
-        if (! in_array($level, ['all', 'root', 'child'], true)) {
-            $level = 'all';
-        }
+        $level = $this->resolveLevel($request);
+        $status = $this->resolveStatus($request);
+        $search = trim((string) $request->query('search', ''));
+        $sort = $this->resolveSort($request);
+        $order = $this->resolveOrder($request);
 
         $query = Category::query()
             ->with('parent')
             ->withCount(['children', 'courses'])
-            ->orderBy('name');
+            ->when($search !== '', function ($builder) use ($search) {
+                $builder->where(function ($inner) use ($search): void {
+                    $inner
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('slug', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
+            });
 
         if ($level === 'root') {
             $query->whereNull('parent_id');
@@ -32,18 +39,41 @@ class CategoryController extends Controller
             $query->whereNotNull('parent_id');
         }
 
+        if ($status !== '') {
+            $query->where('status', $status);
+        }
+
+        $query->orderBy($sort, $order);
+        if ($sort !== 'id') {
+            $query->orderBy('id', 'asc');
+        }
+
         $categories = $query->paginate(20)->withQueryString();
+        $depthMap = $this->buildDepthMap();
 
         return view('admin.categories.index', [
             'categories' => $categories,
             'level' => $level,
+            'status' => $status,
+            'search' => $search,
+            'sort' => $sort,
+            'order' => $order,
+            'depthMap' => $depthMap,
+            'stats' => [
+                'all' => Category::query()->count(),
+                'root' => Category::query()->whereNull('parent_id')->count(),
+                'child' => Category::query()->whereNotNull('parent_id')->count(),
+            ],
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
+        $presetParentId = $request->query('parent_id');
+
         return view('admin.categories.create', [
             'parentOptions' => Category::query()->orderBy('name')->get(['id', 'name']),
+            'presetParentId' => is_numeric($presetParentId) ? (int) $presetParentId : null,
         ]);
     }
 
@@ -95,5 +125,74 @@ class CategoryController extends Controller
         return redirect()
             ->route('admin.taxonomy.categories.index')
             ->with('status', __('Kategorie wurde gelöscht.'));
+    }
+
+    private function resolveLevel(Request $request): string
+    {
+        $level = (string) $request->query('level', (string) $request->route('level', 'all'));
+
+        if (! in_array($level, ['all', 'root', 'child'], true)) {
+            return 'all';
+        }
+
+        return $level;
+    }
+
+    private function resolveStatus(Request $request): string
+    {
+        $status = (string) $request->query('status', '');
+        if ($status === '') {
+            return '';
+        }
+
+        return in_array($status, ['draft', 'published', 'archived'], true) ? $status : '';
+    }
+
+    private function resolveSort(Request $request): string
+    {
+        $sort = (string) $request->query('sort', 'name');
+
+        return match ($sort) {
+            'id', 'name', 'slug', 'status', 'children_count', 'courses_count' => $sort,
+            default => 'name',
+        };
+    }
+
+    private function resolveOrder(Request $request): string
+    {
+        return strtolower((string) $request->query('order', 'asc')) === 'desc' ? 'desc' : 'asc';
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function buildDepthMap(): array
+    {
+        /** @var array<int, int|null> $parents */
+        $parents = Category::query()->pluck('parent_id', 'id')->map(
+            static fn ($parent) => $parent === null ? null : (int) $parent
+        )->all();
+
+        $depthMap = [];
+
+        foreach ($parents as $id => $parentId) {
+            $depth = 0;
+            $cursor = $parentId;
+            $visited = [(int) $id => true];
+
+            while ($cursor !== null && isset($parents[$cursor])) {
+                if (isset($visited[$cursor])) {
+                    break;
+                }
+
+                $visited[$cursor] = true;
+                $depth++;
+                $cursor = $parents[$cursor];
+            }
+
+            $depthMap[(int) $id] = $depth;
+        }
+
+        return $depthMap;
     }
 }

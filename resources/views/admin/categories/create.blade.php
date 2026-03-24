@@ -13,9 +13,19 @@
             </a>
         </div>
 
+        @if ($presetParentId)
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                Unterkategorie erstellen: Parent-Kategorie wurde bereits vorausgewählt.
+            </div>
+        @endif
+
         <form method="post" action="{{ route('admin.taxonomy.categories.store') }}" class="space-y-6">
             @csrf
-            @include('admin.categories._form', ['category' => null, 'parentOptions' => $parentOptions])
+            @include('admin.categories._form', [
+                'category' => null,
+                'parentOptions' => $parentOptions,
+                'presetParentId' => $presetParentId,
+            ])
 
             <div class="admin-panel p-4">
                 <button type="submit"
