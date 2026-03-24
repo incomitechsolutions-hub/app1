@@ -1,6 +1,9 @@
 {
     "private": true,
     "type": "module",
+    "dependencies": {
+        "alpinejs": "^3.14.9"
+    },
     "scripts": {
         "build": "vite build",
         "dev": "vite"
