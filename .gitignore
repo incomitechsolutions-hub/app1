@@ -1,6 +1,7 @@
 /.phpunit.cache
 /node_modules
 /public/build
+# Vite dev-server pointer; do not deploy to production (delete on server if assets look broken)
 /public/hot
 /public/storage
 /storage/*.key

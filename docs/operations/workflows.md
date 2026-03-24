@@ -97,3 +97,15 @@ Also ensure the **cache** table or Redis is available if using those drivers.
 ### Operational checks
 - After import, use the on-screen **Import-Ergebnis** (totals, errors list).
 - For “nothing written”, verify: delimiter/encoding, slug rules (ASCII slug), duplicate strategy (skip vs update), and Laravel log under `storage/logs/laravel.log`.
+
+## 10. Admin UI: URLs vs. Vite assets (diagnostics)
+
+### Which URL shows what
+- **`/admin`** — Dashboard only (counts, shortcuts). It does **not** show the category tree or Tom Select.
+- **`/admin/categories`** — Taxonomy module: category list, filters, and links to create/edit (Tom Select on create/edit when the front-end build is present).
+
+### If the admin looks “broken” (unstyled, wrong colors, missing text)
+1. **Browser DevTools → Network**: `app.css` / `app.js` (under `/build/...`) must return **200**. Failed loads usually mean `npm run build` was not deployed to `public/build` or paths are wrong.
+2. **`public/hot`**: If this file exists on the server, Laravel’s `@vite` directive points the browser at the **Vite dev server** (often `http://127.0.0.1:5173`). On production, **delete `public/hot`** unless `npm run dev` is actually running on that host. The file is listed in `.gitignore` and must not be deployed from a dev machine by mistake.
+3. **`.env`**: Set **`APP_URL`** to the public site URL (including `https://`). If assets are served from another host, set **`ASSET_URL`** accordingly, then run `php artisan config:clear`.
+4. **Tests**: `tests/Feature/Admin/AdminSurfaceDiagnosticsTest.php` asserts dashboard vs. categories routes and (when `public/build/manifest.json` exists) that the dashboard HTML references built or dev Vite assets.
