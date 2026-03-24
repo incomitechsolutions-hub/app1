@@ -3,15 +3,19 @@
 namespace App\Domain\CourseCatalog\Models;
 
 use App\Domain\CourseCatalog\Enums\CourseStatus;
+use App\Domain\CourseCatalog\Enums\DeliveryFormat;
 use App\Domain\Media\Models\MediaAsset;
 use App\Domain\Taxonomy\Models\Audience;
 use App\Domain\Taxonomy\Models\Category;
 use App\Domain\Taxonomy\Models\DifficultyLevel;
+use App\Domain\Seo\Models\SeoMeta;
 use App\Domain\Taxonomy\Models\Tag;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Course extends Model
@@ -30,6 +34,11 @@ class Course extends Model
         'difficulty_level_id',
         'hero_media_asset_id',
         'published_at',
+        'price',
+        'delivery_format',
+        'is_featured',
+        'booking_url',
+        'offer_url',
     ];
 
     protected function casts(): array
@@ -38,6 +47,9 @@ class Course extends Model
             'status' => CourseStatus::class,
             'published_at' => 'datetime',
             'duration_hours' => 'decimal:2',
+            'delivery_format' => DeliveryFormat::class,
+            'is_featured' => 'boolean',
+            'price' => 'decimal:2',
         ];
     }
 
@@ -89,5 +101,21 @@ class Course extends Model
     public function translations(): HasMany
     {
         return $this->hasMany(CourseTranslation::class);
+    }
+
+    public function seoMeta(): MorphOne
+    {
+        return $this->morphOne(SeoMeta::class, 'owner');
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query
+            ->where('status', CourseStatus::Published)
+            ->whereNotNull('published_at');
     }
 }

@@ -19,6 +19,7 @@
         })();
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @stack('meta')
     @stack('head')
 </head>
 <body

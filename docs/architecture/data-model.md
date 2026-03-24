@@ -36,6 +36,11 @@ Fields:
 - primary_category_id
 - difficulty_level_id
 - hero_media_asset_id
+- price (decimal, nullable, EUR net amount)
+- delivery_format (nullable enum: `online` | `presence` | `hybrid`)
+- is_featured (boolean, default false)
+- booking_url (nullable URL)
+- offer_url (nullable URL)
 - created_at
 - updated_at
 - published_at

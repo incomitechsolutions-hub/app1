@@ -4,10 +4,12 @@ namespace App\Domain\Taxonomy\Models;
 
 use App\Domain\CourseCatalog\Models\Course;
 use App\Domain\Media\Models\MediaAsset;
+use App\Domain\Seo\Models\SeoMeta;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Category extends Model
 {
@@ -57,5 +59,10 @@ class Category extends Model
     public function headerMedia(): BelongsTo
     {
         return $this->belongsTo(MediaAsset::class, 'header_media_asset_id');
+    }
+
+    public function seoMeta(): MorphOne
+    {
+        return $this->morphOne(SeoMeta::class, 'owner');
     }
 }

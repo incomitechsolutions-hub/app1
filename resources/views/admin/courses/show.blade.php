@@ -58,6 +58,38 @@
                     <dd class="mt-1 text-sm text-slate-900">{{ $course->duration_hours ?? '—' }}</dd>
                 </div>
                 <div>
+                    <dt class="text-sm font-medium text-slate-500">Preis (EUR)</dt>
+                    <dd class="mt-1 text-sm text-slate-900">{{ $course->price !== null ? number_format((float) $course->price, 2, ',', '.').' €' : '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-slate-500">Format</dt>
+                    <dd class="mt-1 text-sm text-slate-900">{{ $course->delivery_format?->value ?? '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-slate-500">Featured</dt>
+                    <dd class="mt-1 text-sm text-slate-900">{{ $course->is_featured ? 'Ja' : 'Nein' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-slate-500">Buchungslink</dt>
+                    <dd class="mt-1 text-sm text-slate-900">
+                        @if ($course->booking_url)
+                            <a href="{{ $course->booking_url }}" class="text-sky-600 underline" target="_blank" rel="noopener">{{ $course->booking_url }}</a>
+                        @else
+                            —
+                        @endif
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-slate-500">Angebotslink</dt>
+                    <dd class="mt-1 text-sm text-slate-900">
+                        @if ($course->offer_url)
+                            <a href="{{ $course->offer_url }}" class="text-sky-600 underline" target="_blank" rel="noopener">{{ $course->offer_url }}</a>
+                        @else
+                            —
+                        @endif
+                    </dd>
+                </div>
+                <div>
                     <dt class="text-sm font-medium text-slate-500">Veröffentlicht am</dt>
                     <dd class="mt-1 text-sm text-slate-900">{{ $course->published_at?->format('Y-m-d H:i') ?? '—' }}</dd>
                 </div>

@@ -11,6 +11,7 @@ use App\Domain\Taxonomy\Http\Requests\Admin\StoreCategoryRequest;
 use App\Domain\Taxonomy\Http\Requests\Admin\UpdateCategoryRequest;
 use App\Domain\Taxonomy\Models\Category;
 use App\Domain\Taxonomy\Models\CategoryTaxonomySetting;
+use App\Domain\Seo\Services\SeoMetaSyncService;
 use App\Domain\Taxonomy\Services\CategoryAdminTreeService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -25,6 +26,7 @@ class CategoryController extends Controller
         private readonly DefaultLocaleTranslationSync $translationSync,
         private readonly CategoryAdminTreeService $categoryTree,
         private readonly MediaStorageService $mediaStorage,
+        private readonly SeoMetaSyncService $seoMetaSync,
     ) {}
 
     public function index(Request $request): View
@@ -98,15 +100,19 @@ class CategoryController extends Controller
             'presetParentId' => is_numeric($presetParentId) ? (int) $presetParentId : null,
             'mediaAssets' => MediaAsset::query()->orderByDesc('id')->limit(200)->get(),
             'defaultNewCategoryStatus' => CategoryTaxonomySetting::singleton()->default_new_category_status,
+            'seoMeta' => null,
         ]);
     }
 
     public function store(StoreCategoryRequest $request): RedirectResponse
     {
-        $data = collect($request->validated())->except(['icon_upload', 'header_upload'])->all();
+        $validated = $request->validated();
+        $seo = $validated['seo'] ?? [];
+        $data = collect($validated)->except(['seo', 'icon_upload', 'header_upload'])->all();
         $data = $this->applyCategoryMediaUploads($request, $data);
         $category = Category::query()->create($data);
         $this->translationSync->syncCategory($category);
+        $this->seoMetaSync->sync($category, is_array($seo) ? $seo : []);
 
         return redirect()
             ->route('admin.taxonomy.categories.index')
@@ -116,18 +122,22 @@ class CategoryController extends Controller
     public function edit(Category $category): View
     {
         return view('admin.categories.edit', [
-            'category' => $category->load(['iconMedia', 'headerMedia']),
+            'category' => $category->load(['iconMedia', 'headerMedia', 'seoMeta']),
             'parentPickerOptions' => $this->categoryTree->buildParentPickerOptions((int) $category->getKey()),
             'mediaAssets' => MediaAsset::query()->orderByDesc('id')->limit(200)->get(),
+            'seoMeta' => $category->seoMeta,
         ]);
     }
 
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
-        $data = collect($request->validated())->except(['icon_upload', 'header_upload'])->all();
+        $validated = $request->validated();
+        $seo = $validated['seo'] ?? [];
+        $data = collect($validated)->except(['seo', 'icon_upload', 'header_upload'])->all();
         $data = $this->applyCategoryMediaUploads($request, $data);
         $category->update($data);
         $this->translationSync->syncCategory($category->fresh());
+        $this->seoMetaSync->sync($category->fresh(), is_array($seo) ? $seo : []);
 
         return redirect()
             ->route('admin.taxonomy.categories.index')

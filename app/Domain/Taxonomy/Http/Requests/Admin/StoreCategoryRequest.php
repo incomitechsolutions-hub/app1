@@ -43,6 +43,16 @@ class StoreCategoryRequest extends FormRequest
             'header_media_asset_id' => ['nullable', 'integer', 'exists:media_assets,id'],
             'icon_upload' => ['nullable', 'file', 'max:10240', 'mimes:jpeg,jpg,png,gif,webp,svg'],
             'header_upload' => ['nullable', 'file', 'max:10240', 'mimes:jpeg,jpg,png,gif,webp,svg'],
+            'seo' => ['nullable', 'array'],
+            'seo.seo_title' => ['nullable', 'string', 'max:255'],
+            'seo.meta_description' => ['nullable', 'string', 'max:1000'],
+            'seo.canonical_url' => ['nullable', 'url', 'max:2048'],
+            'seo.robots_index' => ['nullable', 'in:0,1'],
+            'seo.robots_follow' => ['nullable', 'in:0,1'],
+            'seo.og_title' => ['nullable', 'string', 'max:255'],
+            'seo.og_description' => ['nullable', 'string', 'max:1000'],
+            'seo.og_image_media_asset_id' => ['nullable', 'integer', 'exists:media_assets,id'],
+            'seo.schema_json' => ['nullable', 'string'],
         ];
     }
 }

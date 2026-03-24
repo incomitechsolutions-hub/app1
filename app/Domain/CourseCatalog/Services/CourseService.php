@@ -5,18 +5,26 @@ namespace App\Domain\CourseCatalog\Services;
 use App\Domain\CourseCatalog\Enums\CourseStatus;
 use App\Domain\CourseCatalog\Models\Course;
 use App\Domain\Localization\Services\DefaultLocaleTranslationSync;
+use App\Domain\Seo\Services\SeoMetaSyncService;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CourseService
 {
     public function __construct(
-        private readonly DefaultLocaleTranslationSync $translationSync
+        private readonly DefaultLocaleTranslationSync $translationSync,
+        private readonly SeoMetaSyncService $seoMetaSync,
     ) {}
 
     public function create(array $data): Course
     {
         return DB::transaction(function () use ($data) {
+            $seo = Arr::pull($data, 'seo', []);
+            if (! is_array($seo)) {
+                $seo = [];
+            }
+
             $course = new Course($this->extractCourseAttributes($data));
             $this->applyPublishingTimestamp($course, $data);
             $course->save();
@@ -25,6 +33,7 @@ class CourseService
             $course->refresh();
             $this->assertPublishRules($course);
             $this->translationSync->syncCourse($course);
+            $this->seoMetaSync->sync($course, $seo);
 
             return $course->load([
                 'primaryCategory',
@@ -36,6 +45,7 @@ class CourseService
                 'modules',
                 'learningObjectives',
                 'prerequisites',
+                'seoMeta',
             ]);
         });
     }
@@ -43,6 +53,11 @@ class CourseService
     public function update(Course $course, array $data): Course
     {
         return DB::transaction(function () use ($course, $data) {
+            $seo = Arr::pull($data, 'seo', []);
+            if (! is_array($seo)) {
+                $seo = [];
+            }
+
             $course->fill($this->extractCourseAttributes($data));
             $this->applyPublishingTimestamp($course, $data);
             $course->save();
@@ -51,6 +66,7 @@ class CourseService
             $course->refresh();
             $this->assertPublishRules($course);
             $this->translationSync->syncCourse($course);
+            $this->seoMetaSync->sync($course->fresh(), $seo);
 
             return $course->load([
                 'primaryCategory',
@@ -62,6 +78,7 @@ class CourseService
                 'modules',
                 'learningObjectives',
                 'prerequisites',
+                'seoMeta',
             ]);
         });
     }
@@ -88,6 +105,11 @@ class CourseService
             'primary_category_id',
             'difficulty_level_id',
             'hero_media_asset_id',
+            'price',
+            'delivery_format',
+            'is_featured',
+            'booking_url',
+            'offer_url',
         ]));
     }
 

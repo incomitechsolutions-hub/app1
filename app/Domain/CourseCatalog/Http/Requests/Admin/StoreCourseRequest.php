@@ -3,6 +3,7 @@
 namespace App\Domain\CourseCatalog\Http\Requests\Admin;
 
 use App\Domain\CourseCatalog\Enums\CourseStatus;
+use App\Domain\CourseCatalog\Enums\DeliveryFormat;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
@@ -12,6 +13,19 @@ class StoreCourseRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user() !== null;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'is_featured' => $this->boolean('is_featured'),
+        ]);
+        if ($this->input('delivery_format') === '' || $this->input('delivery_format') === null) {
+            $this->merge(['delivery_format' => null]);
+        }
+        if ($this->input('price') === '' || $this->input('price') === null) {
+            $this->merge(['price' => null]);
+        }
     }
 
     /**
@@ -30,6 +44,11 @@ class StoreCourseRequest extends FormRequest
             'primary_category_id' => ['nullable', 'exists:categories,id'],
             'difficulty_level_id' => ['nullable', 'exists:difficulty_levels,id'],
             'hero_media_asset_id' => ['nullable', 'exists:media_assets,id'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'delivery_format' => ['nullable', new Enum(DeliveryFormat::class)],
+            'is_featured' => ['boolean'],
+            'booking_url' => ['nullable', 'url', 'max:2048'],
+            'offer_url' => ['nullable', 'url', 'max:2048'],
             'category_ids' => ['required', 'array', 'min:1'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
             'tag_ids' => ['nullable', 'array'],
@@ -47,6 +66,16 @@ class StoreCourseRequest extends FormRequest
             'prerequisites' => ['nullable', 'array'],
             'prerequisites.*.prerequisite_text' => ['nullable', 'string', 'max:2000'],
             'prerequisites.*.sort_order' => ['nullable', 'integer', 'min:0'],
+            'seo' => ['nullable', 'array'],
+            'seo.seo_title' => ['nullable', 'string', 'max:255'],
+            'seo.meta_description' => ['nullable', 'string', 'max:1000'],
+            'seo.canonical_url' => ['nullable', 'url', 'max:2048'],
+            'seo.robots_index' => ['nullable', 'in:0,1'],
+            'seo.robots_follow' => ['nullable', 'in:0,1'],
+            'seo.og_title' => ['nullable', 'string', 'max:255'],
+            'seo.og_description' => ['nullable', 'string', 'max:1000'],
+            'seo.og_image_media_asset_id' => ['nullable', 'integer', 'exists:media_assets,id'],
+            'seo.schema_json' => ['nullable', 'string'],
         ];
     }
 

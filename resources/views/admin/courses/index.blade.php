@@ -19,6 +19,10 @@
                     </a>
                 </div>
                 @if (! $trashed)
+                    <a href="{{ $featuredFilter ? route('admin.course-catalog.courses.index') : route('admin.course-catalog.courses.index', ['featured' => 1]) }}"
+                        class="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-semibold transition {{ $featuredFilter ? 'border-sky-600 bg-sky-50 text-sky-900' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
+                        {{ $featuredFilter ? 'Alle Kurse' : 'Nur Featured' }}
+                    </a>
                     <a href="{{ route('admin.course-catalog.courses.create') }}"
                         class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
                         Neuer Kurs

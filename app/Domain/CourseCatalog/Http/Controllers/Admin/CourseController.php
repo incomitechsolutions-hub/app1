@@ -6,6 +6,7 @@ use App\Domain\CourseCatalog\Http\Requests\Admin\StoreCourseRequest;
 use App\Domain\CourseCatalog\Http\Requests\Admin\UpdateCourseRequest;
 use App\Domain\CourseCatalog\Models\Course;
 use App\Domain\CourseCatalog\Services\CourseService;
+use App\Domain\Media\Models\MediaAsset;
 use App\Domain\Taxonomy\Models\Audience;
 use App\Http\Controllers\Controller;
 use App\Domain\Taxonomy\Models\Category;
@@ -35,9 +36,17 @@ class CourseController extends Controller
             $query->onlyTrashed();
         }
 
+        if ($request->query('featured') === '1') {
+            $query->where('is_featured', true);
+        }
+
         $courses = $query->paginate(20)->withQueryString();
 
-        return view('admin.courses.index', compact('courses', 'trashed'));
+        return view('admin.courses.index', [
+            'courses' => $courses,
+            'trashed' => $trashed,
+            'featuredFilter' => $request->query('featured') === '1',
+        ]);
     }
 
     public function create(): View
@@ -66,6 +75,7 @@ class CourseController extends Controller
             'modules',
             'learningObjectives',
             'prerequisites',
+            'seoMeta',
         ]);
 
         return view('admin.courses.show', compact('course'));
@@ -86,10 +96,11 @@ class CourseController extends Controller
             'modules',
             'learningObjectives',
             'prerequisites',
+            'seoMeta',
         ]);
 
         return view('admin.courses.edit', array_merge(
-            ['course' => $course],
+            ['course' => $course, 'seoMeta' => $course->seoMeta],
             $this->formOptions()
         ));
     }
@@ -151,6 +162,8 @@ class CourseController extends Controller
             'difficultyLevels' => DifficultyLevel::query()->orderBy('sort_order')->get(),
             'tags' => Tag::query()->orderBy('name')->get(),
             'audiences' => Audience::query()->orderBy('name')->get(),
+            'mediaAssets' => MediaAsset::query()->orderByDesc('id')->limit(200)->get(),
+            'seoMeta' => null,
         ];
     }
 }
