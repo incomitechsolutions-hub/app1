@@ -6,96 +6,117 @@
     <title>@yield('title', 'Admin') — {{ config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-slate-100 text-slate-900 antialiased">
-    <div class="flex min-h-screen">
-        {{-- Desktop sidebar --}}
+<body
+    x-data="{ mobileSidebarOpen: false }"
+    @keydown.escape.window="mobileSidebarOpen = false"
+    x-effect="document.body.style.overflow = mobileSidebarOpen ? 'hidden' : ''"
+    class="min-h-screen bg-slate-100 text-slate-900 antialiased">
+    <div class="min-h-screen bg-[#f6f8fb]">
+        <div x-cloak x-show="mobileSidebarOpen" x-transition.opacity class="fixed inset-0 z-40 bg-slate-900/50 lg:hidden"
+            @click="mobileSidebarOpen = false"></div>
+
         <aside
-            class="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:flex-col">
-            <div class="flex h-16 items-center gap-3 border-b border-slate-200 px-4">
-                <span
-                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-sky-600 text-sm font-bold text-white shadow-sm"
-                    aria-hidden="true">
-                    {{ \Illuminate\Support\Str::substr(config('app.name'), 0, 1) }}
-                </span>
-                <div class="min-w-0">
-                    <a href="{{ route('admin.dashboard') }}" class="block truncate text-base font-semibold text-slate-900">
-                        {{ config('app.name') }}
-                    </a>
-                </div>
+            class="fixed inset-y-0 left-0 z-50 flex w-72 transform flex-col border-r border-slate-100 bg-white transition-transform duration-300 lg:z-30"
+            :class="mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+        >
+            <div class="flex h-20 items-center border-b border-slate-100 px-6">
+                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-lime-400 text-sm font-bold text-white">
+                        {{ \Illuminate\Support\Str::substr(config('app.name'), 0, 1) }}
+                    </span>
+                    <span class="text-lg font-semibold text-slate-900">{{ config('app.name') }}</span>
+                </a>
             </div>
-            <div class="flex-1 overflow-y-auto px-3 py-4">
+
+            <div class="flex-1 overflow-y-auto px-4 py-5">
                 <x-admin.navigation />
             </div>
-        </aside>
 
-        <div class="flex min-h-screen flex-1 flex-col lg:pl-64">
-            {{-- Mobile menu --}}
-            <header class="border-b border-slate-200 bg-white lg:hidden">
-                <details class="group">
-                    <summary
-                        class="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-medium text-slate-800 [&::-webkit-details-marker]:hidden">
-                        <span>Menü</span>
-                        <span class="text-slate-500 group-open:rotate-180 motion-safe:transition">▼</span>
-                    </summary>
-                    <div class="border-t border-slate-100 px-3 py-4">
-                        <x-admin.navigation />
+            <div class="border-t border-slate-100 px-4 py-4">
+                <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-500 text-sm font-semibold text-white">
+                            {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
+                        </span>
+                        <span class="truncate text-sm font-medium text-slate-700">{{ auth()->user()->name ?? 'User' }}</span>
                     </div>
-                </details>
-            </header>
-
-            {{-- Top bar (desktop) --}}
-            <header class="hidden h-14 items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 lg:flex">
-                <div class="flex items-center gap-2 text-sm font-medium text-slate-700">
-                    <svg class="h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                        stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-                    </svg>
-                    @yield('breadcrumb', 'Dashboard')
-                </div>
-                <div class="flex items-center gap-5">
-                    <time class="text-sm tabular-nums text-slate-600" datetime="{{ now()->toIso8601String() }}">
-                        {{ now()->format('d.m.Y') }} · {{ now()->format('H:i') }}
-                    </time>
-                    <span class="text-slate-300" aria-hidden="true">|</span>
-                    <button type="button" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                        title="Benachrichtigungen" disabled aria-disabled="true">
-                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
-                        </svg>
-                    </button>
-                    <span class="text-sm text-slate-600">{{ auth()->user()->name }}</span>
                     @auth
-                        <form method="post" action="{{ route('logout') }}" class="inline">
+                        <form method="post" action="{{ route('logout') }}">
                             @csrf
-                            <button type="submit" class="text-sm font-medium text-slate-700 hover:text-slate-900">
-                                Abmelden
+                            <button type="submit" class="rounded-lg p-1.5 text-slate-500 transition hover:bg-white hover:text-red-600"
+                                aria-label="Abmelden">
+                                <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                    stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                                </svg>
                             </button>
                         </form>
                     @endauth
                 </div>
+            </div>
+        </aside>
+
+        <div class="min-h-screen lg:pl-72">
+            <header class="sticky top-0 z-20 border-b border-slate-100 bg-white/95 backdrop-blur">
+                <div class="flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
+                    <div class="flex items-center gap-3">
+                        <button type="button"
+                            class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 lg:hidden"
+                            @click="mobileSidebarOpen = true" aria-label="Menü öffnen">
+                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                            </svg>
+                        </button>
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Admin</p>
+                            <p class="text-base font-semibold text-slate-900">@yield('breadcrumb', 'Dashboard')</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 sm:gap-4">
+                        <div class="hidden text-right sm:block">
+                            <time class="block text-xs font-semibold tabular-nums text-slate-400" datetime="{{ now()->toIso8601String() }}">
+                                {{ now()->format('d.m.Y') }}
+                            </time>
+                            <span class="block text-sm font-semibold tabular-nums text-slate-900">{{ now()->format('H:i') }}</span>
+                        </div>
+
+                        <button type="button"
+                            class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+                            aria-label="Benachrichtigungen">
+                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                            </svg>
+                        </button>
+
+                        <div class="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 sm:flex">
+                            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">
+                                {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
+                            </span>
+                            <span class="text-sm font-medium text-slate-700">{{ auth()->user()->name ?? 'User' }}</span>
+                        </div>
+                    </div>
+                </div>
             </header>
 
-            <header class="flex h-12 items-center justify-between border-b border-slate-200 bg-white px-4 lg:hidden">
-                <a href="{{ route('admin.dashboard') }}" class="text-sm font-semibold text-slate-900">Admin</a>
-                @auth
-                    <form method="post" action="{{ route('logout') }}" class="inline">
-                        @csrf
-                        <button type="submit" class="text-sm text-slate-600">Abmelden</button>
-                    </form>
-                @endauth
-            </header>
-
-            <main class="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+            <main class="px-4 py-6 sm:px-6 lg:px-8">
                 @if (session('status'))
-                    <div class="mb-6 rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                    <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                         {{ session('status') }}
                     </div>
                 @endif
                 @yield('content')
             </main>
+
+            <footer class="px-4 pb-6 sm:px-6 lg:px-8">
+                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500">
+                    {{ config('app.name') }} Adminbereich
+                </div>
+            </footer>
         </div>
     </div>
 </body>

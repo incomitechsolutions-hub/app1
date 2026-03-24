@@ -13,81 +13,89 @@ return [
     */
     'navigation' => [
         [
-            'heading' => 'Übersicht',
+            'heading' => 'MENU',
             'items' => [
                 [
                     'label' => 'Dashboard',
                     'route' => 'admin.dashboard',
+                    'icon' => 'dashboard',
                 ],
-            ],
-        ],
-        [
-            'heading' => 'Inhalt',
-            'items' => [
                 [
-                    'label' => 'Kurse',
-                    'route' => 'admin.course-catalog.courses.index',
-                    'active' => 'admin.course-catalog.courses.*',
+                    'label' => 'Kontakte',
+                    'route' => 'admin.inquiries.index',
+                    'active' => 'admin.inquiries.*',
+                    'icon' => 'inbox',
                 ],
                 [
                     'label' => 'Kategorien',
                     'route' => 'admin.taxonomy.categories.index',
                     'active' => 'admin.taxonomy.*',
+                    'icon' => 'folder',
+                    'children' => [
+                        [
+                            'label' => 'Hauptkategorien',
+                            'route' => 'admin.taxonomy.categories.index',
+                            'active' => 'admin.taxonomy.*',
+                        ],
+                        [
+                            'label' => 'Unterkategorien',
+                            'route' => 'admin.taxonomy.categories.index',
+                            'active' => 'admin.taxonomy.*',
+                        ],
+                    ],
                 ],
                 [
-                    'label' => 'Standorte',
-                    'route' => 'admin.locations.index',
-                    'active' => 'admin.locations.*',
+                    'label' => 'Kurse',
+                    'route' => 'admin.course-catalog.courses.index',
+                    'active' => 'admin.course-catalog.courses.*',
+                    'icon' => 'document',
                 ],
                 [
                     'label' => 'Seiten',
                     'route' => 'admin.pages.index',
                     'active' => 'admin.pages.*',
+                    'icon' => 'page',
+                ],
+            ],
+        ],
+        [
+            'heading' => 'SYSTEM',
+            'items' => [
+                [
+                    'label' => 'Einstellungen',
+                    'route' => 'admin.identity.users.index',
+                    'active' => 'admin.identity.*',
+                    'icon' => 'sliders',
+                ],
+                [
+                    'label' => 'Extensions',
+                    'route' => 'admin.seo.index',
+                    'active' => 'admin.seo.*',
+                    'icon' => 'puzzle',
+                ],
+                [
+                    'label' => 'Standorte',
+                    'route' => 'admin.locations.index',
+                    'active' => 'admin.locations.*',
+                    'icon' => 'pin',
                 ],
                 [
                     'label' => 'FAQs',
                     'route' => 'admin.faqs.index',
                     'active' => 'admin.faqs.*',
+                    'icon' => 'question',
                 ],
                 [
                     'label' => 'Medien',
                     'route' => 'admin.media.index',
                     'active' => 'admin.media.*',
-                ],
-            ],
-        ],
-        [
-            'heading' => 'SEO',
-            'items' => [
-                [
-                    'label' => 'SEO',
-                    'route' => 'admin.seo.index',
-                    'active' => 'admin.seo.index',
+                    'icon' => 'image',
                 ],
                 [
                     'label' => 'Weiterleitungen',
                     'route' => 'admin.seo.redirects.index',
                     'active' => 'admin.seo.redirects.*',
-                ],
-            ],
-        ],
-        [
-            'heading' => 'Leads',
-            'items' => [
-                [
-                    'label' => 'Anfragen',
-                    'route' => 'admin.inquiries.index',
-                    'active' => 'admin.inquiries.*',
-                ],
-            ],
-        ],
-        [
-            'heading' => 'System',
-            'items' => [
-                [
-                    'label' => 'Benutzer',
-                    'route' => 'admin.identity.users.index',
-                    'active' => 'admin.identity.*',
+                    'icon' => 'arrow-path',
                 ],
             ],
         ],
