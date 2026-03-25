@@ -120,6 +120,13 @@ return [
                     'icon' => 'page',
                     'module' => 'pages',
                 ],
+                [
+                    'label' => 'Prompt-Bibliothek',
+                    'route' => 'admin.prompt-management.prompts.index',
+                    'active' => 'admin.prompt-management.*',
+                    'icon' => 'document',
+                    'module' => 'prompt_management',
+                ],
             ],
         ],
         [

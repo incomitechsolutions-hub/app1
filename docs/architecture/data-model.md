@@ -139,6 +139,19 @@ Minimal coupon codes for future checkout (admin-managed).
 - notes (nullable)
 - created_at, updated_at
 
+### ai_prompts
+Reusable AI prompt templates (admin Prompt-Bibliothek), grouped by `use_case` (e.g. `course_creation`, `general`).
+
+- id
+- title
+- slug (unique)
+- use_case (string enum)
+- body (long text)
+- description (nullable)
+- sort_order
+- is_active
+- created_at, updated_at
+
 ## Taxonomy
 
 ### categories

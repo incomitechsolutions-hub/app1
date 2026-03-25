@@ -1,0 +1,57 @@
+@php
+    /** @var \App\Domain\PromptManagement\Models\AiPrompt|null $prompt */
+@endphp
+
+<div class="space-y-4">
+    <div>
+        <label for="title" class="block text-sm font-medium text-slate-700">Titel</label>
+        <input id="title" name="title" type="text" required value="{{ old('title', $prompt?->title) }}"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+        @error('title')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+    </div>
+    <div>
+        <label for="slug" class="block text-sm font-medium text-slate-700">Slug</label>
+        <input id="slug" name="slug" type="text" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+            value="{{ old('slug', $prompt?->slug) }}"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+        @error('slug')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+    </div>
+    <div>
+        <label for="use_case" class="block text-sm font-medium text-slate-700">Anwendungsfall</label>
+        <select id="use_case" name="use_case" required
+            class="mt-1 w-full max-w-md rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+            @foreach ($useCases as $case)
+                <option value="{{ $case->value }}" @selected(old('use_case', $prompt?->use_case?->value) === $case->value)>
+                    {{ $case->label() }}
+                </option>
+            @endforeach
+        </select>
+        @error('use_case')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+    </div>
+    <div>
+        <label for="description" class="block text-sm font-medium text-slate-700">Interne Beschreibung (optional)</label>
+        <textarea id="description" name="description" rows="2"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">{{ old('description', $prompt?->description) }}</textarea>
+        @error('description')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+    </div>
+    <div>
+        <label for="body" class="block text-sm font-medium text-slate-700">Prompt-Text</label>
+        <textarea id="body" name="body" rows="12" required
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">{{ old('body', $prompt?->body) }}</textarea>
+        @error('body')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+    </div>
+    <div class="flex items-center gap-3">
+        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+            <input type="hidden" name="is_active" value="0">
+            <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300" @checked(old('is_active', $prompt?->is_active ?? true))>
+            Aktiv
+        </label>
+    </div>
+    <div>
+        <label for="sort_order" class="block text-sm font-medium text-slate-700">Sortierung</label>
+        <input id="sort_order" name="sort_order" type="number" min="0" max="65535"
+            value="{{ old('sort_order', $prompt?->sort_order ?? 0) }}"
+            class="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+        @error('sort_order')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+    </div>
+</div>

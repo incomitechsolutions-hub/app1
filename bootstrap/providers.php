@@ -14,4 +14,5 @@ return [
     App\Domain\Identity\IdentityServiceProvider::class,
     App\Domain\Localization\LocalizationServiceProvider::class,
     App\Domain\Ai\AiServiceProvider::class,
+    App\Domain\PromptManagement\PromptManagementServiceProvider::class,
 ];

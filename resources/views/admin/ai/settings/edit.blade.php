@@ -55,13 +55,24 @@
                 @enderror
             </div>
 
+            @php
+                $chatModels = config('ai.chat_models', []);
+                $selectedModel = old('default_model', $settings->default_model);
+                if ($selectedModel !== null && $selectedModel !== '' && ! array_key_exists($selectedModel, $chatModels)) {
+                    $chatModels = [$selectedModel => $selectedModel.' (aktuell gespeichert)'] + $chatModels;
+                }
+            @endphp
             <div>
                 <label for="default_model" class="block text-sm font-medium text-slate-700">Standard-Modell</label>
-                <input id="default_model" name="default_model" type="text" required
-                    value="{{ old('default_model', $settings->default_model) }}"
-                    class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                    placeholder="gpt-4o-mini">
-                <p class="mt-1 text-xs text-slate-500">z. B. <code class="rounded bg-slate-100 px-1">gpt-4o-mini</code> oder <code class="rounded bg-slate-100 px-1">gpt-4o</code></p>
+                <select id="default_model" name="default_model" required
+                    class="mt-1 block w-full max-w-lg rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                    @foreach ($chatModels as $modelId => $label)
+                        <option value="{{ $modelId }}" @selected((string) $selectedModel === (string) $modelId)>
+                            {{ $label }}
+                        </option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-slate-500">Weitere Modelle in <code class="rounded bg-slate-100 px-1">config/ai.php</code> ergänzbar.</p>
                 @error('default_model')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror

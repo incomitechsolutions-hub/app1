@@ -3,6 +3,7 @@
 namespace App\Domain\Ai\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateAiSettingsRequest extends FormRequest
 {
@@ -16,9 +17,11 @@ class UpdateAiSettingsRequest extends FormRequest
      */
     public function rules(): array
     {
+        $allowedModels = array_keys(config('ai.chat_models', []));
+
         return [
             'openai_api_key' => ['nullable', 'string', 'max:2048'],
-            'default_model' => ['required', 'string', 'max:64'],
+            'default_model' => ['required', 'string', 'max:64', Rule::in($allowedModels)],
             'openai_base_url' => ['required', 'string', 'max:255'],
         ];
     }

@@ -51,6 +51,11 @@ return [
         'version' => '1.0.0',
         'description' => 'Globale KI-Einstellungen und OpenAI-Anbindung.',
     ],
+    'prompt_management' => [
+        'name' => 'Prompt-Bibliothek',
+        'version' => '1.0.0',
+        'description' => 'Wiederverwendbare KI-Prompts nach Anwendungsfall.',
+    ],
     'localization' => [
         'name' => 'Lokalisierung',
         'version' => '1.0.0',
