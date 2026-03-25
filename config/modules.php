@@ -46,6 +46,11 @@ return [
         'version' => '1.0.0',
         'description' => 'Benutzer- und Zugriffsverwaltung.',
     ],
+    'ai' => [
+        'name' => 'KI',
+        'version' => '1.0.0',
+        'description' => 'Globale KI-Einstellungen und OpenAI-Anbindung.',
+    ],
     'localization' => [
         'name' => 'Lokalisierung',
         'version' => '1.0.0',

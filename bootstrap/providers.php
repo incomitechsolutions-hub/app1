@@ -13,4 +13,5 @@ return [
     App\Domain\Inquiries\InquiriesServiceProvider::class,
     App\Domain\Identity\IdentityServiceProvider::class,
     App\Domain\Localization\LocalizationServiceProvider::class,
+    App\Domain\Ai\AiServiceProvider::class,
 ];

@@ -168,6 +168,12 @@ return [
                             'active' => 'admin.localization.locales.*',
                             'module' => 'localization',
                         ],
+                        [
+                            'label' => 'KI-Einstellungen',
+                            'route' => 'admin.ai.settings.edit',
+                            'active' => 'admin.ai.settings.*',
+                            'module' => 'ai',
+                        ],
                     ],
                 ],
                 [
