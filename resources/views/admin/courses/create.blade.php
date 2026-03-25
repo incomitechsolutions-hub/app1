@@ -25,7 +25,7 @@
                     class="inline-flex items-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
                     Zur Übersicht
                 </a>
-                <a href="{{ route('admin.course-catalog.courses.ai-generator') }}" target="_blank" rel="noopener noreferrer"
+                <a href="{{ route('admin.course-catalog.courses.ai-generation.create') }}" target="_blank" rel="noopener noreferrer"
                     class="inline-flex items-center rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-900 transition hover:bg-sky-100">
                     AI Generator
                 </a>

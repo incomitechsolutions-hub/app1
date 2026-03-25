@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Domain\PromptManagement\Models;
 
@@ -14,6 +14,7 @@ class AiPrompt extends Model
         'slug',
         'use_case',
         'body',
+        'placeholder_definitions',
         'description',
         'sort_order',
         'is_active',
@@ -25,6 +26,7 @@ class AiPrompt extends Model
             'use_case' => PromptUseCase::class,
             'is_active' => 'boolean',
             'sort_order' => 'integer',
+            'placeholder_definitions' => 'array',
         ];
     }
 }

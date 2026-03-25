@@ -147,9 +147,41 @@ Reusable AI prompt templates (admin Prompt-Bibliothek), grouped by `use_case` (e
 - slug (unique)
 - use_case (string enum)
 - body (long text)
+- placeholder_definitions (nullable JSON) — optional structured metadata for placeholders (e.g. `name`, `label`, `required`); placeholders may also be inferred from `{{name}}` in `body`
 - description (nullable)
 - sort_order
 - is_active
+- created_at, updated_at
+
+### ai_course_generation_sessions
+Server-side workflow for AI-assisted course outline generation (no `courses` row until finalize).
+
+- id
+- user_id (FK → `users`)
+- ai_prompt_id (nullable FK → `ai_prompts`)
+- status — `draft` | `in_review` | `ready_to_finalize` | `completed` | `cancelled` | `expired`
+- template_snapshot (nullable JSON) — copy of the selected prompt at session creation
+- placeholder_input (JSON) — filled `{{placeholder}}` values
+- brief (text) — Kursidee / Anforderungen
+- interpolated_body (nullable longtext) — template body after placeholder substitution
+- compiled_prompt (longtext) — assembled user message for the LLM
+- full_prompt_audit (nullable longtext) — optional JSON/meta of what was sent (without API key)
+- draft_payload (nullable JSON) — canonical course-shaped draft (aligned with StoreCourseRequest)
+- confirmed_steps (nullable JSON) — optional per-tab confirmation flags
+- last_regenerated_section (nullable string)
+- resulting_course_id (nullable FK → `courses`) — set when finalized
+- last_error (nullable text)
+- expires_at (nullable)
+- created_at, updated_at
+
+### ai_course_generation_events
+Audit log for AI generation workflow steps.
+
+- id
+- ai_course_generation_session_id (FK → `ai_course_generation_sessions`, cascade delete)
+- user_id (nullable FK → `users`)
+- type — e.g. `session_created`, `prompt_compiled`, `ai_request_started`, `ai_request_succeeded`, `ai_request_failed`, `draft_updated_manual`, `section_regenerated`, `step_confirmed`, `finalize_attempted`, `course_persisted`, `session_cancelled`
+- meta (nullable JSON) — model, duration_ms, error, draft_payload_hash, section, etc.
 - created_at, updated_at
 
 ## Taxonomy

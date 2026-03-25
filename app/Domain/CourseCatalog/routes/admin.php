@@ -1,6 +1,7 @@
 <?php
 
-use App\Domain\CourseCatalog\Http\Controllers\Admin\AiCourseGeneratorController;
+use App\Domain\CourseCatalog\Http\Controllers\Admin\AiCourseGenerationController;
+use App\Domain\CourseCatalog\Http\Controllers\Admin\AiCourseGenerationWizardController;
 use App\Domain\CourseCatalog\Http\Controllers\Admin\CourseCatalogSettingsController;
 use App\Domain\CourseCatalog\Http\Controllers\Admin\CourseController;
 use App\Domain\CourseCatalog\Http\Controllers\Admin\CourseCrawlController;
@@ -29,16 +30,29 @@ Route::middleware(['web', 'auth', 'module.enabled:course_catalog'])->prefix('adm
     Route::patch('courses/{course}/fields', CoursePatchController::class)
         ->name('courses.patch-fields');
 
-    Route::get('courses/ai-generator', [AiCourseGeneratorController::class, 'create'])
+    Route::get('courses/ai-generator', fn () => redirect()->route('admin.course-catalog.courses.ai-generation.create'))
         ->name('courses.ai-generator');
-    Route::post('courses/ai-generator/generate', [AiCourseGeneratorController::class, 'generate'])
+
+    Route::get('courses/ai-generation', [AiCourseGenerationController::class, 'create'])
+        ->name('courses.ai-generation.create');
+    Route::post('courses/ai-generation', [AiCourseGenerationController::class, 'store'])
         ->middleware('throttle:10,1')
-        ->name('courses.ai-generator.generate');
-    Route::get('courses/ai-generator/review', [AiCourseGeneratorController::class, 'review'])
-        ->name('courses.ai-generator.review');
-    Route::post('courses/ai-generator/store', [AiCourseGeneratorController::class, 'store'])
-        ->middleware('throttle:20,1')
-        ->name('courses.ai-generator.store');
+        ->name('courses.ai-generation.store');
+    Route::get('courses/ai-generation/{ai_course_generation_session}', [AiCourseGenerationController::class, 'show'])
+        ->name('courses.ai-generation.show');
+
+    Route::get('courses/ai-generation/{ai_course_generation_session}/wizard', [AiCourseGenerationWizardController::class, 'wizard'])
+        ->name('courses.ai-generation.wizard');
+    Route::patch('courses/ai-generation/{ai_course_generation_session}/draft', [AiCourseGenerationWizardController::class, 'updateDraft'])
+        ->name('courses.ai-generation.draft.update');
+    Route::post('courses/ai-generation/{ai_course_generation_session}/regenerate', [AiCourseGenerationWizardController::class, 'regenerate'])
+        ->middleware('throttle:15,1')
+        ->name('courses.ai-generation.regenerate');
+    Route::post('courses/ai-generation/{ai_course_generation_session}/confirm-steps', [AiCourseGenerationWizardController::class, 'confirmSteps'])
+        ->name('courses.ai-generation.confirm-steps');
+    Route::post('courses/ai-generation/{ai_course_generation_session}/finalize', [AiCourseGenerationWizardController::class, 'finalize'])
+        ->middleware('throttle:10,1')
+        ->name('courses.ai-generation.finalize');
 
     Route::post('courses/crawl-from-website', [CourseCrawlController::class, 'store'])
         ->middleware('throttle:20,1')
@@ -47,3 +61,4 @@ Route::middleware(['web', 'auth', 'module.enabled:course_catalog'])->prefix('adm
     Route::resource('programs', ProgramController::class);
     Route::resource('courses', CourseController::class);
 });
+
