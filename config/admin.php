@@ -100,6 +100,12 @@ return [
                             'module' => 'course_catalog',
                         ],
                         [
+                            'label' => 'Programme',
+                            'route' => 'admin.course-catalog.programs.index',
+                            'active' => 'admin.course-catalog.programs.*',
+                            'module' => 'course_catalog',
+                        ],
+                        [
                             'label' => 'Einstellungen',
                             'route' => 'admin.course-catalog.settings.edit',
                             'active' => 'admin.course-catalog.settings.*',

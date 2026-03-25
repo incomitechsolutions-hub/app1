@@ -16,9 +16,12 @@ class PublicCourseController
                 'primaryCategory',
                 'difficultyLevel',
                 'heroMedia',
-                'categories',
                 'tags',
                 'discountTiers',
+                'faqs',
+                'openClassrooms',
+                'courseRelations.relatedCourse',
+                'programs',
                 'seoMeta.ogImageMedia',
             ])
             ->firstOrFail();

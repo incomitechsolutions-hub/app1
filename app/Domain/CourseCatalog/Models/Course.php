@@ -10,11 +10,13 @@ use App\Domain\Taxonomy\Models\Category;
 use App\Domain\Taxonomy\Models\DifficultyLevel;
 use App\Domain\Seo\Models\SeoMeta;
 use App\Domain\Taxonomy\Models\Tag;
+use App\Domain\Faq\Models\Faq;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -95,11 +97,6 @@ class Course extends Model
         return $this->belongsTo(MediaAsset::class, 'hero_media_asset_id');
     }
 
-    public function categories(): BelongsToMany
-    {
-        return $this->belongsToMany(Category::class, 'course_categories');
-    }
-
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'course_tags');
@@ -128,6 +125,26 @@ class Course extends Model
     public function discountTiers(): HasMany
     {
         return $this->hasMany(CourseDiscountTier::class)->orderBy('sort_order');
+    }
+
+    public function faqs(): MorphMany
+    {
+        return $this->morphMany(Faq::class, 'owner')->orderBy('sort_order');
+    }
+
+    public function openClassrooms(): HasMany
+    {
+        return $this->hasMany(CourseOpenClassroom::class)->orderBy('sort_order')->orderBy('starts_at');
+    }
+
+    public function courseRelations(): HasMany
+    {
+        return $this->hasMany(CourseRelation::class, 'course_id')->orderBy('sort_order');
+    }
+
+    public function programs(): BelongsToMany
+    {
+        return $this->belongsToMany(Program::class, 'program_course')->withPivot('sort_order');
     }
 
     public function translations(): HasMany

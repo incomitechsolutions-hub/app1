@@ -41,7 +41,6 @@ class AdminCoursePatchFieldsTest extends TestCase
             'hero_media_asset_id' => null,
             'published_at' => null,
         ]);
-        $course->categories()->sync([$cat1->id]);
 
         return [$course->fresh(), $cat1, $cat2];
     }
@@ -51,7 +50,7 @@ class AdminCoursePatchFieldsTest extends TestCase
         [$course] = $this->makeCourseWithTwoCategories();
 
         $this->patchJson(route('admin.course-catalog.courses.patch-fields', $course), [
-            'category_ids' => [$course->primary_category_id],
+            'primary_category_id' => $course->primary_category_id,
         ])->assertRedirect(route('login'));
     }
 
@@ -70,14 +69,13 @@ class AdminCoursePatchFieldsTest extends TestCase
             ->assertJsonPath('data.0.name', 'Suchebar');
     }
 
-    public function test_authenticated_user_can_patch_course_categories(): void
+    public function test_authenticated_user_can_patch_primary_category(): void
     {
         $user = User::factory()->create();
         [$course, $cat1, $cat2] = $this->makeCourseWithTwoCategories();
 
         $this->actingAs($user)
             ->patchJson(route('admin.course-catalog.courses.patch-fields', $course), [
-                'category_ids' => [$cat1->id, $cat2->id],
                 'primary_category_id' => $cat2->id,
             ])
             ->assertOk()
@@ -85,6 +83,5 @@ class AdminCoursePatchFieldsTest extends TestCase
 
         $course->refresh();
         $this->assertSame($cat2->id, (int) $course->primary_category_id);
-        $this->assertCount(2, $course->categories);
     }
 }

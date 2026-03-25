@@ -6,6 +6,7 @@ use App\Domain\CourseCatalog\Enums\CourseStatus;
 use App\Domain\CourseCatalog\Models\Course;
 use App\Domain\Localization\Services\DefaultLocaleTranslationSync;
 use App\Domain\Seo\Services\SeoMetaSyncService;
+use App\Domain\Taxonomy\Models\Category;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -15,6 +16,7 @@ class CourseService
     public function __construct(
         private readonly DefaultLocaleTranslationSync $translationSync,
         private readonly SeoMetaSyncService $seoMetaSync,
+        private readonly CourseOpenClassroomGenerator $openClassroomGenerator,
     ) {}
 
     public function create(array $data): Course
@@ -33,22 +35,11 @@ class CourseService
             $this->syncCourseDiscountTiers($course, $data['course_discount_tiers'] ?? []);
             $course->refresh();
             $this->assertPublishRules($course);
+            $this->openClassroomGenerator->generateForNewCourse($course);
             $this->translationSync->syncCourse($course);
             $this->seoMetaSync->sync($course, $seo);
 
-            return $course->load([
-                'primaryCategory',
-                'difficultyLevel',
-                'heroMedia',
-                'categories',
-                'tags',
-                'audiences',
-                'modules',
-                'learningObjectives',
-                'prerequisites',
-                'discountTiers',
-                'seoMeta',
-            ]);
+            return $course->load($this->courseEditRelations());
         });
     }
 
@@ -71,19 +62,7 @@ class CourseService
             $this->translationSync->syncCourse($course);
             $this->seoMetaSync->sync($course->fresh(), $seo);
 
-            return $course->load([
-                'primaryCategory',
-                'difficultyLevel',
-                'heroMedia',
-                'categories',
-                'tags',
-                'audiences',
-                'modules',
-                'learningObjectives',
-                'prerequisites',
-                'discountTiers',
-                'seoMeta',
-            ]);
+            return $course->load($this->courseEditRelations());
         });
     }
 
@@ -111,9 +90,6 @@ class CourseService
             }
 
             $syncPayload = [];
-            if (array_key_exists('category_ids', $data)) {
-                $syncPayload['category_ids'] = $data['category_ids'];
-            }
             if (array_key_exists('tag_ids', $data)) {
                 $syncPayload['tag_ids'] = $data['tag_ids'];
             }
@@ -123,7 +99,6 @@ class CourseService
 
             if ($syncPayload !== []) {
                 $this->syncTaxonomy($course, array_merge([
-                    'category_ids' => $course->categories()->pluck('categories.id')->all(),
                     'tag_ids' => $course->tags()->pluck('tags.id')->all(),
                     'audience_ids' => $course->audiences()->pluck('audiences.id')->all(),
                 ], $syncPayload));
@@ -133,8 +108,31 @@ class CourseService
             $this->assertPublishRules($course);
             $this->translationSync->syncCourse($course);
 
-            return $course->load(['categories', 'tags', 'audiences', 'difficultyLevel']);
+            return $course->load(['tags', 'audiences', 'difficultyLevel', 'primaryCategory']);
         });
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function courseEditRelations(): array
+    {
+        return [
+            'primaryCategory',
+            'difficultyLevel',
+            'heroMedia',
+            'tags',
+            'audiences',
+            'modules',
+            'learningObjectives',
+            'prerequisites',
+            'discountTiers',
+            'faqs',
+            'courseRelations.relatedCourse',
+            'openClassrooms',
+            'programs',
+            'seoMeta',
+        ];
     }
 
     /**
@@ -204,9 +202,6 @@ class CourseService
      */
     protected function syncTaxonomy(Course $course, array $data): void
     {
-        $categoryIds = array_values(array_unique(array_map('intval', $data['category_ids'] ?? [])));
-        $course->categories()->sync($categoryIds);
-
         $tagIds = array_values(array_unique(array_map('intval', $data['tag_ids'] ?? [])));
         $course->tags()->sync($tagIds);
 
@@ -222,6 +217,8 @@ class CourseService
         $this->syncModules($course, $data['modules'] ?? []);
         $this->syncObjectives($course, $data['objectives'] ?? []);
         $this->syncPrerequisites($course, $data['prerequisites'] ?? []);
+        $this->syncFaqs($course, $data['faqs'] ?? []);
+        $this->syncCourseRelations($course, $data['course_relations'] ?? []);
     }
 
     /**
@@ -325,6 +322,55 @@ class CourseService
         }
     }
 
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     */
+    protected function syncFaqs(Course $course, array $rows): void
+    {
+        $course->faqs()->delete();
+        foreach ($rows as $index => $row) {
+            $q = trim((string) ($row['question'] ?? ''));
+            if ($q === '') {
+                continue;
+            }
+            $course->faqs()->create([
+                'question' => $q,
+                'answer' => trim((string) ($row['answer'] ?? '')),
+                'sort_order' => isset($row['sort_order']) ? (int) $row['sort_order'] : $index,
+                'is_schema_enabled' => false,
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     */
+    protected function syncCourseRelations(Course $course, array $rows): void
+    {
+        $course->courseRelations()->delete();
+        $seen = [];
+        foreach ($rows as $index => $row) {
+            $relatedId = (int) ($row['related_course_id'] ?? 0);
+            if ($relatedId < 1 || $relatedId === (int) $course->getKey()) {
+                continue;
+            }
+            if (! Course::query()->whereKey($relatedId)->exists()) {
+                continue;
+            }
+            $type = (string) ($row['relation_type'] ?? 'follow_up');
+            $key = $relatedId.'|'.$type;
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $course->courseRelations()->create([
+                'related_course_id' => $relatedId,
+                'relation_type' => $type,
+                'sort_order' => isset($row['sort_order']) ? (int) $row['sort_order'] : $index,
+            ]);
+        }
+    }
+
     protected function assertPublishRules(Course $course): void
     {
         if ($course->status !== CourseStatus::Published) {
@@ -341,14 +387,10 @@ class CourseService
             $errors['slug'] = [__('A slug is required to publish.')];
         }
 
-        if ($course->categories()->count() === 0) {
-            $errors['category_ids'] = [__('Courses must belong to at least one category.')];
-        }
-
         if ($course->primary_category_id === null) {
-            $errors['primary_category_id'] = [__('A primary category is required to publish.')];
-        } elseif (! $course->categories()->where('categories.id', $course->primary_category_id)->exists()) {
-            $errors['primary_category_id'] = [__('Primary category must be one of the selected categories.')];
+            $errors['primary_category_id'] = [__('A category is required to publish.')];
+        } elseif (! Category::query()->whereKey($course->primary_category_id)->exists()) {
+            $errors['primary_category_id'] = [__('The selected category is invalid.')];
         }
 
         if (mb_strlen((string) $course->short_description) < 20) {

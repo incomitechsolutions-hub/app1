@@ -44,67 +44,7 @@ function initCourseFormLive() {
         }, 450);
     };
 
-    let categoryTom = null;
     let primaryTom = null;
-
-    const catSelect = document.getElementById('category_ids');
-    if (catSelect) {
-        let initial = [];
-        try {
-            initial = JSON.parse(root.getAttribute('data-initial-categories') || '[]');
-        } catch {
-            initial = [];
-        }
-        const searchUrl = root.getAttribute('data-category-search-url') || '';
-
-        categoryTom = new TomSelect(catSelect, {
-            plugins: ['remove_button', 'dropdown_input'],
-            valueField: 'id',
-            labelField: 'name',
-            searchField: ['name'],
-            options: initial,
-            preload: 'focus',
-            loadThrottle: 200,
-            maxOptions: 100,
-            load(query, callback) {
-                const url = `${searchUrl}?q=${encodeURIComponent(query)}`;
-                fetch(url, {
-                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                    credentials: 'same-origin',
-                })
-                    .then((r) => r.json())
-                    .then((json) => callback(json.data ?? []))
-                    .catch(() => callback());
-            },
-            controlClass: tsControl,
-            dropdownClass: tsDropdown,
-            onChange() {
-                const ids = this.getValue().map((v) => Number(v));
-                patch({ category_ids: ids });
-                if (primaryTom) {
-                    const p = primaryTom.getValue();
-                    const pid = p ? Number(p) : null;
-                    if (pid && !ids.includes(pid)) {
-                        const next = ids.length ? String(ids[0]) : '';
-                        primaryTom.setValue(next, true);
-                        patch({ primary_category_id: next ? Number(next) : null });
-                    }
-                }
-            },
-        });
-
-        const categoryFilter = document.getElementById('category_filter');
-        if (categoryFilter && categoryTom) {
-            const runFilter = () => {
-                const q = categoryFilter.value.trim();
-                categoryTom.clearOptions();
-                categoryTom.load(q);
-                categoryTom.open();
-            };
-            categoryFilter.addEventListener('input', runFilter);
-            categoryFilter.addEventListener('focus', runFilter);
-        }
-    }
 
     const primarySelect = document.getElementById('primary_category_id');
     if (primarySelect) {
@@ -151,6 +91,18 @@ function initCourseFormLive() {
                 patch({ primary_category_id: v ? Number(v) : null });
             },
         });
+
+        const categoryFilter = document.getElementById('category_filter');
+        if (categoryFilter && primaryTom) {
+            const runFilter = () => {
+                const q = categoryFilter.value.trim();
+                primaryTom.clearOptions();
+                primaryTom.load(q);
+                primaryTom.open();
+            };
+            categoryFilter.addEventListener('input', runFilter);
+            categoryFilter.addEventListener('focus', runFilter);
+        }
     }
 
     const tagSelect = document.getElementById('tag_ids');

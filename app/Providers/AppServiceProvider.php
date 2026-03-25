@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Domain\CourseCatalog\Models\Course;
+use App\Domain\CourseCatalog\Models\Program;
 use App\Domain\CourseCatalog\Policies\CoursePolicy;
+use App\Domain\CourseCatalog\Policies\ProgramPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -24,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Course::class, CoursePolicy::class);
+        Gate::policy(Program::class, ProgramPolicy::class);
         Gate::define('manage-modules', fn () => true);
 
         Route::bind('course', function (string $value): Course {

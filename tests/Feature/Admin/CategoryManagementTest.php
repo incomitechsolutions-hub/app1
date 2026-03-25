@@ -364,7 +364,6 @@ class CategoryManagementTest extends TestCase
             'status' => 'draft',
             'primary_category_id' => $courseCategory->id,
         ]);
-        $course->categories()->attach($courseCategory->id);
 
         $this->actingAs($user)
             ->delete(route('admin.taxonomy.categories.destroy', $courseCategory))

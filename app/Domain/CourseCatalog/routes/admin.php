@@ -3,6 +3,7 @@
 use App\Domain\CourseCatalog\Http\Controllers\Admin\CourseCatalogSettingsController;
 use App\Domain\CourseCatalog\Http\Controllers\Admin\CourseController;
 use App\Domain\CourseCatalog\Http\Controllers\Admin\CoursePatchController;
+use App\Domain\CourseCatalog\Http\Controllers\Admin\ProgramController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'auth', 'module.enabled:course_catalog'])->prefix('admin')->name('admin.course-catalog.')->group(function () {
@@ -25,5 +26,6 @@ Route::middleware(['web', 'auth', 'module.enabled:course_catalog'])->prefix('adm
         ->name('courses.restore');
     Route::patch('courses/{course}/fields', CoursePatchController::class)
         ->name('courses.patch-fields');
+    Route::resource('programs', ProgramController::class);
     Route::resource('courses', CourseController::class);
 });

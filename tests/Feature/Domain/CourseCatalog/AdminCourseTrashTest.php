@@ -37,8 +37,6 @@ class AdminCourseTrashTest extends TestCase
             'published_at' => null,
         ]);
 
-        $course->categories()->sync([$category->id]);
-
         return $course->fresh();
     }
 

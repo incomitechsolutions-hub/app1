@@ -33,6 +33,11 @@
                     class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold transition">
                     Details
                 </button>
+                <button type="button" @click="tab = 'pricing'"
+                    :class="tab === 'pricing' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                    class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold transition">
+                    Preis
+                </button>
                 <button type="button" @click="tab = 'seo'"
                     :class="tab === 'seo' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
                     class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold transition">
@@ -57,6 +62,13 @@
             </div>
             <div x-show="tab === 'details'" x-cloak>
                 @include('admin.courses._form_tab_details', [
+                    'course' => null,
+                    'catalogDefaults' => $catalogDefaults,
+                    'coursesForRelations' => $coursesForRelations,
+                ])
+            </div>
+            <div x-show="tab === 'pricing'" x-cloak>
+                @include('admin.courses._form_tab_pricing', [
                     'course' => null,
                     'catalogDefaults' => $catalogDefaults,
                 ])

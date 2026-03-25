@@ -1,7 +1,6 @@
 @php
     use App\Domain\CourseCatalog\Enums\CourseStatus;
 
-    $selectedCategories = old('category_ids', $course?->categories->pluck('id')->all() ?? []);
     $selectedTags = old('tag_ids', $course?->tags->pluck('id')->all() ?? []);
     $selectedAudiences = old('audience_ids', $course?->audiences->pluck('id')->all() ?? []);
 @endphp
@@ -109,23 +108,7 @@
 
     <div class="grid gap-4 sm:grid-cols-2">
         <div class="sm:col-span-2">
-            <label for="category_ids" class="block text-sm font-medium text-slate-700">Kategorien (mind. eine)</label>
-            <select id="category_ids" name="category_ids[]" multiple required size="6"
-                class="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500">
-                @foreach ($categories as $cat)
-                    <option value="{{ $cat->id }}" @selected(in_array($cat->id, $selectedCategories, true))>
-                        {{ $cat->name }}
-                    </option>
-                @endforeach
-            </select>
-            <p class="mt-1 text-xs text-slate-500">Strg/Cmd für Mehrfachauswahl.</p>
-            @error('category_ids')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-            @enderror
-        </div>
-
-        <div class="sm:col-span-2">
-            <label for="primary_category_id" class="block text-sm font-medium text-slate-700">Primärkategorie</label>
+            <label for="primary_category_id" class="block text-sm font-medium text-slate-700">Kategorie</label>
             <select id="primary_category_id" name="primary_category_id"
                 class="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500">
                 <option value="">—</option>

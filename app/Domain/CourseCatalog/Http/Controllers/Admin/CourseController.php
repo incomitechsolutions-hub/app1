@@ -108,12 +108,15 @@ class CourseController extends Controller
             'primaryCategory',
             'difficultyLevel',
             'heroMedia',
-            'categories',
             'tags',
             'audiences',
             'modules',
             'learningObjectives',
             'prerequisites',
+            'faqs',
+            'courseRelations.relatedCourse',
+            'openClassrooms',
+            'programs',
             'seoMeta',
         ]);
 
@@ -129,13 +132,17 @@ class CourseController extends Controller
         }
 
         $course->load([
-            'categories',
+            'primaryCategory',
             'tags',
             'audiences',
             'modules',
             'learningObjectives',
             'prerequisites',
             'discountTiers',
+            'faqs',
+            'courseRelations.relatedCourse',
+            'openClassrooms',
+            'programs',
             'seoMeta',
         ]);
 
@@ -204,6 +211,7 @@ class CourseController extends Controller
             'difficultyLevels' => DifficultyLevel::query()->orderBy('sort_order')->get(),
             'tags' => Tag::query()->orderBy('name')->get(),
             'audiences' => Audience::query()->orderBy('name')->get(),
+            'coursesForRelations' => Course::query()->orderBy('title')->get(['id', 'title']),
             'mediaAssets' => MediaAsset::query()->orderByDesc('id')->limit(200)->get(),
             'seoMeta' => null,
             'catalogDefaults' => $globals,

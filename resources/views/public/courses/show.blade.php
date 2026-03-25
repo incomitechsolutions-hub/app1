@@ -69,7 +69,7 @@
                 @endif
                 @if ($course->primaryCategory)
                     <div>
-                        <dt class="font-medium text-gray-500 dark:text-gray-400">Primärkategorie</dt>
+                        <dt class="font-medium text-gray-500 dark:text-gray-400">Kategorie</dt>
                         <dd class="text-gray-900 dark:text-white">{{ $course->primaryCategory->name }}</dd>
                     </div>
                 @endif
@@ -92,10 +92,79 @@
             </div>
         </header>
 
+        @if ($course->programs->isNotEmpty())
+            <section class="mt-10 border-b border-gray-200 pb-8 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Programme</h2>
+                <ul class="mt-3 list-inside list-disc text-gray-700 dark:text-gray-300">
+                    @foreach ($course->programs as $program)
+                        @if ($program->status === 'published')
+                            <li>
+                                <a href="{{ route('public.programs.show', ['slug' => $program->slug]) }}" class="text-sky-600 hover:underline">{{ $program->title }}</a>
+                            </li>
+                        @endif
+                    @endforeach
+                </ul>
+            </section>
+        @endif
+
+        @if ($course->courseRelations->isNotEmpty())
+            <section class="mt-10 border-b border-gray-200 pb-8 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Verwandte Kurse</h2>
+                <ul class="mt-3 space-y-2">
+                    @foreach ($course->courseRelations as $rel)
+                        @if ($rel->relatedCourse && $rel->relatedCourse->status->value === 'published')
+                            <li>
+                                <a href="{{ route('public.courses.show', ['slug' => $rel->relatedCourse->slug]) }}" class="text-sky-600 hover:underline">{{ $rel->relatedCourse->title }}</a>
+                                <span class="text-sm text-gray-500">({{ match ($rel->relation_type) {
+                                    'follow_up' => 'Fortführung',
+                                    'extension' => 'Erweiterung',
+                                    'complementary' => 'Ergänzend',
+                                    default => $rel->relation_type,
+                                } }})</span>
+                            </li>
+                        @endif
+                    @endforeach
+                </ul>
+            </section>
+        @endif
+
+        @if ($course->openClassrooms->isNotEmpty())
+            <section class="mt-10 border-b border-gray-200 pb-8 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Termine</h2>
+                <ul class="mt-4 space-y-3">
+                    @foreach ($course->openClassrooms as $oc)
+                        <li class="rounded-lg border border-gray-200 p-4 dark:border-gray-600">
+                            <p class="font-medium text-gray-900 dark:text-white">{{ $oc->starts_at->format('d.m.Y H:i') }}</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                {{ $oc->location_label }}
+                                @if ($oc->duration_hours !== null)
+                                    · {{ number_format((float) $oc->duration_hours, 1, ',', '.') }} Std.
+                                @endif
+                            </p>
+                        </li>
+                    @endforeach
+                </ul>
+            </section>
+        @endif
+
         @if ($course->long_description)
             <div class="prose prose-gray dark:prose-invert mt-10 max-w-none">
                 {!! nl2br(e($course->long_description)) !!}
             </div>
+        @endif
+
+        @if ($course->faqs->isNotEmpty())
+            <section class="mt-10">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">FAQ</h2>
+                <dl class="mt-4 space-y-4">
+                    @foreach ($course->faqs as $faq)
+                        <div class="border-b border-gray-100 pb-4 dark:border-gray-800">
+                            <dt class="font-medium text-gray-900 dark:text-white">{{ $faq->question }}</dt>
+                            <dd class="mt-2 text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{{ $faq->answer }}</dd>
+                        </div>
+                    @endforeach
+                </dl>
+            </section>
         @endif
     </article>
 @endsection

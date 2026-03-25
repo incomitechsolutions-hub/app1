@@ -96,14 +96,10 @@
             </dl>
 
             <div class="mt-8">
-                <h2 class="text-lg font-medium text-slate-900">Kategorien</h2>
-                <ul class="mt-2 list-inside list-disc text-sm text-slate-800">
-                    @forelse ($course->categories as $cat)
-                        <li>{{ $cat->name }} @if ($course->primary_category_id === $cat->id) (primär) @endif</li>
-                    @empty
-                        <li class="text-slate-500">Keine</li>
-                    @endforelse
-                </ul>
+                <h2 class="text-lg font-medium text-slate-900">Kategorie</h2>
+                <p class="mt-2 text-sm text-slate-800">
+                    {{ $course->primaryCategory?->name ?? '—' }}
+                </p>
             </div>
 
             @if ($course->tags->isNotEmpty())

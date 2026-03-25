@@ -101,8 +101,6 @@ class UpdateCourseRequest extends FormRequest
             'media_header_enabled' => ['boolean'],
             'media_video_enabled' => ['boolean'],
             'media_gallery_enabled' => ['boolean'],
-            'category_ids' => ['required', 'array', 'min:1'],
-            'category_ids.*' => ['integer', 'exists:categories,id'],
             'tag_ids' => ['nullable', 'array'],
             'tag_ids.*' => ['integer', 'exists:tags,id'],
             'audience_ids' => ['nullable', 'array'],
@@ -118,6 +116,14 @@ class UpdateCourseRequest extends FormRequest
             'prerequisites' => ['nullable', 'array'],
             'prerequisites.*.prerequisite_text' => ['nullable', 'string', 'max:2000'],
             'prerequisites.*.sort_order' => ['nullable', 'integer', 'min:0'],
+            'faqs' => ['nullable', 'array'],
+            'faqs.*.question' => ['nullable', 'string', 'max:2000'],
+            'faqs.*.answer' => ['nullable', 'string', 'max:20000'],
+            'faqs.*.sort_order' => ['nullable', 'integer', 'min:0'],
+            'course_relations' => ['nullable', 'array'],
+            'course_relations.*.related_course_id' => ['nullable', 'integer', 'exists:courses,id'],
+            'course_relations.*.relation_type' => ['nullable', 'string', 'in:follow_up,extension,complementary'],
+            'course_relations.*.sort_order' => ['nullable', 'integer', 'min:0'],
             'seo' => ['nullable', 'array'],
             'seo.seo_title' => ['nullable', 'string', 'max:255'],
             'seo.meta_description' => ['nullable', 'string', 'max:1000'],
@@ -138,13 +144,40 @@ class UpdateCourseRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator): void {
-            $primary = $this->input('primary_category_id');
-            $cats = array_map('intval', $this->input('category_ids', []));
-            if ($primary !== null && $primary !== '' && ! in_array((int) $primary, $cats, true)) {
-                $validator->errors()->add(
-                    'primary_category_id',
-                    __('Primary category must be included in categories.')
-                );
+            /** @var Course|null $course */
+            $course = $this->route('course');
+            $courseId = $course instanceof Course ? (int) $course->getKey() : null;
+
+            $faqs = $this->input('faqs', []);
+            if (is_array($faqs)) {
+                foreach ($faqs as $i => $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    $q = trim((string) ($row['question'] ?? ''));
+                    if ($q === '') {
+                        continue;
+                    }
+                    if (trim((string) ($row['answer'] ?? '')) === '') {
+                        $validator->errors()->add("faqs.{$i}.answer", __('Answer is required when a question is set.'));
+                    }
+                }
+            }
+
+            $relations = $this->input('course_relations', []);
+            if (is_array($relations) && $courseId !== null) {
+                foreach ($relations as $i => $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    $rid = (int) ($row['related_course_id'] ?? 0);
+                    if ($rid > 0 && $rid === $courseId) {
+                        $validator->errors()->add(
+                            "course_relations.{$i}.related_course_id",
+                            __('A course cannot relate to itself.')
+                        );
+                    }
+                }
             }
         });
     }
