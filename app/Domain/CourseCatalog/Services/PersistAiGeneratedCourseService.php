@@ -67,6 +67,13 @@ class PersistAiGeneratedCourseService
             $out['seo'] = array_merge($defaults['seo'], $payload['seo']);
         }
 
+        if (($out['average_rating'] ?? null) === null) {
+            $out['average_rating'] = 0;
+        }
+        if (($out['ratings_count'] ?? null) === null) {
+            $out['ratings_count'] = 0;
+        }
+
         return $out;
     }
 }

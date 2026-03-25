@@ -40,6 +40,18 @@ class UpdateCourseRequest extends FormRequest
         if ($this->input('published_at') === '') {
             $this->merge(['published_at' => null]);
         }
+        if ($this->has('average_rating')) {
+            $ar = $this->input('average_rating');
+            if ($ar === '' || $ar === null) {
+                $this->merge(['average_rating' => 0]);
+            }
+        }
+        if ($this->has('ratings_count')) {
+            $rc = $this->input('ratings_count');
+            if ($rc === '' || $rc === null) {
+                $this->merge(['ratings_count' => 0]);
+            }
+        }
     }
 
     /**

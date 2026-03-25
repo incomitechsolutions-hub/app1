@@ -259,8 +259,8 @@
                 <input type="hidden" name="content_version" value="">
                 <input type="hidden" name="ai_prompt_source" value="ai_course_generation">
                 <input type="hidden" name="internal_notes" value="">
-                <input type="hidden" name="average_rating" value="">
-                <input type="hidden" name="ratings_count" value="">
+                <input type="hidden" name="average_rating" value="0">
+                <input type="hidden" name="ratings_count" value="0">
                 <input type="hidden" name="media_icon_enabled" value="0">
                 <input type="hidden" name="media_header_enabled" value="0">
                 <input type="hidden" name="media_video_enabled" value="0">

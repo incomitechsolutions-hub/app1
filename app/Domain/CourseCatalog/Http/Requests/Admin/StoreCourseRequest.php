@@ -39,6 +39,12 @@ class StoreCourseRequest extends FormRequest
         if ($this->input('published_at') === '') {
             $this->merge(['published_at' => null]);
         }
+        if ($this->input('average_rating') === '' || $this->input('average_rating') === null) {
+            $this->merge(['average_rating' => 0]);
+        }
+        if ($this->input('ratings_count') === '' || $this->input('ratings_count') === null) {
+            $this->merge(['ratings_count' => 0]);
+        }
     }
 
     /**
