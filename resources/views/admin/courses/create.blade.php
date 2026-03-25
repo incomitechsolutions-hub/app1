@@ -26,7 +26,7 @@
                 <button type="button" @click="tab = 'content'"
                     :class="tab === 'content' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
                     class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold transition">
-                    Content
+                    Basiseinstellungen
                 </button>
                 <button type="button" @click="tab = 'details'"
                     :class="tab === 'details' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'"

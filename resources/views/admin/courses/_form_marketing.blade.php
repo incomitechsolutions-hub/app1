@@ -1,5 +1,16 @@
 @php
     use App\Domain\CourseCatalog\Enums\DeliveryFormat;
+
+    $tierRows = old('course_discount_tiers');
+    if ($tierRows === null && $course) {
+        $tierRows = $course->discountTiers->map(fn ($t) => [
+            'min_participants' => $t->min_participants,
+            'discount_percent' => $t->discount_percent,
+            'sort_order' => $t->sort_order,
+        ])->values()->all();
+    }
+    $tierRows = $tierRows ?? [];
+    $tierRows = array_pad(array_values($tierRows), 8, []);
 @endphp
 
 <div class="admin-panel space-y-6 p-6">
@@ -49,6 +60,54 @@
             @error('is_featured')
                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
             @enderror
+        </div>
+    </div>
+
+    <div class="space-y-3">
+        <div>
+            <h3 class="text-sm font-semibold text-slate-900">Preisstaffelung (Kurs-Level)</h3>
+            <p class="text-xs text-slate-500">
+                Überschreibt die globalen Rabatt-Stufen nur, wenn am Kurs ein Preis gesetzt ist.
+            </p>
+        </div>
+
+        <div class="overflow-hidden rounded-xl border border-slate-200">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left font-medium text-slate-700">#</th>
+                        <th class="px-4 py-2 text-left font-medium text-slate-700">Mindest-Teilnehmer</th>
+                        <th class="px-4 py-2 text-left font-medium text-slate-700">Rabatt (%)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @foreach ($tierRows as $i => $row)
+                        <tr>
+                            <td class="px-4 py-2 text-slate-500">{{ $i + 1 }}</td>
+                            <td class="px-4 py-2">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    name="course_discount_tiers[{{ $i }}][min_participants]"
+                                    value="{{ $row['min_participants'] ?? '' }}"
+                                    class="w-full rounded border border-slate-200 px-2 py-1 text-sm"
+                                >
+                            </td>
+                            <td class="px-4 py-2">
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    max="100"
+                                    name="course_discount_tiers[{{ $i }}][discount_percent]"
+                                    value="{{ $row['discount_percent'] ?? '' }}"
+                                    class="w-full rounded border border-slate-200 px-2 py-1 text-sm"
+                                >
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

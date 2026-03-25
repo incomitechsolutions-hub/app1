@@ -4,7 +4,6 @@ namespace App\Domain\CourseCatalog\Models;
 
 use App\Domain\CourseCatalog\Enums\CourseStatus;
 use App\Domain\CourseCatalog\Enums\DeliveryFormat;
-use App\Domain\CourseCatalog\Enums\DeliveryMode;
 use App\Domain\Media\Models\MediaAsset;
 use App\Domain\Taxonomy\Models\Audience;
 use App\Domain\Taxonomy\Models\Category;
@@ -32,7 +31,6 @@ class Course extends Model
         'long_description',
         'target_audience_text',
         'prerequisites_text',
-        'duration_hours',
         'duration_days',
         'language_code',
         'currency_code',
@@ -45,7 +43,6 @@ class Course extends Model
         'content_version',
         'price',
         'delivery_format',
-        'delivery_mode',
         'lessons_count',
         'min_participants',
         'instructor_name',
@@ -68,10 +65,8 @@ class Course extends Model
         return [
             'status' => CourseStatus::class,
             'published_at' => 'datetime',
-            'duration_hours' => 'decimal:2',
             'duration_days' => 'integer',
             'delivery_format' => DeliveryFormat::class,
-            'delivery_mode' => DeliveryMode::class,
             'is_featured' => 'boolean',
             'price' => 'decimal:2',
             'average_rating' => 'decimal:2',

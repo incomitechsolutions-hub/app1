@@ -4,7 +4,6 @@ namespace App\Domain\CourseCatalog\Http\Requests\Admin;
 
 use App\Domain\CourseCatalog\Enums\CourseStatus;
 use App\Domain\CourseCatalog\Enums\DeliveryFormat;
-use App\Domain\CourseCatalog\Enums\DeliveryMode;
 use App\Domain\CourseCatalog\Models\Course;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -28,9 +27,6 @@ class UpdateCourseRequest extends FormRequest
         ]);
         if ($this->input('delivery_format') === '' || $this->input('delivery_format') === null) {
             $this->merge(['delivery_format' => null]);
-        }
-        if ($this->input('delivery_mode') === '' || $this->input('delivery_mode') === null) {
-            $this->merge(['delivery_mode' => null]);
         }
         if ($this->input('external_course_code') === '') {
             $this->merge(['external_course_code' => null]);
@@ -75,7 +71,6 @@ class UpdateCourseRequest extends FormRequest
             'long_description' => ['nullable', 'string'],
             'target_audience_text' => ['nullable', 'string'],
             'prerequisites_text' => ['nullable', 'string'],
-            'duration_hours' => ['nullable', 'numeric', 'min:0'],
             'duration_days' => ['nullable', 'integer', 'min:0', 'max:3660'],
             'language_code' => ['required', 'string', 'max:16'],
             'currency_code' => ['required', 'string', 'size:3'],
@@ -87,8 +82,10 @@ class UpdateCourseRequest extends FormRequest
             'author_name' => ['nullable', 'string', 'max:255'],
             'content_version' => ['nullable', 'string', 'max:32'],
             'price' => ['nullable', 'numeric', 'min:0'],
+            'course_discount_tiers' => ['nullable', 'array'],
+            'course_discount_tiers.*.min_participants' => ['nullable', 'integer', 'min:1'],
+            'course_discount_tiers.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'delivery_format' => ['nullable', new Enum(DeliveryFormat::class)],
-            'delivery_mode' => ['nullable', new Enum(DeliveryMode::class)],
             'lessons_count' => ['nullable', 'integer', 'min:0'],
             'min_participants' => ['nullable', 'integer', 'min:0'],
             'instructor_name' => ['nullable', 'string', 'max:255'],

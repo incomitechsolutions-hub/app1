@@ -1,13 +1,11 @@
 @php
     use App\Domain\CourseCatalog\Enums\DeliveryFormat;
-    use App\Domain\CourseCatalog\Enums\DeliveryMode;
 
     $filterQuery = array_filter([
         'q' => $filters['q'] ?? null,
         'category_id' => $filters['category_id'] ?? null,
         'difficulty_level_id' => $filters['difficulty_level_id'] ?? null,
         'delivery_format' => $filters['delivery_format'] ?? null,
-        'delivery_mode' => $filters['delivery_mode'] ?? null,
         'status' => $filters['status'] ?? null,
         'featured' => $featuredFilter ? '1' : null,
         'trashed' => $trashed ? '1' : null,
@@ -109,22 +107,6 @@
                 </select>
             </div>
             <div>
-                <label for="delivery_mode" class="mb-1 block text-xs font-medium text-slate-600">Liefermodus</label>
-                <select id="delivery_mode" name="delivery_mode" onchange="this.form.submit()"
-                    class="min-w-[10rem] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
-                    <option value="">Alle</option>
-                    @foreach ($deliveryModes as $mode)
-                        <option value="{{ $mode->value }}" @selected(($filters['delivery_mode'] ?? '') === $mode->value)>
-                            @switch($mode)
-                                @case(DeliveryMode::LiveOnline) Live-Online @break
-                                @case(DeliveryMode::SelfStudy) Selbststudium @break
-                                @case(DeliveryMode::BlendedLearning) Blended Learning @break
-                            @endswitch
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
                 <label for="status" class="mb-1 block text-xs font-medium text-slate-600">Status</label>
                 <select id="status" name="status" onchange="this.form.submit()"
                     class="min-w-[9rem] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
@@ -172,20 +154,8 @@
                                                 @endswitch
                                             </span>
                                         @endif
-                                        @if ($course->delivery_mode)
-                                            <span class="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
-                                                @switch($course->delivery_mode)
-                                                    @case(DeliveryMode::LiveOnline) Live-Online @break
-                                                    @case(DeliveryMode::SelfStudy) Selbststudium @break
-                                                    @case(DeliveryMode::BlendedLearning) Blended Learning @break
-                                                @endswitch
-                                            </span>
-                                        @endif
                                         @if ($course->lessons_count)
                                             <span class="inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-900">{{ $course->lessons_count }} Lektionen</span>
-                                        @endif
-                                        @if ($course->duration_hours !== null)
-                                            <span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-900">{{ number_format((float) $course->duration_hours, 2, ',', '.') }} Std.</span>
                                         @endif
                                     </div>
                                 </td>

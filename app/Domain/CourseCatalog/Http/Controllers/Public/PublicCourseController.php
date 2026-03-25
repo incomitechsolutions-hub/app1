@@ -18,6 +18,7 @@ class PublicCourseController
                 'heroMedia',
                 'categories',
                 'tags',
+                'discountTiers',
                 'seoMeta.ogImageMedia',
             ])
             ->firstOrFail();

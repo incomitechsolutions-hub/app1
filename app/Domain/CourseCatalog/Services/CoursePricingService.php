@@ -34,17 +34,25 @@ class CoursePricingService
      */
     public function effectiveDiscountTiers(Course $course): array
     {
-        $course->loadMissing('discountTiers');
+        $hasCoursePrice = $course->price !== null;
 
-        if ($course->discountTiers->isNotEmpty()) {
-            return $course->discountTiers
-                ->sortBy('sort_order')
-                ->values()
-                ->map(fn (CourseDiscountTier $t) => [
-                    'min_participants' => $t->min_participants,
-                    'discount_percent' => (float) $t->discount_percent,
-                ])
-                ->all();
+        if ($hasCoursePrice) {
+            // Override nur, wenn am Kurs ein eigener Preis gesetzt ist.
+            // Wenn Kurs-Preis gesetzt ist, aber keine Kurs-Tiers existieren: Discount = 0%.
+            $course->loadMissing('discountTiers');
+
+            if ($course->discountTiers->isNotEmpty()) {
+                return $course->discountTiers
+                    ->sortBy('sort_order')
+                    ->values()
+                    ->map(fn (CourseDiscountTier $t) => [
+                        'min_participants' => $t->min_participants,
+                        'discount_percent' => (float) $t->discount_percent,
+                    ])
+                    ->all();
+            }
+
+            return [];
         }
 
         $global = CourseCatalogGlobalSetting::singleton()->load('groupDiscountTiers');

@@ -92,6 +92,18 @@ function initCourseFormLive() {
                 }
             },
         });
+
+        const categoryFilter = document.getElementById('category_filter');
+        if (categoryFilter && categoryTom) {
+            const runFilter = () => {
+                const q = categoryFilter.value.trim();
+                categoryTom.clearOptions();
+                categoryTom.load(q);
+                categoryTom.open();
+            };
+            categoryFilter.addEventListener('input', runFilter);
+            categoryFilter.addEventListener('focus', runFilter);
+        }
     }
 
     const primarySelect = document.getElementById('primary_category_id');

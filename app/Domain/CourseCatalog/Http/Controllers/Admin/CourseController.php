@@ -6,7 +6,6 @@ use App\Domain\CourseCatalog\Http\Requests\Admin\StoreCourseRequest;
 use App\Domain\CourseCatalog\Http\Requests\Admin\UpdateCourseRequest;
 use App\Domain\CourseCatalog\Enums\CourseStatus;
 use App\Domain\CourseCatalog\Enums\DeliveryFormat;
-use App\Domain\CourseCatalog\Enums\DeliveryMode;
 use App\Domain\CourseCatalog\Models\Course;
 use App\Domain\CourseCatalog\Models\CourseCatalogGlobalSetting;
 use App\Domain\CourseCatalog\Services\CourseService;
@@ -65,10 +64,6 @@ class CourseController extends Controller
             $query->where('delivery_format', (string) $request->query('delivery_format'));
         }
 
-        if ($request->filled('delivery_mode')) {
-            $query->where('delivery_mode', (string) $request->query('delivery_mode'));
-        }
-
         if ($request->filled('status')) {
             $query->where('status', (string) $request->query('status'));
         }
@@ -83,13 +78,11 @@ class CourseController extends Controller
             'difficultyLevels' => DifficultyLevel::query()->orderBy('sort_order')->get(),
             'courseStatuses' => CourseStatus::cases(),
             'deliveryFormats' => DeliveryFormat::cases(),
-            'deliveryModes' => DeliveryMode::cases(),
             'filters' => [
                 'q' => $q,
                 'category_id' => $request->query('category_id'),
                 'difficulty_level_id' => $request->query('difficulty_level_id'),
                 'delivery_format' => $request->query('delivery_format'),
-                'delivery_mode' => $request->query('delivery_mode'),
                 'status' => $request->query('status'),
             ],
         ]);
@@ -142,6 +135,7 @@ class CourseController extends Controller
             'modules',
             'learningObjectives',
             'prerequisites',
+            'discountTiers',
             'seoMeta',
         ]);
 
