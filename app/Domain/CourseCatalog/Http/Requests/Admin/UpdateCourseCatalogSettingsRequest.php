@@ -44,10 +44,6 @@ class UpdateCourseCatalogSettingsRequest extends FormRequest
             'early_bird_discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'group_discount_enabled' => ['boolean'],
             'group_discount_layout' => ['required', new Enum(GroupDiscountLayout::class)],
-            'group_discount_tiers' => ['nullable', 'array'],
-            'group_discount_tiers.*.min_participants' => ['nullable', 'integer', 'min:1'],
-            'group_discount_tiers.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'group_discount_tiers.*.sort_order' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

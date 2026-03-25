@@ -4,8 +4,10 @@ namespace App\Domain\CourseCatalog\Services;
 
 use App\Domain\CourseCatalog\Models\CourseCatalogGlobalSetting;
 use App\Domain\CourseCatalog\Models\CourseCoupon;
+use App\Domain\CourseCatalog\Models\CourseGroupDiscountTier;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class CourseCatalogSettingsService
 {
@@ -32,25 +34,48 @@ class CourseCatalogSettingsService
             $settings->fill($attrs);
             $settings->save();
 
-            $this->syncGroupDiscountTiers($settings, $data['group_discount_tiers'] ?? []);
-
             return $settings->fresh(['groupDiscountTiers']);
         });
     }
 
     /**
-     * @param  array<int, array<string, mixed>>  $rows
+     * @param  array<string, mixed>  $data
      */
-    protected function syncGroupDiscountTiers(CourseCatalogGlobalSetting $settings, array $rows): void
+    public function createGroupDiscountTier(array $data): CourseGroupDiscountTier
     {
-        $settings->groupDiscountTiers()->delete();
-        $rows = array_values(array_filter($rows, fn ($row) => isset($row['min_participants']) && $row['min_participants'] !== '' && $row['min_participants'] !== null));
-        foreach ($rows as $index => $row) {
-            $settings->groupDiscountTiers()->create([
-                'sort_order' => $index,
-                'min_participants' => max(1, (int) $row['min_participants']),
-                'discount_percent' => (float) ($row['discount_percent'] ?? 0),
-            ]);
+        $settings = CourseCatalogGlobalSetting::singleton();
+        $nextOrder = (int) $settings->groupDiscountTiers()->max('sort_order') + 1;
+
+        return $settings->groupDiscountTiers()->create([
+            'sort_order' => $nextOrder,
+            'min_participants' => (int) $data['min_participants'],
+            'discount_percent' => (float) $data['discount_percent'],
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function updateGroupDiscountTier(CourseGroupDiscountTier $tier, array $data): CourseGroupDiscountTier
+    {
+        $tier->update([
+            'min_participants' => (int) $data['min_participants'],
+            'discount_percent' => (float) $data['discount_percent'],
+        ]);
+
+        return $tier->fresh();
+    }
+
+    public function deleteGroupDiscountTier(CourseGroupDiscountTier $tier): void
+    {
+        $tier->delete();
+    }
+
+    public function assertTierBelongsToSingleton(CourseGroupDiscountTier $tier): void
+    {
+        $settings = CourseCatalogGlobalSetting::singleton();
+        if ((int) $tier->course_catalog_global_setting_id !== (int) $settings->id) {
+            throw new RuntimeException('Invalid group discount tier.');
         }
     }
 

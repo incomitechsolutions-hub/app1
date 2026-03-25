@@ -10,6 +10,7 @@ export default defineConfig({
                 'resources/js/admin-course-editor.js',
                 'resources/js/admin-category-index.js',
                 'resources/js/admin-category-parent-select.js',
+                'resources/js/admin-course-settings.js',
             ],
             refresh: true,
         }),

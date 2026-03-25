@@ -72,6 +72,18 @@ return [
                             'active' => 'admin.taxonomy.category-taxonomy-settings.*',
                             'module' => 'taxonomy',
                         ],
+                        [
+                            'label' => 'Taxonomy Skills',
+                            'route' => 'admin.taxonomy.tags.index',
+                            'active' => 'admin.taxonomy.tags.*',
+                            'module' => 'taxonomy',
+                        ],
+                        [
+                            'label' => 'Zielgruppen',
+                            'route' => 'admin.taxonomy.audiences.index',
+                            'active' => 'admin.taxonomy.audiences.*',
+                            'module' => 'taxonomy',
+                        ],
                     ],
                 ],
                 [

@@ -1,8 +1,11 @@
 <?php
 
+use App\Domain\Taxonomy\Http\Controllers\Admin\AudienceController;
 use App\Domain\Taxonomy\Http\Controllers\Admin\CategoryController;
 use App\Domain\Taxonomy\Http\Controllers\Admin\CategoryImportController;
+use App\Domain\Taxonomy\Http\Controllers\Admin\CategoryOptionController;
 use App\Domain\Taxonomy\Http\Controllers\Admin\CategoryTaxonomySettingsController;
+use App\Domain\Taxonomy\Http\Controllers\Admin\TagController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'auth', 'module.enabled:taxonomy'])->prefix('admin')->name('admin.taxonomy.')->group(function () {
@@ -29,5 +32,14 @@ Route::middleware(['web', 'auth', 'module.enabled:taxonomy'])->prefix('admin')->
     Route::put('category-taxonomy-settings', [CategoryTaxonomySettingsController::class, 'update'])
         ->name('category-taxonomy-settings.update');
 
+    Route::get('categories/options/search', [CategoryOptionController::class, 'index'])
+        ->name('categories.options');
+
     Route::resource('categories', CategoryController::class)->except('show');
+
+    Route::post('tags/quick', [TagController::class, 'storeQuick'])->name('tags.quick-store');
+    Route::resource('tags', TagController::class)->except(['show']);
+
+    Route::post('audiences/quick', [AudienceController::class, 'storeQuick'])->name('audiences.quick-store');
+    Route::resource('audiences', AudienceController::class)->except(['show']);
 });

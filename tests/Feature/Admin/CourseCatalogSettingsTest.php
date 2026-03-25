@@ -40,16 +40,29 @@ class CourseCatalogSettingsTest extends TestCase
                 'early_bird_discount_percent' => 5,
                 'group_discount_enabled' => true,
                 'group_discount_layout' => GroupDiscountLayout::Layout1->value,
-                'group_discount_tiers' => [
-                    ['min_participants' => 2, 'discount_percent' => 10],
-                    ['min_participants' => 5, 'discount_percent' => 15],
-                ],
             ])
             ->assertRedirect(route('admin.course-catalog.settings.edit'));
 
         $settings = CourseCatalogGlobalSetting::singleton()->fresh(['groupDiscountTiers']);
         $this->assertSame('EUR', $settings->default_currency);
         $this->assertTrue($settings->early_bird_enabled);
+
+        $this->actingAs($user)
+            ->postJson(route('admin.course-catalog.settings.group-discount-tiers.store'), [
+                'min_participants' => 2,
+                'discount_percent' => 10,
+            ])
+            ->assertOk()
+            ->assertJsonStructure(['tier' => ['id', 'min_participants', 'discount_percent', 'sort_order']]);
+
+        $this->actingAs($user)
+            ->postJson(route('admin.course-catalog.settings.group-discount-tiers.store'), [
+                'min_participants' => 5,
+                'discount_percent' => 15,
+            ])
+            ->assertOk();
+
+        $settings = CourseCatalogGlobalSetting::singleton()->fresh(['groupDiscountTiers']);
         $this->assertCount(2, $settings->groupDiscountTiers);
     }
 

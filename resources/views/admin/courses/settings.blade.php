@@ -3,21 +3,16 @@
     use App\Domain\CourseCatalog\Enums\GroupDiscountLayout;
 
     /** @var \App\Domain\CourseCatalog\Models\CourseCatalogGlobalSetting $settings */
-    $tierRows = old('group_discount_tiers');
-    if ($tierRows === null) {
-        $tierRows = $settings->groupDiscountTiers->map(fn ($t) => [
-            'min_participants' => $t->min_participants,
-            'discount_percent' => $t->discount_percent,
-            'sort_order' => $t->sort_order,
-        ])->values()->all();
-    }
-    $tierRows = array_pad(array_values($tierRows), 8, []);
 @endphp
 
 @extends('layouts.admin')
 
 @section('title', 'Kurs-Einstellungen')
 @section('breadcrumb', 'Kurse')
+
+@push('scripts')
+    @vite(['resources/js/admin-course-settings.js'])
+@endpush
 
 @section('content')
     <div class="mx-auto max-w-5xl space-y-8">
@@ -151,34 +146,7 @@
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
-                <div class="overflow-hidden rounded-xl border border-slate-200">
-                    <table class="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead class="bg-slate-50">
-                            <tr>
-                                <th class="px-4 py-2 text-left font-medium text-slate-700">#</th>
-                                <th class="px-4 py-2 text-left font-medium text-slate-700">Mindest-Teilnehmer</th>
-                                <th class="px-4 py-2 text-left font-medium text-slate-700">Rabatt (%)</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @foreach ($tierRows as $i => $row)
-                                <tr>
-                                    <td class="px-4 py-2 text-slate-500">{{ $i + 1 }}</td>
-                                    <td class="px-4 py-2">
-                                        <input type="number" name="group_discount_tiers[{{ $i }}][min_participants]" min="1"
-                                            value="{{ $row['min_participants'] ?? '' }}"
-                                            class="w-full rounded border border-slate-200 px-2 py-1 text-sm">
-                                    </td>
-                                    <td class="px-4 py-2">
-                                        <input type="number" name="group_discount_tiers[{{ $i }}][discount_percent]" step="0.01" min="0" max="100"
-                                            value="{{ $row['discount_percent'] ?? '' }}"
-                                            class="w-full rounded border border-slate-200 px-2 py-1 text-sm">
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                <p class="text-sm text-slate-500">Regeln für Mindest-Teilnehmer und Rabatt werden unten direkt gespeichert (ohne „Einstellungen speichern“).</p>
             </div>
 
             <div class="flex justify-end">
@@ -188,6 +156,75 @@
                 </button>
             </div>
         </form>
+
+        <div
+            id="group-discount-tiers-root"
+            class="admin-panel space-y-6 p-6"
+            data-store-url="{{ route('admin.course-catalog.settings.group-discount-tiers.store') }}"
+            data-tier-api-prefix="{{ url('/admin/course-catalog/settings/group-discount-tiers') }}"
+        >
+            @csrf
+            <h2 class="text-lg font-semibold text-slate-900">Gruppenrabatt-Regeln</h2>
+            <p class="text-sm text-slate-500">Neue Regel anlegen, bestehende Zeilen speichern oder löschen. Änderungen gehen sofort in die Datenbank.</p>
+
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p class="text-sm font-medium text-slate-800">Neue Regel hinzufügen</p>
+                <div class="mt-3 flex flex-wrap items-end gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600">Mindest-Teilnehmer</label>
+                        <input type="number" min="1" data-add-min placeholder="z.B. 3"
+                            class="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600">Rabatt (%)</label>
+                        <input type="number" step="0.01" min="0" max="100" data-add-pct placeholder="z.B. 5"
+                            class="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm">
+                    </div>
+                    <button type="button" data-add-btn
+                        class="inline-flex items-center rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">
+                        Speichern
+                    </button>
+                    <button type="button" data-add-reset
+                        class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                        Abbrechen
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-hidden rounded-xl border border-slate-200">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left font-medium text-slate-700">#</th>
+                            <th class="px-4 py-2 text-left font-medium text-slate-700">Mindest-Teilnehmer</th>
+                            <th class="px-4 py-2 text-left font-medium text-slate-700">Rabatt (%)</th>
+                            <th class="px-4 py-2 text-right font-medium text-slate-700">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100" data-tier-tbody>
+                        @foreach ($settings->groupDiscountTiers->sortBy('sort_order') as $tier)
+                            <tr data-tier-id="{{ $tier->id }}">
+                                <td class="px-4 py-2 text-slate-500" data-col-idx></td>
+                                <td class="px-4 py-2">
+                                    <input type="number" min="1" data-tier-min value="{{ $tier->min_participants }}"
+                                        class="w-full rounded border border-slate-200 px-2 py-1 text-sm">
+                                </td>
+                                <td class="px-4 py-2">
+                                    <input type="number" step="0.01" min="0" max="100" data-tier-pct value="{{ $tier->discount_percent }}"
+                                        class="w-full rounded border border-slate-200 px-2 py-1 text-sm">
+                                </td>
+                                <td class="px-4 py-2 text-right whitespace-nowrap">
+                                    <button type="button" data-tier-save
+                                        class="mr-2 rounded bg-sky-600 px-2 py-1 text-xs font-semibold text-white hover:bg-sky-700">Speichern</button>
+                                    <button type="button" data-tier-delete
+                                        class="rounded border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Löschen</button>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
         <div class="admin-panel space-y-6 p-6">
             <h2 class="text-lg font-semibold text-slate-900">Gutscheincodes</h2>

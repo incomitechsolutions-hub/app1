@@ -89,6 +89,51 @@ class CourseService
     }
 
     /**
+     * Partial update for admin AJAX (taxonomy / level only).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function patchFields(Course $course, array $data): Course
+    {
+        return DB::transaction(function () use ($course, $data) {
+            if (array_key_exists('difficulty_level_id', $data)) {
+                $course->difficulty_level_id = $data['difficulty_level_id'];
+                $course->save();
+            }
+
+            if (array_key_exists('primary_category_id', $data)) {
+                $course->primary_category_id = $data['primary_category_id'];
+                $course->save();
+            }
+
+            $syncPayload = [];
+            if (array_key_exists('category_ids', $data)) {
+                $syncPayload['category_ids'] = $data['category_ids'];
+            }
+            if (array_key_exists('tag_ids', $data)) {
+                $syncPayload['tag_ids'] = $data['tag_ids'];
+            }
+            if (array_key_exists('audience_ids', $data)) {
+                $syncPayload['audience_ids'] = $data['audience_ids'];
+            }
+
+            if ($syncPayload !== []) {
+                $this->syncTaxonomy($course, array_merge([
+                    'category_ids' => $course->categories()->pluck('categories.id')->all(),
+                    'tag_ids' => $course->tags()->pluck('tags.id')->all(),
+                    'audience_ids' => $course->audiences()->pluck('audiences.id')->all(),
+                ], $syncPayload));
+            }
+
+            $course->refresh();
+            $this->assertPublishRules($course);
+            $this->translationSync->syncCourse($course);
+
+            return $course->load(['categories', 'tags', 'audiences', 'difficultyLevel']);
+        });
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */

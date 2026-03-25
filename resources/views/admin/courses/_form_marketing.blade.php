@@ -50,25 +50,5 @@
                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
             @enderror
         </div>
-        <div class="sm:col-span-2">
-            <label for="booking_url" class="block text-sm font-medium text-slate-700">Buchungslink</label>
-            <input id="booking_url" name="booking_url" type="url"
-                value="{{ old('booking_url', $course?->booking_url) }}"
-                placeholder="https://…"
-                class="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500">
-            @error('booking_url')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-            @enderror
-        </div>
-        <div class="sm:col-span-2">
-            <label for="offer_url" class="block text-sm font-medium text-slate-700">Angebotslink</label>
-            <input id="offer_url" name="offer_url" type="url"
-                value="{{ old('offer_url', $course?->offer_url) }}"
-                placeholder="https://…"
-                class="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500">
-            @error('offer_url')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-            @enderror
-        </div>
     </div>
 </div>

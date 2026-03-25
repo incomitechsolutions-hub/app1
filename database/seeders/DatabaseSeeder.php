@@ -42,6 +42,11 @@ class DatabaseSeeder extends Seeder
             ['label' => 'Fortgeschritten', 'sort_order' => 20]
         );
 
+        DifficultyLevel::query()->firstOrCreate(
+            ['code' => 'expert'],
+            ['label' => 'Experte', 'sort_order' => 30]
+        );
+
         Tag::query()->firstOrCreate(
             ['slug' => 'fuehrung'],
             ['name' => 'Führung']
