@@ -30,6 +30,7 @@ class CourseService
             $course->save();
             $this->syncTaxonomy($course, $data);
             $this->syncChildren($course, $data);
+            $this->syncCourseDiscountTiers($course, $data['course_discount_tiers'] ?? []);
             $course->refresh();
             $this->assertPublishRules($course);
             $this->translationSync->syncCourse($course);
@@ -45,6 +46,7 @@ class CourseService
                 'modules',
                 'learningObjectives',
                 'prerequisites',
+                'discountTiers',
                 'seoMeta',
             ]);
         });
@@ -63,6 +65,7 @@ class CourseService
             $course->save();
             $this->syncTaxonomy($course, $data);
             $this->syncChildren($course, $data);
+            $this->syncCourseDiscountTiers($course, $data['course_discount_tiers'] ?? []);
             $course->refresh();
             $this->assertPublishRules($course);
             $this->translationSync->syncCourse($course);
@@ -78,6 +81,7 @@ class CourseService
                 'modules',
                 'learningObjectives',
                 'prerequisites',
+                'discountTiers',
                 'seoMeta',
             ]);
         });
@@ -220,6 +224,22 @@ class CourseService
         $this->syncModules($course, $data['modules'] ?? []);
         $this->syncObjectives($course, $data['objectives'] ?? []);
         $this->syncPrerequisites($course, $data['prerequisites'] ?? []);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     */
+    protected function syncCourseDiscountTiers(Course $course, array $rows): void
+    {
+        $course->discountTiers()->delete();
+        $rows = array_values(array_filter($rows, fn ($row) => isset($row['min_participants']) && $row['min_participants'] !== '' && $row['min_participants'] !== null));
+        foreach ($rows as $index => $row) {
+            $course->discountTiers()->create([
+                'sort_order' => $index,
+                'min_participants' => max(1, (int) $row['min_participants']),
+                'discount_percent' => (float) ($row['discount_percent'] ?? 0),
+            ]);
+        }
     }
 
     /**

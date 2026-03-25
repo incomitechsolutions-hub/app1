@@ -130,6 +130,11 @@ class Course extends Model
         return $this->hasMany(Prerequisite::class)->orderBy('sort_order');
     }
 
+    public function discountTiers(): HasMany
+    {
+        return $this->hasMany(CourseDiscountTier::class)->orderBy('sort_order');
+    }
+
     public function translations(): HasMany
     {
         return $this->hasMany(CourseTranslation::class);
