@@ -6,12 +6,16 @@ use App\Domain\Localization\Services\DefaultLocaleTranslationSync;
 use App\Domain\Media\Models\MediaAsset;
 use App\Domain\Media\Services\MediaStorageService;
 use App\Domain\Taxonomy\Http\Requests\Admin\BulkUpdateCategoriesRequest;
+use App\Domain\Taxonomy\Http\Requests\Admin\CategoryAiFinalizeRequest;
 use App\Domain\Taxonomy\Http\Requests\Admin\StoreCategoryRequest;
 use App\Domain\Taxonomy\Http\Requests\Admin\UpdateCategoryRequest;
 use App\Domain\Taxonomy\Models\Category;
 use App\Domain\Taxonomy\Models\CategoryTaxonomySetting;
 use App\Domain\Seo\Services\SeoMetaSyncService;
+use App\Domain\Taxonomy\Services\AiCategoryFormSuggestionService;
 use App\Domain\Taxonomy\Services\CategoryAdminTreeService;
+use App\Domain\PromptManagement\Enums\PromptUseCase;
+use App\Domain\PromptManagement\Models\AiPrompt;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +30,7 @@ class CategoryController extends Controller
         private readonly CategoryAdminTreeService $categoryTree,
         private readonly MediaStorageService $mediaStorage,
         private readonly SeoMetaSyncService $seoMetaSync,
+        private readonly AiCategoryFormSuggestionService $categoryAiFinalize,
     ) {}
 
     public function index(Request $request): View
@@ -100,6 +105,7 @@ class CategoryController extends Controller
             'mediaAssets' => MediaAsset::query()->orderByDesc('id')->limit(200)->get(),
             'defaultNewCategoryStatus' => CategoryTaxonomySetting::singleton()->default_new_category_status,
             'seoMeta' => null,
+            'categoryAiPrompts' => $this->categoryAiPrompts(),
         ]);
     }
 
@@ -125,6 +131,47 @@ class CategoryController extends Controller
             'parentPickerOptions' => $this->categoryTree->buildParentPickerOptions((int) $category->getKey()),
             'mediaAssets' => MediaAsset::query()->orderByDesc('id')->limit(200)->get(),
             'seoMeta' => $category->seoMeta,
+            'categoryAiPrompts' => $this->categoryAiPrompts(),
+        ]);
+    }
+
+    public function aiFinalize(CategoryAiFinalizeRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $categoryId = isset($validated['category_id']) ? (int) $validated['category_id'] : null;
+
+        $allowedIds = collect($this->categoryTree->buildParentPickerOptions($categoryId))
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->values()
+            ->all();
+
+        $payload = [
+            'name' => $validated['name'],
+            'slug' => $validated['slug'],
+            'description' => $validated['description'] ?? '',
+            'parent_id' => $validated['parent_id'] ?? null,
+            'status' => $validated['status'] ?? 'draft',
+            'seo' => is_array($validated['seo'] ?? null) ? $validated['seo'] : [],
+        ];
+
+        $promptId = isset($validated['ai_prompt_id']) ? (int) $validated['ai_prompt_id'] : null;
+        if ($promptId === 0) {
+            $promptId = null;
+        }
+
+        $result = $this->categoryAiFinalize->finalize($payload, $promptId, $allowedIds);
+
+        if (! $result['ok']) {
+            return response()->json([
+                'message' => $result['error'] ?? __('KI-Finalisierung fehlgeschlagen.'),
+                'raw_reply' => $result['raw_reply'] ?? null,
+            ], 422);
+        }
+
+        return response()->json([
+            'filled' => $result['filled'] ?? [],
+            'warnings' => $result['warnings'] ?? [],
         ]);
     }
 
@@ -222,6 +269,16 @@ class CategoryController extends Controller
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
+    private function categoryAiPrompts()
+    {
+        return AiPrompt::query()
+            ->where('use_case', PromptUseCase::CategoryManagement)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->get(['id', 'title', 'slug']);
+    }
+
     private function applyCategoryMediaUploads(Request $request, array $data): array
     {
         if ($request->hasFile('icon_upload')) {

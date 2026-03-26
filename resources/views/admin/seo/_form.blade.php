@@ -7,9 +7,11 @@
     $robotsFollow = old('seo.robots_follow', $seoMeta?->robots_follow ?? true);
 @endphp
 
-<div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-    <h2 class="mb-2 text-lg font-semibold text-slate-900">SEO</h2>
-    <p class="mb-6 text-sm text-slate-500">Meta-Angaben für Suchmaschinen und Social. Leere Felder nutzen sinnvolle Fallbacks aus dem Inhalt.</p>
+<div class="admin-panel space-y-6 p-6 md:p-8">
+    <div>
+        <h2 class="text-lg font-semibold text-slate-900">SEO</h2>
+        <p class="mt-1 text-sm text-slate-500">Meta-Angaben für Suchmaschinen und Social. Leere Felder nutzen sinnvolle Fallbacks aus dem Inhalt.</p>
+    </div>
     <div class="grid gap-5 md:grid-cols-2">
         <div class="md:col-span-2">
             <label for="seo_seo_title" class="mb-1 block text-sm font-medium text-slate-700">SEO-Titel</label>

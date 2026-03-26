@@ -35,6 +35,9 @@ Route::middleware(['web', 'auth', 'module.enabled:taxonomy'])->prefix('admin')->
     Route::get('categories/options/search', [CategoryOptionController::class, 'index'])
         ->name('categories.options');
 
+    Route::post('categories/ai-finalize', [CategoryController::class, 'aiFinalize'])
+        ->name('categories.ai-finalize');
+
     Route::resource('categories', CategoryController::class)->except('show');
 
     Route::post('tags/quick', [TagController::class, 'storeQuick'])->name('tags.quick-store');

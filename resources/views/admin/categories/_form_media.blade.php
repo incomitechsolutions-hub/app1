@@ -4,15 +4,17 @@
     $headerId = old('header_media_asset_id', $category?->header_media_asset_id);
 @endphp
 
-<div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-    <h2 class="mb-2 text-lg font-semibold text-slate-900">Medien</h2>
-    <p class="mb-6 text-sm text-slate-500">Icon und Header-Bild sind optional. Sie können eine Datei aus der Bibliothek wählen oder unten eine neue hochladen (überschreibt die Auswahl).</p>
+<div class="admin-panel space-y-6 p-6 md:p-8">
+    <div>
+        <h2 class="text-lg font-semibold text-slate-900">Medien</h2>
+        <p class="mt-1 text-sm text-slate-500">Icon und Header-Bild sind optional. Sie können eine Datei aus der Bibliothek wählen oder unten eine neue hochladen (überschreibt die Auswahl).</p>
+    </div>
     <div class="grid gap-8 md:grid-cols-2">
         <div class="space-y-3">
             <div>
                 <label for="icon_media_asset_id" class="mb-1 block text-sm font-medium text-slate-700">Icon (Bibliothek)</label>
                 <select id="icon_media_asset_id" name="icon_media_asset_id"
-                    class="w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500">
+                    class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500">
                     <option value="">— Kein Icon —</option>
                     @foreach ($mediaAssets as $asset)
                         <option value="{{ $asset->id }}" @selected((string) $iconId === (string) $asset->id)>
@@ -44,7 +46,7 @@
             <div>
                 <label for="header_media_asset_id" class="mb-1 block text-sm font-medium text-slate-700">Header-Bild (Bibliothek)</label>
                 <select id="header_media_asset_id" name="header_media_asset_id"
-                    class="w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500">
+                    class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500">
                     <option value="">— Kein Header-Bild —</option>
                     @foreach ($mediaAssets as $asset)
                         <option value="{{ $asset->id }}" @selected((string) $headerId === (string) $asset->id)>

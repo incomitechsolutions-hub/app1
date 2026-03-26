@@ -4,9 +4,12 @@
 @section('breadcrumb', 'Kategorien')
 
 @section('content')
-    <div class="mx-auto max-w-4xl space-y-6">
-        <div class="flex items-center justify-between gap-4">
-            <h1 class="text-3xl font-bold text-slate-900">Neue Kategorie</h1>
+    <div class="mx-auto max-w-7xl space-y-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900">Neue Kategorie</h1>
+                <p class="mt-1 text-sm text-slate-500">Stammdaten, Medien und SEO in separaten Abschnitten.</p>
+            </div>
             <a href="{{ route('admin.taxonomy.categories.index') }}"
                 class="inline-flex items-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
                 Zur Übersicht
@@ -18,6 +21,8 @@
                 Unterkategorie erstellen: Parent-Kategorie wurde bereits vorausgewählt.
             </div>
         @endif
+
+        @include('admin.categories._ai_finalize_bar', ['categoryAiPrompts' => $categoryAiPrompts])
 
         <form method="post" action="{{ route('admin.taxonomy.categories.store') }}" enctype="multipart/form-data" class="space-y-6"
             x-data="{ tab: 'details' }">
@@ -40,21 +45,21 @@
                 </button>
             </div>
 
-            <div x-show="tab === 'details'">
+            <div x-show="tab === 'details'" class="space-y-6">
                 @include('admin.categories._form_create', [
                     'parentPickerOptions' => $parentPickerOptions,
                     'presetParentId' => $presetParentId,
                     'defaultNewCategoryStatus' => $defaultNewCategoryStatus,
                 ])
             </div>
-            <div x-show="tab === 'media'" x-cloak>
+            <div x-show="tab === 'media'" x-cloak class="space-y-6">
                 @include('admin.categories._form_media', ['mediaAssets' => $mediaAssets, 'category' => null])
             </div>
-            <div x-show="tab === 'seo'" x-cloak>
+            <div x-show="tab === 'seo'" x-cloak class="space-y-6">
                 @include('admin.seo._form', ['seoMeta' => $seoMeta, 'mediaAssets' => $mediaAssets])
             </div>
 
-            <div class="flex flex-wrap items-center justify-end gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm md:px-6">
+            <div class="admin-panel flex flex-wrap items-center justify-end gap-3 p-4 md:px-6">
                 <a href="{{ route('admin.taxonomy.categories.index') }}"
                     class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                     Abbrechen
@@ -74,5 +79,5 @@
 @endsection
 
 @push('scripts')
-    @vite(['resources/js/admin-category-parent-select.js'])
+    @vite(['resources/js/admin-category-parent-select.js', 'resources/js/admin-category-ai-finalize.js'])
 @endpush
