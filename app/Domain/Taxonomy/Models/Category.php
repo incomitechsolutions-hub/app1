@@ -7,7 +7,6 @@ use App\Domain\Media\Models\MediaAsset;
 use App\Domain\Seo\Models\SeoMeta;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
@@ -41,9 +40,9 @@ class Category extends Model
         return $this->hasMany(self::class, 'parent_id');
     }
 
-    public function courses(): BelongsToMany
+    public function courses(): HasMany
     {
-        return $this->belongsToMany(Course::class, 'course_categories');
+        return $this->hasMany(Course::class, 'primary_category_id');
     }
 
     public function translations(): HasMany

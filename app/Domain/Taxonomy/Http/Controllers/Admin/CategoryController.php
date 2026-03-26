@@ -2,7 +2,6 @@
 
 namespace App\Domain\Taxonomy\Http\Controllers\Admin;
 
-use App\Domain\CourseCatalog\Models\Course;
 use App\Domain\Localization\Services\DefaultLocaleTranslationSync;
 use App\Domain\Media\Models\MediaAsset;
 use App\Domain\Media\Services\MediaStorageService;
@@ -158,7 +157,7 @@ class CategoryController extends Controller
                 ->with('status', $message);
         }
 
-        if ($category->courses()->exists() || Course::query()->where('primary_category_id', $category->getKey())->exists()) {
+        if ($category->courses()->exists()) {
             $message = __('Kategorie kann nicht gelöscht werden, solange Kurse zugeordnet sind.');
 
             if ($request->ajax()) {
