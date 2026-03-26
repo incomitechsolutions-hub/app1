@@ -22,9 +22,9 @@
                 <select id="use_case" name="use_case" onchange="this.form.submit()"
                     class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
                     <option value="">Alle</option>
-                    @foreach ($useCases as $case)
-                        <option value="{{ $case->value }}" @selected((string) ($filterUseCase ?? '') === $case->value)>
-                            {{ $case->label() }}
+                    @foreach ($useCaseSelectOptions as $opt)
+                        <option value="{{ $opt['value'] }}" @selected((string) ($filterUseCase ?? '') === $opt['value'])>
+                            {{ $opt['label'] }}
                         </option>
                     @endforeach
                 </select>
@@ -47,7 +47,7 @@
                         <tr class="hover:bg-slate-50/50">
                             <td class="px-4 py-3 font-medium text-slate-900">{{ $prompt->title }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ $prompt->slug }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $prompt->use_case->label() }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ \App\Domain\PromptManagement\Enums\PromptUseCase::labelForValue($prompt->use_case) }}</td>
                             <td class="px-4 py-3">{{ $prompt->is_active ? 'Ja' : 'Nein' }}</td>
                             <td class="px-4 py-3 text-right">
                                 <a href="{{ route('admin.prompt-management.prompts.edit', $prompt) }}"

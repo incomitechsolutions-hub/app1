@@ -39,7 +39,7 @@ class AiCourseGenerationSessionService
                 'id' => $template->id,
                 'title' => $template->title,
                 'slug' => $template->slug,
-                'use_case' => $template->use_case->value,
+                'use_case' => $template->use_case,
                 'body' => $template->body,
                 'placeholder_definitions' => $template->placeholder_definitions,
             ];

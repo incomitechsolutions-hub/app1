@@ -272,7 +272,7 @@ class CategoryController extends Controller
     private function categoryAiPrompts()
     {
         return AiPrompt::query()
-            ->where('use_case', PromptUseCase::CategoryManagement)
+            ->where('use_case', PromptUseCase::CategoryManagement->value)
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('title')

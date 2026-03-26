@@ -34,7 +34,7 @@ class AiPromptController extends Controller
 
         return view('admin.prompts.index', [
             'prompts' => $prompts,
-            'useCases' => PromptUseCase::cases(),
+            'useCaseSelectOptions' => $this->useCaseSelectOptions(),
             'filterUseCase' => $request->query('use_case'),
         ]);
     }
@@ -42,7 +42,7 @@ class AiPromptController extends Controller
     public function create(): View
     {
         return view('admin.prompts.create', [
-            'useCases' => PromptUseCase::cases(),
+            'useCaseSelectOptions' => $this->useCaseSelectOptions(),
         ]);
     }
 
@@ -64,8 +64,40 @@ class AiPromptController extends Controller
     {
         return view('admin.prompts.edit', [
             'prompt' => $ai_prompt,
-            'useCases' => PromptUseCase::cases(),
+            'useCaseSelectOptions' => $this->useCaseSelectOptions(),
         ]);
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function useCaseSelectOptions(): array
+    {
+        $options = [];
+        foreach (PromptUseCase::cases() as $case) {
+            $options[] = ['value' => $case->value, 'label' => $case->label()];
+        }
+
+        $enumValues = array_map(static fn (PromptUseCase $c) => $c->value, PromptUseCase::cases());
+
+        $customSlugs = AiPrompt::query()
+            ->whereNotIn('use_case', $enumValues)
+            ->distinct()
+            ->orderBy('use_case')
+            ->pluck('use_case');
+
+        foreach ($customSlugs as $slug) {
+            $slug = (string) $slug;
+            if ($slug === '') {
+                continue;
+            }
+            $options[] = [
+                'value' => $slug,
+                'label' => $slug.' · '.__('eigen'),
+            ];
+        }
+
+        return $options;
     }
 
     public function update(UpdateAiPromptRequest $request, AiPrompt $ai_prompt): RedirectResponse

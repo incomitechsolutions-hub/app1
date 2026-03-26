@@ -29,7 +29,7 @@ class AiCourseGeneratorService
         $template = '';
         if ($templatePromptId !== null) {
             $p = AiPrompt::query()->whereKey($templatePromptId)->where('is_active', true)->first();
-            if ($p !== null && $p->use_case === PromptUseCase::CourseCreation) {
+            if ($p !== null && $p->use_case === PromptUseCase::CourseCreation->value) {
                 $template = $p->body."\n\n";
             }
         }

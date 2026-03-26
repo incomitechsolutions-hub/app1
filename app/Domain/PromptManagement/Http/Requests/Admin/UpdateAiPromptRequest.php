@@ -2,11 +2,9 @@
 
 namespace App\Domain\PromptManagement\Http\Requests\Admin;
 
-use App\Domain\PromptManagement\Enums\PromptUseCase;
 use App\Domain\PromptManagement\Models\AiPrompt;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Enum;
 
 class UpdateAiPromptRequest extends FormRequest
 {
@@ -33,7 +31,7 @@ class UpdateAiPromptRequest extends FormRequest
                 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
                 Rule::unique('ai_prompts', 'slug')->ignore($id),
             ],
-            'use_case' => ['required', new Enum(PromptUseCase::class)],
+            'use_case' => ['required', 'string', 'max:96', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
             'body' => ['required', 'string'],
             'description' => ['nullable', 'string'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],

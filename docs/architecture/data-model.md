@@ -140,12 +140,12 @@ Minimal coupon codes for future checkout (admin-managed).
 - created_at, updated_at
 
 ### ai_prompts
-Reusable AI prompt templates (admin Prompt-Bibliothek), grouped by `use_case` (e.g. `course_creation`, `general`).
+Reusable AI prompt templates (admin Prompt-Bibliothek), grouped by `use_case`. Stored as a slug (`a-z`, `0-9`, hyphens; up to 96 chars). Built-in values (see `PromptUseCase` enum in code) include `course_creation`, `category_management`, `general`; admins may define additional slugs in the UI without a deploy.
 
 - id
 - title
 - slug (unique)
-- use_case (string enum)
+- use_case (string slug, indexed with `sort_order`)
 - body (long text)
 - placeholder_definitions (nullable JSON) — optional structured metadata for placeholders (e.g. `name`, `label`, `required`); placeholders may also be inferred from `{{name}}` in `body`
 - description (nullable)

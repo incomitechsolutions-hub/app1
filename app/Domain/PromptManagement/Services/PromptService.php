@@ -32,7 +32,7 @@ class PromptService
     public function activeForUseCase(PromptUseCase $useCase): Collection
     {
         return AiPrompt::query()
-            ->where('use_case', $useCase)
+            ->where('use_case', $useCase->value)
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('title')

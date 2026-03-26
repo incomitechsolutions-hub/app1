@@ -48,7 +48,7 @@ class StoreAiCourseGenerationSessionRequest extends FormRequest
                 return;
             }
 
-            if ($prompt->use_case !== PromptUseCase::CourseCreation || ! $prompt->is_active) {
+            if ($prompt->use_case !== PromptUseCase::CourseCreation->value || ! $prompt->is_active) {
                 $validator->errors()->add('ai_prompt_id', __('Die gewählte Vorlage ist für diesen Workflow nicht verfügbar.'));
 
                 return;

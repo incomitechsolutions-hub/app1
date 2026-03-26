@@ -2,6 +2,8 @@
 
 namespace App\Domain\PromptManagement\Enums;
 
+use Illuminate\Support\Str;
+
 enum PromptUseCase: string
 {
     case CourseCreation = 'course_creation';
@@ -15,5 +17,13 @@ enum PromptUseCase: string
             self::CategoryManagement => 'Kategorien',
             self::General => 'Allgemein',
         };
+    }
+
+    /** Human-readable label for a stored slug (built-in enum or custom). */
+    public static function labelForValue(string $value): string
+    {
+        $enum = self::tryFrom($value);
+
+        return $enum !== null ? $enum->label() : Str::headline($value);
     }
 }

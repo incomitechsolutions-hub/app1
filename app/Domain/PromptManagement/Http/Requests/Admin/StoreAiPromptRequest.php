@@ -2,10 +2,8 @@
 
 namespace App\Domain\PromptManagement\Http\Requests\Admin;
 
-use App\Domain\PromptManagement\Enums\PromptUseCase;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Enum;
 
 class StoreAiPromptRequest extends FormRequest
 {
@@ -22,7 +20,7 @@ class StoreAiPromptRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('ai_prompts', 'slug')],
-            'use_case' => ['required', new Enum(PromptUseCase::class)],
+            'use_case' => ['required', 'string', 'max:96', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
             'body' => ['required', 'string'],
             'description' => ['nullable', 'string'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],

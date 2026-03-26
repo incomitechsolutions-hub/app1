@@ -2,7 +2,6 @@
 
 namespace App\Domain\PromptManagement\Models;
 
-use App\Domain\PromptManagement\Enums\PromptUseCase;
 use Illuminate\Database\Eloquent\Model;
 
 class AiPrompt extends Model
@@ -23,7 +22,6 @@ class AiPrompt extends Model
     protected function casts(): array
     {
         return [
-            'use_case' => PromptUseCase::class,
             'is_active' => 'boolean',
             'sort_order' => 'integer',
             'placeholder_definitions' => 'array',

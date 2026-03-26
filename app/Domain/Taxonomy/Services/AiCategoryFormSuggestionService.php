@@ -36,7 +36,7 @@ class AiCategoryFormSuggestionService
                 ->whereKey($promptId)
                 ->where('is_active', true)
                 ->first();
-            if ($templatePrompt === null || $templatePrompt->use_case !== PromptUseCase::CategoryManagement) {
+            if ($templatePrompt === null || $templatePrompt->use_case !== PromptUseCase::CategoryManagement->value) {
                 return ['ok' => false, 'error' => __('Der gewählte Prompt ist nicht für Kategorien verfügbar.')];
             }
         }

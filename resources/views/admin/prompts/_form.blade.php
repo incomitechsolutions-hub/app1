@@ -1,5 +1,10 @@
 @php
     /** @var \App\Domain\PromptManagement\Models\AiPrompt|null $prompt */
+    /** @var list<array{value: string, label: string}> $useCaseSelectOptions */
+    $currentUseCase = (string) old('use_case', $prompt?->use_case ?? '');
+    $pickableValues = array_column($useCaseSelectOptions, 'value');
+    $isPickable = $currentUseCase === '' || in_array($currentUseCase, $pickableValues, true);
+    $firstPick = $useCaseSelectOptions[0]['value'] ?? \App\Domain\PromptManagement\Enums\PromptUseCase::General->value;
 @endphp
 
 <div class="space-y-4">
@@ -16,16 +21,42 @@
             class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
         @error('slug')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
     </div>
-    <div>
-        <label for="use_case" class="block text-sm font-medium text-slate-700">Anwendungsfall</label>
-        <select id="use_case" name="use_case" required
-            class="mt-1 w-full max-w-md rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
-            @foreach ($useCases as $case)
-                <option value="{{ $case->value }}" @selected(old('use_case', $prompt?->use_case?->value) === $case->value)>
-                    {{ $case->label() }}
-                </option>
-            @endforeach
-        </select>
+    <div class="space-y-2" x-data="{
+        mode: @js($isPickable ? 'pick' : 'custom'),
+        pick: @js($isPickable ? ($currentUseCase !== '' ? $currentUseCase : $firstPick) : ''),
+        custom: @js($isPickable ? '' : $currentUseCase),
+        firstPick: @js($firstPick),
+        resolved() {
+            if (this.mode === 'pick') {
+                return this.pick;
+            }
+            return this.custom.trim();
+        }
+    }" x-init="if (mode === 'pick' && !pick) pick = firstPick">
+        <span class="block text-sm font-medium text-slate-700">Anwendungsfall</span>
+        <div class="mt-1 flex flex-wrap items-center gap-3">
+            <select x-model="mode" aria-label="{{ __('Quelle des Anwendungsfalls') }}"
+                class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                <option value="pick">{{ __('Aus Liste wählen') }}</option>
+                <option value="custom">{{ __('Neuen Slug eingeben') }}</option>
+            </select>
+            <input type="hidden" name="use_case" :value="resolved()">
+        </div>
+        <div x-show="mode === 'pick'" class="mt-2 max-w-md">
+            <select x-model="pick" aria-label="{{ __('Anwendungsfall aus Liste') }}"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                @foreach ($useCaseSelectOptions as $opt)
+                    <option value="{{ $opt['value'] }}">{{ $opt['label'] }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div x-show="mode === 'custom'" x-cloak class="mt-2 max-w-md space-y-1">
+            <input type="text" x-model="custom" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="96"
+                placeholder="z. B. landing-pages"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                :required="mode === 'custom'">
+            <p class="text-xs text-slate-500">{{ __('Kleinbuchstaben, Ziffern und Bindestriche; wie ein URL-Slug.') }}</p>
+        </div>
         @error('use_case')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
     </div>
     <div>
