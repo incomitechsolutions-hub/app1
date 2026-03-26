@@ -86,6 +86,12 @@
                                     <option value="{{ $cat->id }}" @selected((string) old('draft.primary_category_id', $d['primary_category_id'] ?? '') === (string) $cat->id)>{{ $cat->name }}</option>
                                 @endforeach
                             </select>
+                            @if (! empty($d['ai_taxonomy_rationale'] ?? null))
+                                <p class="mt-1 text-xs text-slate-500">KI-Zuordnung: {{ $d['ai_taxonomy_rationale'] }}</p>
+                            @endif
+                            @if (! empty($d['ai_taxonomy_unmatched_category_slug'] ?? null))
+                                <p class="mt-1 text-xs text-amber-700">Kein Treffer für Slug „{{ $d['ai_taxonomy_unmatched_category_slug'] }}“ — bitte Kategorie manuell wählen.</p>
+                            @endif
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700">Schwierigkeit</label>

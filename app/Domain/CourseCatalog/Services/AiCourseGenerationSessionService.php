@@ -18,6 +18,7 @@ class AiCourseGenerationSessionService
         private readonly AiCourseGenerationPromptBuilderService $promptBuilder,
         private readonly PromptPlaceholderInterpolationService $interpolation,
         private readonly AiCourseGeneratorService $generator,
+        private readonly AiCourseTaxonomySuggestionService $taxonomySuggestion,
         private readonly PersistAiGeneratedCourseService $persistAiCourse,
     ) {}
 
@@ -106,15 +107,33 @@ class AiCourseGenerationSessionService
             return $session->fresh();
         }
 
+        $draftPayload = $result['draft_payload'];
+        $taxStarted = microtime(true);
+        $draftPayload = $this->taxonomySuggestion->applySuggestionsIfNeeded($draftPayload, (string) $session->brief);
+        $taxMs = (int) round((microtime(true) - $taxStarted) * 1000);
+
+        if (! empty($draftPayload['ai_taxonomy_warning'] ?? null)) {
+            $this->events->log($session, AiCourseGenerationEventType::TaxonomySuggestionFailed, $user, [
+                'duration_ms' => $taxMs,
+                'warning' => $draftPayload['ai_taxonomy_warning'],
+            ]);
+        } else {
+            $this->events->log($session, AiCourseGenerationEventType::TaxonomySuggestionSucceeded, $user, [
+                'duration_ms' => $taxMs,
+                'primary_category_id' => $draftPayload['primary_category_id'] ?? null,
+                'audience_ids' => $draftPayload['audience_ids'] ?? [],
+            ]);
+        }
+
         $session->update([
-            'draft_payload' => $result['draft_payload'],
+            'draft_payload' => $draftPayload,
             'status' => AiCourseGenerationSessionStatus::InReview,
             'last_error' => null,
         ]);
 
         $this->events->log($session, AiCourseGenerationEventType::AiRequestSucceeded, $user, [
             'duration_ms' => $ms,
-            'draft_payload' => $result['draft_payload'],
+            'draft_payload' => $draftPayload,
         ]);
 
         return $session->fresh();

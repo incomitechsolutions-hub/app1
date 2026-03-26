@@ -4,6 +4,7 @@ namespace App\Domain\CourseCatalog\Services;
 
 use App\Domain\CourseCatalog\Models\AiCourseGenerationSession;
 use App\Domain\CourseCatalog\Models\Course;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 
 class PersistAiGeneratedCourseService
@@ -72,6 +73,36 @@ class PersistAiGeneratedCourseService
         }
         if (($out['ratings_count'] ?? null) === null) {
             $out['ratings_count'] = 0;
+        }
+
+        Arr::forget($out, [
+            'ai_taxonomy_rationale',
+            'ai_taxonomy_source',
+            'ai_taxonomy_warning',
+            'ai_taxonomy_raw_reply',
+            'ai_taxonomy_unmatched_category_slug',
+            'price_research',
+            'price_research_parse_warning',
+            'price_research_raw',
+            'content_variation',
+            'ai_difficulty_text',
+            'details_ai_raw',
+            'modules_raw',
+            'objectives_raw',
+            'faqs_raw',
+            'prerequisites_raw',
+            'modules_parse_warning',
+            'objectives_parse_warning',
+            'faqs_parse_warning',
+            'prerequisites_parse_warning',
+        ]);
+
+        if (isset($out['seo']) && is_array($out['seo'])) {
+            $out['seo'] = Arr::except($out['seo'], [
+                'ai_keyword_variants',
+                'ai_estimated_density',
+                'ai_placements',
+            ]);
         }
 
         return $out;

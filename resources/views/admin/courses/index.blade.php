@@ -18,7 +18,7 @@
 @section('breadcrumb', 'Kurse')
 
 @section('content')
-    <div class="mx-auto max-w-7xl space-y-6">
+    <div class="mx-auto max-w-7xl space-y-6" data-course-index-root>
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-slate-900">Kurse</h1>
@@ -139,7 +139,16 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($courses as $course)
-                            <tr class="transition hover:bg-slate-50/70">
+                            <tr
+                                @class([
+                                    'transition hover:bg-slate-50/70',
+                                    'cursor-pointer' => ! $trashed,
+                                ])
+                                @if (! $trashed)
+                                    data-edit-url="{{ route('admin.course-catalog.courses.edit', $course) }}"
+                                    title="Zeile anklicken zum Bearbeiten"
+                                @endif
+                            >
                                 <td class="px-3 py-3 tabular-nums text-slate-600">{{ $course->id }}</td>
                                 <td class="px-3 py-3 font-mono text-xs text-slate-700">{{ $course->external_course_code ?? '—' }}</td>
                                 <td class="px-3 py-3">
@@ -185,7 +194,7 @@
                                 @if ($trashed)
                                     <td class="px-3 py-3 text-slate-600">{{ $course->deleted_at?->format('d.m.Y H:i') ?? '—' }}</td>
                                 @endif
-                                <td class="px-3 py-3 text-right">
+                                <td class="px-3 py-3 text-right" data-row-action>
                                     <div class="inline-flex items-center justify-end gap-1">
                                         <a href="{{ route('admin.course-catalog.courses.show', $course) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800" title="Anzeigen">
                                             <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
@@ -234,3 +243,7 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    @vite(['resources/js/admin-course-index.js'])
+@endpush

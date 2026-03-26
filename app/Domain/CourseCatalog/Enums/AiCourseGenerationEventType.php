@@ -15,4 +15,6 @@ enum AiCourseGenerationEventType: string
     case FinalizeAttempted = 'finalize_attempted';
     case CoursePersisted = 'course_persisted';
     case SessionCancelled = 'session_cancelled';
+    case TaxonomySuggestionSucceeded = 'taxonomy_suggestion_succeeded';
+    case TaxonomySuggestionFailed = 'taxonomy_suggestion_failed';
 }

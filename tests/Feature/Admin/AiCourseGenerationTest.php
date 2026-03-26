@@ -5,6 +5,8 @@ namespace Tests\Feature\Admin;
 use App\Domain\Ai\Models\AiSetting;
 use App\Domain\CourseCatalog\Enums\AiCourseGenerationSessionStatus;
 use App\Domain\CourseCatalog\Models\AiCourseGenerationSession;
+use App\Domain\Taxonomy\Models\Audience;
+use App\Domain\Taxonomy\Models\Category;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -31,6 +33,20 @@ class AiCourseGenerationTest extends TestCase
 
     public function test_authenticated_user_can_start_generation_and_land_on_wizard(): void
     {
+        $category = Category::query()->create([
+            'name' => 'AI Test',
+            'slug' => 'ai-test',
+            'description' => null,
+            'parent_id' => null,
+            'status' => 'published',
+        ]);
+
+        $audience = Audience::query()->create([
+            'name' => 'Tester',
+            'slug' => 'tester',
+            'description' => null,
+        ]);
+
         $aiJson = json_encode([
             'title' => 'Test Kurs AI',
             'slug' => 'test-kurs-ai',
@@ -48,12 +64,24 @@ class AiCourseGenerationTest extends TestCase
             'meta_description' => 'Meta hier',
         ], JSON_THROW_ON_ERROR);
 
+        $taxJson = json_encode([
+            'primary_category_slug' => 'ai-test',
+            'audience_slugs' => ['tester'],
+            'rationale' => 'Passt zum Testkurs.',
+        ], JSON_THROW_ON_ERROR);
+
         Http::fake([
-            '*' => Http::response([
-                'choices' => [
-                    ['message' => ['content' => $aiJson]],
-                ],
-            ], 200),
+            'https://api.openai.com/v1/chat/completions' => Http::sequence()
+                ->push([
+                    'choices' => [
+                        ['message' => ['content' => $aiJson]],
+                    ],
+                ], 200)
+                ->push([
+                    'choices' => [
+                        ['message' => ['content' => $taxJson]],
+                    ],
+                ], 200),
         ]);
 
         $settings = AiSetting::singleton();
@@ -83,9 +111,17 @@ class AiCourseGenerationTest extends TestCase
         $this->assertNotNull($session->fresh()->draft_payload);
         $this->assertSame('Test Kurs AI', $session->fresh()->draft_payload['title'] ?? null);
 
+        $this->assertSame($category->id, $session->fresh()->draft_payload['primary_category_id'] ?? null);
+        $this->assertSame([$audience->id], $session->fresh()->draft_payload['audience_ids'] ?? null);
+        $this->assertSame('Passt zum Testkurs.', $session->fresh()->draft_payload['ai_taxonomy_rationale'] ?? null);
+
         $this->assertDatabaseHas('ai_course_generation_events', [
             'ai_course_generation_session_id' => $session->id,
             'type' => 'ai_request_succeeded',
+        ]);
+        $this->assertDatabaseHas('ai_course_generation_events', [
+            'ai_course_generation_session_id' => $session->id,
+            'type' => 'taxonomy_suggestion_succeeded',
         ]);
     }
 
