@@ -20,7 +20,7 @@ class AiCourseDraftMerger
 
         $scalarKeys = match ($section) {
             'basics' => ['title', 'subtitle', 'slug', 'language_code', 'currency_code', 'duration_days', 'primary_category_id', 'difficulty_level_id', 'is_featured', 'booking_url', 'offer_url', 'lessons_count', 'min_participants', 'instructor_name', 'certificate_label'],
-            'pricing' => ['price', 'currency_code'],
+            'pricing' => ['price', 'currency_code', 'duration_days', 'delivery_format', 'price_research_parse_warning', 'price_research_raw'],
             'details_copy' => ['short_description', 'long_description', 'target_audience_text', 'prerequisites_text'],
             default => [],
         };
@@ -29,6 +29,10 @@ class AiCourseDraftMerger
             if (array_key_exists($key, $partial)) {
                 $out[$key] = $partial[$key];
             }
+        }
+
+        if ($section === 'pricing' && isset($partial['price_research']) && is_array($partial['price_research'])) {
+            $out['price_research'] = $partial['price_research'];
         }
 
         if ($section === 'basics' || $section === 'details_copy') {

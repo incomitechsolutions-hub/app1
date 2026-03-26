@@ -6,6 +6,10 @@
     $seo = is_array($d['seo'] ?? null) ? $d['seo'] : [];
     $tagIds = old('tag_ids', $d['tag_ids'] ?? []);
     $audienceIds = old('audience_ids', $d['audience_ids'] ?? []);
+    $priceResearch = is_array($d['price_research'] ?? null) ? $d['price_research'] : [];
+    $showPriceResearchBlock = ! empty($priceResearch)
+        || ! empty($d['price_research_parse_warning'] ?? null)
+        || ! empty($d['price_research_raw'] ?? null);
 @endphp
 
 @extends('layouts.admin')
@@ -14,7 +18,18 @@
 @section('breadcrumb', 'Kurse')
 
 @section('content')
-    <div class="mx-auto max-w-7xl space-y-6" x-data="{ tab: 'basics' }">
+    <div class="mx-auto max-w-7xl space-y-6" x-data="{
+        tab: 'basics',
+        regenSection: 'basics',
+        sectionForTab(t) {
+            const m = { basics: 'basics', details: 'details_copy', pricing: 'pricing', seo: 'seo', media: 'basics' };
+            return m[t] || 'basics';
+        },
+        setTab(t) {
+            this.tab = t;
+            this.regenSection = this.sectionForTab(t);
+        },
+    }">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-slate-900">KI-Kurs: Entwurf prüfen</h1>
@@ -39,18 +54,43 @@
             <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">{{ session('ai_error') }}</div>
         @endif
 
+        <form method="post" action="{{ route('admin.course-catalog.courses.ai-generation.regenerate', $session) }}" class="admin-panel space-y-4 p-6">
+            @csrf
+            <h2 class="text-base font-semibold text-slate-900">Abschnitt regenerieren</h2>
+            <p class="text-sm text-slate-600">Der gewählte Abschnitt folgt dem aktiven Tab (unten). Sie können ihn hier auch manuell ändern.</p>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Abschnitt</label>
+                <select name="section" x-model="regenSection" class="mt-1 block w-full max-w-md rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <option value="basics">Basics</option>
+                    <option value="details_copy">Texte / Details</option>
+                    <option value="pricing">Preis</option>
+                    <option value="seo">SEO</option>
+                    <option value="modules">Module</option>
+                    <option value="objectives">Lernziele</option>
+                    <option value="prerequisites">Voraussetzungen</option>
+                    <option value="faqs">FAQs</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Hinweis (optional)</label>
+                <textarea name="hint" rows="3" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    placeholder="Was soll sich ändern?"></textarea>
+            </div>
+            <button type="submit" class="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-900 hover:bg-sky-100">
+                Abschnitt neu generieren
+            </button>
+        </form>
+
         <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-1">
-            <button type="button" @click="tab = 'basics'" :class="tab === 'basics' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500'"
+            <button type="button" @click="setTab('basics')" :class="tab === 'basics' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500'"
                 class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold">Basiseinstellungen</button>
-            <button type="button" @click="tab = 'details'" :class="tab === 'details' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500'"
+            <button type="button" @click="setTab('details')" :class="tab === 'details' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500'"
                 class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold">Details</button>
-            <button type="button" @click="tab = 'pricing'" :class="tab === 'pricing' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500'"
+            <button type="button" @click="setTab('pricing')" :class="tab === 'pricing' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500'"
                 class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold">Preis</button>
-            <button type="button" @click="tab = 'seo'" :class="tab === 'seo' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500'"
+            <button type="button" @click="setTab('seo')" :class="tab === 'seo' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500'"
                 class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold">SEO</button>
-            <button type="button" @click="tab = 'regen'" :class="tab === 'regen' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500'"
-                class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold">Regenerieren</button>
-            <button type="button" @click="tab = 'media'" :class="tab === 'media' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500'"
+            <button type="button" @click="setTab('media')" :class="tab === 'media' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500'"
                 class="inline-flex items-center rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold">Media</button>
         </div>
 
@@ -181,6 +221,35 @@
                             </select>
                         </div>
                     </div>
+                    @if ($showPriceResearchBlock)
+                        <div class="mt-4 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                            <p class="mt-1 text-xs text-slate-500">KI-Preisrecherche</p>
+                            @if (! empty($d['price_research_parse_warning'] ?? null))
+                                <p class="text-xs text-amber-700">Hinweis: {{ $d['price_research_parse_warning'] }}</p>
+                            @endif
+                            @if (! empty($priceResearch))
+                                @foreach ([
+                                    'search_query' => 'Suchanfrage',
+                                    'market_data' => 'Marktdaten',
+                                    'aggregates' => 'Aggregat',
+                                    'pricing_strategy' => 'Preisstrategie',
+                                    'reasoning' => 'Begründung',
+                                ] as $key => $label)
+                                    @if (! empty($priceResearch[$key] ?? null))
+                                        <div>
+                                            <p class="text-xs font-medium text-slate-700">{{ $label }}</p>
+                                            <p class="mt-0.5 whitespace-pre-wrap text-xs text-slate-600">{{ is_scalar($priceResearch[$key]) ? $priceResearch[$key] : json_encode($priceResearch[$key], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</p>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            @endif
+                            @if (! empty($d['price_research_raw'] ?? null))
+                                <pre class="max-h-48 overflow-auto rounded border border-slate-200 bg-white p-2 text-xs text-slate-700">{{ $d['price_research_raw'] }}</pre>
+                            @endif
+                        </div>
+                    @else
+                        <p class="mt-2 text-xs text-slate-400">Keine KI-Preisrecherche im Entwurf (liefert das Modell im Feld <code class="rounded bg-slate-100 px-0.5">price_research</code>).</p>
+                    @endif
                 </div>
             </div>
 
@@ -205,13 +274,6 @@
                 </div>
             </div>
 
-            <div x-show="tab === 'regen'" x-cloak class="space-y-6">
-                <div class="admin-panel space-y-4 p-6">
-                    <h2 class="text-lg font-semibold text-slate-900">Abschnitt regenerieren</h2>
-                    <p class="text-sm text-slate-600">Wählen Sie einen Abschnitt und optional einen Hinweis. Es wird ein weiterer KI-Aufruf ausgeführt.</p>
-                </div>
-            </div>
-
             <div x-show="tab === 'media'" x-cloak class="space-y-6">
                 <div class="admin-panel space-y-4 p-6">
                     <h2 class="text-lg font-semibold text-slate-900">Media</h2>
@@ -224,32 +286,6 @@
                     Entwurf speichern
                 </button>
             </div>
-        </form>
-
-        <form method="post" action="{{ route('admin.course-catalog.courses.ai-generation.regenerate', $session) }}" class="admin-panel space-y-4 p-6">
-            @csrf
-            <h3 class="text-sm font-semibold text-slate-800">Regenerieren</h3>
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Abschnitt</label>
-                <select name="section" class="mt-1 block w-full max-w-md rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    <option value="basics">Basics</option>
-                    <option value="details_copy">Texte / Details</option>
-                    <option value="pricing">Preis</option>
-                    <option value="seo">SEO</option>
-                    <option value="modules">Module</option>
-                    <option value="objectives">Lernziele</option>
-                    <option value="prerequisites">Voraussetzungen</option>
-                    <option value="faqs">FAQs</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Hinweis (optional)</label>
-                <textarea name="hint" rows="3" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    placeholder="Was soll sich ändern?"></textarea>
-            </div>
-            <button type="submit" class="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-900 hover:bg-sky-100">
-                Abschnitt neu generieren
-            </button>
         </form>
 
         <form method="post" action="{{ route('admin.course-catalog.courses.ai-generation.finalize', $session) }}" class="space-y-6">

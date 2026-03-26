@@ -87,6 +87,13 @@ class AiCourseDraftNormalizerService
             $seo['schema_json'] = json_encode($seo['schema_json'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
 
+        $priceResearch = null;
+        if (isset($parsed['price_research']) && is_array($parsed['price_research'])) {
+            $priceResearch = $parsed['price_research'];
+        }
+        $priceResearchParseWarning = $this->nullIfEmptyString($parsed['price_research_parse_warning'] ?? null);
+        $priceResearchRaw = $this->nullIfEmptyString($parsed['price_research_raw'] ?? null);
+
         return [
             'title' => $title,
             'subtitle' => $this->nullIfEmptyString($parsed['subtitle'] ?? null),
@@ -124,6 +131,9 @@ class AiCourseDraftNormalizerService
             'media_header_enabled' => false,
             'media_video_enabled' => false,
             'media_gallery_enabled' => false,
+            'price_research' => $priceResearch,
+            'price_research_parse_warning' => $priceResearchParseWarning,
+            'price_research_raw' => $priceResearchRaw,
         ];
     }
 
