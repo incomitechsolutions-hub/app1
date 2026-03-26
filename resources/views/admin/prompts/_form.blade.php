@@ -79,17 +79,27 @@
             this.busySlug = option.value;
             try {
                 const endpoint = this.deleteUrlTemplate.replace('__slug__', encodeURIComponent(option.value));
+                const csrfMeta = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') ?? '';
+                const csrfInput = document.querySelector('input[name=\"_token\"]')?.value ?? '';
+                const csrfToken = csrfMeta || csrfInput;
                 const response = await fetch(endpoint, {
                     method: 'DELETE',
                     headers: {
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') ?? '',
+                        'X-CSRF-TOKEN': csrfToken,
                     },
                 });
-                const payload = await response.json().catch(() => ({}));
+                const contentType = response.headers.get('content-type') ?? '';
+                const payload = contentType.includes('application/json')
+                    ? await response.json().catch(() => ({}))
+                    : {};
                 if (!response.ok || payload.ok !== true) {
-                    this.errorMessage = payload.message || 'Anwendungsfall konnte nicht gelöscht werden.';
+                    if (response.status === 419) {
+                        this.errorMessage = 'Sitzung abgelaufen. Bitte Seite neu laden und erneut versuchen.';
+                        return;
+                    }
+                    this.errorMessage = payload.message || `Anwendungsfall konnte nicht gelöscht werden (HTTP ${response.status}).`;
                     return;
                 }
 
