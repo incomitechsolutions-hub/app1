@@ -138,7 +138,9 @@
                 Anwenden
             </button>
         </form>
-        <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <table class="min-w-full divide-y divide-slate-200 text-sm"
+            data-category-reorder-url="{{ route('admin.taxonomy.categories.reorder') }}"
+            data-drag-enabled="{{ $level === 'all' ? '1' : '0' }}">
             <thead class="bg-slate-50/80">
                 <tr>
                     <th class="w-10 px-2 py-3 text-left font-medium text-slate-700" scope="col">
@@ -190,6 +192,10 @@
                         'cursor-pointer transition hover:bg-slate-50/70',
                         'bg-slate-50/60' => $depth > 0,
                     ])
+                        draggable="false"
+                        data-category-id="{{ $category->id }}"
+                        data-parent-id="{{ $category->parent_id ?? '' }}"
+                        data-depth="{{ $depth }}"
                         data-edit-url="{{ route('admin.taxonomy.categories.edit', $category) }}"
                         title="Zeile anklicken zum Bearbeiten">
                         <td class="px-2 py-3 align-middle" data-row-action>
@@ -198,8 +204,17 @@
                                 data-row-action aria-label="Kategorie {{ $category->name }} auswählen">
                         </td>
                         <td class="px-4 py-3 text-slate-500">{{ $category->id }}</td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3" data-tree-cell>
                             <div class="flex min-w-0 items-start gap-2">
+                                <button type="button"
+                                    class="inline-flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 active:cursor-grabbing"
+                                    title="Ziehen zum Verschieben"
+                                    data-row-action
+                                    data-drag-handle>
+                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path d="M7 4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM7 10a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM7 16a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM15 4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM15 10a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM15 16a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/>
+                                    </svg>
+                                </button>
                                 @if ($depth > 0)
                                     <div
                                         class="flex shrink-0 items-center gap-1 border-l-2 border-slate-200 pl-2"
@@ -238,7 +253,7 @@
                             </span>
                         </td>
                         <td class="px-4 py-3 text-right" data-row-action>
-                            <div class="inline-flex flex-wrap items-center justify-end gap-2">
+                            <div class="inline-flex flex-nowrap items-center justify-end gap-2 whitespace-nowrap">
                                 <a href="{{ route('admin.taxonomy.categories.create', ['parent_id' => $category->id]) }}"
                                     data-row-action
                                     class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
@@ -248,12 +263,14 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                     </svg>
                                 </a>
-                                <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-700"
-                                    title="Bearbeiten: Zeile anklicken" aria-hidden="true">
+                                <a href="{{ route('admin.taxonomy.categories.edit', $category) }}"
+                                    data-row-action
+                                    class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-700 transition hover:bg-sky-100"
+                                    title="Bearbeiten">
                                     <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                                     </svg>
-                                </span>
+                                </a>
                                 <form method="post" action="{{ route('admin.taxonomy.categories.destroy', $category) }}" class="inline" data-row-action>
                                     @csrf
                                     @method('DELETE')

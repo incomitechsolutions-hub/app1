@@ -4,9 +4,44 @@ namespace App\Domain\Taxonomy\Services;
 
 use App\Domain\Taxonomy\Models\Category;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 final class CategoryAdminTreeService
 {
+    /**
+     * @param  list<array{id:int,parent_id:int|null}>  $nodes
+     */
+    public function persistHierarchy(array $nodes): void
+    {
+        if ($nodes === []) {
+            return;
+        }
+
+        DB::transaction(function () use ($nodes): void {
+            foreach ($nodes as $node) {
+                Category::query()
+                    ->whereKey($node['id'])
+                    ->update(['parent_id' => $node['parent_id']]);
+            }
+
+            /** @var array<int|string, list<int>> $byParent */
+            $byParent = [];
+            foreach ($nodes as $node) {
+                $key = $node['parent_id'] === null ? 'root' : (string) $node['parent_id'];
+                if (!isset($byParent[$key])) {
+                    $byParent[$key] = [];
+                }
+                $byParent[$key][] = $node['id'];
+            }
+
+            foreach ($byParent as $ids) {
+                foreach ($ids as $position => $id) {
+                    Category::query()->whereKey($id)->update(['sort_order' => $position]);
+                }
+            }
+        });
+    }
+
     /**
      * @return list<CategoryTreeRow>
      */

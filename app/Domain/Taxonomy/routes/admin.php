@@ -26,6 +26,8 @@ Route::middleware(['web', 'auth', 'module.enabled:taxonomy'])->prefix('admin')->
 
     Route::post('categories/bulk-update', [CategoryController::class, 'bulkUpdate'])
         ->name('categories.bulk-update');
+    Route::post('categories/reorder', [CategoryController::class, 'reorder'])
+        ->name('categories.reorder');
 
     Route::get('category-taxonomy-settings', [CategoryTaxonomySettingsController::class, 'edit'])
         ->name('category-taxonomy-settings.edit');

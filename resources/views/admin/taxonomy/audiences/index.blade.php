@@ -28,7 +28,9 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($audiences as $audience)
-                        <tr>
+                        <tr class="hover:bg-slate-50/70"
+                            data-edit-url="{{ route('admin.taxonomy.audiences.edit', $audience) }}"
+                            title="Zeile anklicken zum Bearbeiten">
                             <td class="px-4 py-2 font-medium text-slate-900">{{ $audience->name }}</td>
                             <td class="px-4 py-2 font-mono text-slate-600">{{ $audience->slug }}</td>
                             <td class="px-4 py-2 text-right">

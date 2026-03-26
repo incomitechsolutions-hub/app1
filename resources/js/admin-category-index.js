@@ -24,7 +24,201 @@ function initCategoryIndex() {
     }
 
     let searchTimer = null;
+    let dragState = null;
     const debounceMs = 400;
+
+    function getVisibleRows() {
+        return [...swap.querySelectorAll('tbody tr[data-category-id]')];
+    }
+
+    function collectDragBlock(rows, startIndex) {
+        const root = rows[startIndex];
+        const rootDepth = Number(root.dataset.depth || '0');
+        const block = [root];
+        for (let i = startIndex + 1; i < rows.length; i += 1) {
+            const depth = Number(rows[i].dataset.depth || '0');
+            if (depth <= rootDepth) {
+                break;
+            }
+            block.push(rows[i]);
+        }
+        return block;
+    }
+
+    function computeHierarchyFromRows(rows) {
+        const stack = [];
+        const nodes = [];
+        rows.forEach((row) => {
+            const id = Number(row.dataset.categoryId || '0');
+            const depth = Math.max(0, Number(row.dataset.depth || '0'));
+            const parentId = depth === 0 ? null : (stack[depth - 1] ?? null);
+            nodes.push({ id, parent_id: parentId });
+            stack[depth] = id;
+            stack.length = depth + 1;
+            row.dataset.parentId = parentId === null ? '' : String(parentId);
+        });
+        return nodes;
+    }
+
+    async function persistHierarchy(nodes) {
+        const table = swap.querySelector('table[data-category-reorder-url]');
+        const endpoint = table?.dataset.categoryReorderUrl || '';
+        if (!endpoint) {
+            return false;
+        }
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ nodes }),
+        });
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok || payload.ok !== true) {
+            const message = payload.message || 'Reihenfolge konnte nicht gespeichert werden.';
+            showInlineMessage(swap, message, 'error');
+            return false;
+        }
+        if (payload.message) {
+            showInlineMessage(swap, payload.message, 'success');
+        }
+        return true;
+    }
+
+    function setupRowDragAndDrop() {
+        const table = swap.querySelector('table[data-category-reorder-url]');
+        const dragEnabled = table?.dataset.dragEnabled === '1';
+        const rows = getVisibleRows();
+        if (rows.length === 0) {
+            return;
+        }
+
+        rows.forEach((row) => {
+            const handle = row.querySelector('[data-drag-handle]');
+            if (!handle || row.dataset.dragBound === '1') {
+                return;
+            }
+            row.dataset.dragBound = '1';
+            if (!dragEnabled) {
+                handle.classList.add('opacity-40', 'cursor-not-allowed');
+                handle.title = 'Ziehen nur in \"Alle Ebenen\" verfügbar';
+                return;
+            }
+
+            handle.addEventListener('mousedown', () => {
+                row.setAttribute('draggable', 'true');
+            });
+            handle.addEventListener('mouseup', () => {
+                row.setAttribute('draggable', 'false');
+            });
+            handle.addEventListener('mouseleave', () => {
+                row.setAttribute('draggable', 'false');
+            });
+        });
+
+        swap.querySelectorAll('tbody tr[data-category-id]').forEach((row) => {
+            if (row.dataset.dropBound === '1') {
+                return;
+            }
+            row.dataset.dropBound = '1';
+            if (!dragEnabled) {
+                return;
+            }
+
+            row.addEventListener('dragstart', (e) => {
+                const all = getVisibleRows();
+                const index = all.indexOf(row);
+                if (index < 0) {
+                    return;
+                }
+                const block = collectDragBlock(all, index);
+                dragState = {
+                    row,
+                    rows: all,
+                    block,
+                    startHtml: swap.innerHTML,
+                };
+                row.classList.add('opacity-50');
+                if (e.dataTransfer) {
+                    e.dataTransfer.effectAllowed = 'move';
+                }
+            });
+
+            row.addEventListener('dragend', () => {
+                row.classList.remove('opacity-50');
+                row.setAttribute('draggable', 'false');
+            });
+
+            row.addEventListener('dragover', (e) => {
+                if (!dragState) {
+                    return;
+                }
+                e.preventDefault();
+                row.classList.add('ring-2', 'ring-sky-300');
+            });
+
+            row.addEventListener('dragleave', () => {
+                row.classList.remove('ring-2', 'ring-sky-300');
+            });
+
+            row.addEventListener('drop', async (e) => {
+                row.classList.remove('ring-2', 'ring-sky-300');
+                if (!dragState) {
+                    return;
+                }
+                e.preventDefault();
+
+                const allRows = getVisibleRows();
+                const fromIndex = allRows.indexOf(dragState.row);
+                const toIndexRaw = allRows.indexOf(row);
+                if (fromIndex < 0 || toIndexRaw < 0) {
+                    dragState = null;
+                    return;
+                }
+                const dropAfter = e.clientY > row.getBoundingClientRect().top + row.offsetHeight / 2;
+
+                const movingSet = new Set(dragState.block);
+                const remaining = allRows.filter((r) => !movingSet.has(r));
+                const targetBaseIndex = remaining.indexOf(row);
+                const insertIndex = targetBaseIndex + (dropAfter ? 1 : 0);
+                remaining.splice(insertIndex, 0, ...dragState.block);
+
+                // Compute new depth based on horizontal drop position.
+                const targetCell = row.querySelector('[data-tree-cell]');
+                const baseLeft = targetCell ? targetCell.getBoundingClientRect().left : row.getBoundingClientRect().left;
+                const rawDepth = Math.max(0, Math.round((e.clientX - (baseLeft + 72)) / 24));
+                const prevRow = insertIndex > 0 ? remaining[insertIndex - 1] : null;
+                const maxDepth = prevRow ? Number(prevRow.dataset.depth || '0') + 1 : 0;
+                const newDepth = Math.min(rawDepth, maxDepth);
+                const oldRootDepth = Number(dragState.block[0].dataset.depth || '0');
+                const delta = newDepth - oldRootDepth;
+                dragState.block.forEach((blockRow) => {
+                    const current = Number(blockRow.dataset.depth || '0');
+                    blockRow.dataset.depth = String(Math.max(0, current + delta));
+                });
+
+                const tbody = row.closest('tbody');
+                if (!tbody) {
+                    dragState = null;
+                    return;
+                }
+                remaining.forEach((r) => tbody.appendChild(r));
+
+                const nodes = computeHierarchyFromRows(remaining);
+                const ok = await persistHierarchy(nodes);
+                if (!ok) {
+                    swap.innerHTML = dragState.startHtml;
+                    setupRowDragAndDrop();
+                }
+
+                dragState = null;
+            });
+        });
+    }
 
     async function loadFragment(url, { pushHistory = true } = {}) {
         const u = new URL(url, window.location.origin);
@@ -47,6 +241,7 @@ function initCategoryIndex() {
 
         const html = await res.text();
         swap.innerHTML = html;
+        setupRowDragAndDrop();
 
         if (pushHistory) {
             const clean = new URL(u);
@@ -177,6 +372,8 @@ function initCategoryIndex() {
     window.addEventListener('popstate', () => {
         void loadFragment(window.location.href, { pushHistory: false });
     });
+
+    setupRowDragAndDrop();
 }
 
 document.addEventListener('DOMContentLoaded', initCategoryIndex);

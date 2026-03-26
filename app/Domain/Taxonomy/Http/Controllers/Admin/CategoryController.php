@@ -68,6 +68,48 @@ class CategoryController extends Controller
             ->with('status', __(':count Kategorien wurden aktualisiert.', ['count' => count($ids)]));
     }
 
+    public function reorder(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'nodes' => ['required', 'array', 'min:1'],
+            'nodes.*.id' => ['required', 'integer', 'distinct', 'exists:categories,id'],
+            'nodes.*.parent_id' => ['nullable', 'integer'],
+        ]);
+
+        /** @var list<array{id:int,parent_id:int|null}> $nodes */
+        $nodes = collect($validated['nodes'])
+            ->map(static fn (array $node): array => [
+                'id' => (int) $node['id'],
+                'parent_id' => isset($node['parent_id']) ? (int) $node['parent_id'] : null,
+            ])
+            ->values()
+            ->all();
+
+        $ids = array_column($nodes, 'id');
+        $idSet = array_fill_keys($ids, true);
+        foreach ($nodes as $node) {
+            if ($node['parent_id'] !== null && $node['parent_id'] === $node['id']) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => __('Kategorie kann nicht eigenes Parent sein.'),
+                ], 422);
+            }
+            if ($node['parent_id'] !== null && !isset($idSet[$node['parent_id']])) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => __('Ungültige Ziel-Ebene für Reorder.'),
+                ], 422);
+            }
+        }
+
+        $this->categoryTree->persistHierarchy($nodes);
+
+        return response()->json([
+            'ok' => true,
+            'message' => __('Reihenfolge gespeichert.'),
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
