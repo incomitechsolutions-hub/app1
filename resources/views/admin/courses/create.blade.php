@@ -8,7 +8,7 @@
 @endpush
 
 @section('content')
-    <div class="mx-auto max-w-7xl space-y-6">
+    <div class="mx-auto max-w-7xl space-y-6" x-data="{ tab: 'content', crawlOpen: false }">
         @if (session('crawl_info'))
             <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-slate-800">
                 {{ session('crawl_info') }}
@@ -36,7 +36,7 @@
             </div>
         </div>
 
-        <form method="post" action="{{ route('admin.course-catalog.courses.store') }}" class="space-y-6" x-data="{ tab: 'content', crawlOpen: false }">
+        <form method="post" action="{{ route('admin.course-catalog.courses.store') }}" class="space-y-6">
             @csrf
             <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-1">
                 <button type="button" @click="tab = 'content'"

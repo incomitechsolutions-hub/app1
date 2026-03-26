@@ -31,7 +31,7 @@ class UpdateAiPromptRequest extends FormRequest
                 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
                 Rule::unique('ai_prompts', 'slug')->ignore($id),
             ],
-            'use_case' => ['required', 'string', 'max:96', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
+            'use_case' => ['required', 'string', 'max:96', 'regex:/^[a-z0-9]+(?:[_-][a-z0-9]+)*$/'],
             'body' => ['required', 'string'],
             'description' => ['nullable', 'string'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],
