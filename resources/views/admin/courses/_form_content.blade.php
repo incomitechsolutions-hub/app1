@@ -36,15 +36,35 @@
     if ($prereqRows === []) {
         $prereqRows = [['prerequisite_text' => '', 'sort_order' => 0]];
     }
+
+    $courseStatusValue = old('status', $course?->status?->value ?? \App\Domain\CourseCatalog\Enums\CourseStatus::Draft->value);
+    $s2ModulesEnabled = old(
+        'is_s2_modules_enabled',
+        $course?->is_s2_modules_enabled ?? ($catalogDefaults->default_s2_modules_enabled ?? false)
+    );
+    $s2ToggleDisabled = $courseStatusValue === \App\Domain\CourseCatalog\Enums\CourseStatus::Draft->value;
 @endphp
 
 <div class="admin-panel space-y-4 p-6" x-data="{ modules: {{ \Illuminate\Support\Js::from($moduleRows) }} }">
-    <div class="flex items-center justify-between gap-4">
-        <h2 class="text-lg font-medium text-slate-900">Module (optional)</h2>
-        <button type="button" @click="modules.push({ title: '', description: '', duration_hours: '', sort_order: modules.length })"
-            class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
-            + Zeile
-        </button>
+    <div class="flex items-start justify-between gap-4">
+        <div>
+            <h2 class="text-lg font-medium text-slate-900">Schulungsübersicht S2 Module (optional)</h2>
+            @if ($s2ToggleDisabled)
+                <p class="mt-1 text-xs text-slate-500">Aktivierung ist erst nach redaktionellem Review möglich.</p>
+            @endif
+        </div>
+        <div class="flex items-center gap-4">
+            <label class="relative inline-flex cursor-pointer items-center">
+                <input type="hidden" name="is_s2_modules_enabled" value="0">
+                <input type="checkbox" name="is_s2_modules_enabled" value="1" class="peer sr-only"
+                    @checked($s2ModulesEnabled) {{ $s2ToggleDisabled ? 'disabled' : '' }}>
+                <div class="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all peer-checked:bg-sky-600 peer-checked:after:translate-x-full"></div>
+            </label>
+            <button type="button" @click="modules.push({ title: '', description: '', duration_hours: '', sort_order: modules.length })"
+                class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                + Zeile
+            </button>
+        </div>
     </div>
     <div class="overflow-hidden rounded-xl border border-slate-200">
         <table class="min-w-full divide-y divide-slate-200 text-sm">

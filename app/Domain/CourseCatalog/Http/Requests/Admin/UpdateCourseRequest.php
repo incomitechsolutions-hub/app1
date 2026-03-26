@@ -25,6 +25,12 @@ class UpdateCourseRequest extends FormRequest
             'media_video_enabled' => $this->boolean('media_video_enabled'),
             'media_gallery_enabled' => $this->boolean('media_gallery_enabled'),
         ]);
+
+        if ($this->has('is_s2_modules_enabled')) {
+            $this->merge([
+                'is_s2_modules_enabled' => $this->boolean('is_s2_modules_enabled'),
+            ]);
+        }
         if ($this->input('delivery_format') === '' || $this->input('delivery_format') === null) {
             $this->merge(['delivery_format' => null]);
         }
@@ -106,6 +112,7 @@ class UpdateCourseRequest extends FormRequest
             'instructor_name' => ['nullable', 'string', 'max:255'],
             'certificate_label' => ['nullable', 'string', 'max:255'],
             'is_featured' => ['boolean'],
+            'is_s2_modules_enabled' => ['boolean'],
             'booking_url' => ['nullable', 'url', 'max:2048'],
             'offer_url' => ['nullable', 'url', 'max:2048'],
             'ai_prompt_source' => ['nullable', 'string'],

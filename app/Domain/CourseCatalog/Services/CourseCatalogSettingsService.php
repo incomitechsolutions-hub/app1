@@ -25,6 +25,7 @@ class CourseCatalogSettingsService
                 'default_language_code',
                 'default_min_participants',
                 'tax_rate_percent',
+                'default_s2_modules_enabled',
                 'early_bird_enabled',
                 'early_bird_days_before',
                 'early_bird_discount_percent',

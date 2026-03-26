@@ -148,9 +148,28 @@
         @endif
 
         @if ($course->long_description)
-            <div class="prose prose-gray dark:prose-invert mt-10 max-w-none">
-                {!! nl2br(e($course->long_description)) !!}
-            </div>
+            <section class="mt-10 border-b border-gray-200 pb-8 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Schulungsübersicht S2</h2>
+                <div class="prose prose-gray dark:prose-invert mt-4 max-w-none">
+                    {!! nl2br(e($course->long_description)) !!}
+                </div>
+            </section>
+        @endif
+
+        @if ($course->is_s2_modules_enabled && $course->modules->isNotEmpty())
+            <section class="mt-10 border-b border-gray-200 pb-8 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">S2 Module</h2>
+                <ol class="mt-4 list-decimal space-y-2 pl-5 text-gray-700 dark:text-gray-300">
+                    @foreach ($course->modules as $m)
+                        <li>
+                            <span class="font-medium text-gray-900 dark:text-white">{{ $m->title }}</span>
+                            @if ($m->description)
+                                <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ $m->description }}</div>
+                            @endif
+                        </li>
+                    @endforeach
+                </ol>
+            </section>
         @endif
 
         @if ($course->faqs->isNotEmpty())

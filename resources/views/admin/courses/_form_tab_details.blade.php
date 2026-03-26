@@ -40,7 +40,7 @@
             @enderror
         </div>
         <div>
-            <label for="long_description" class="mb-1 block text-sm font-medium text-slate-700">Ausführliche Beschreibung</label>
+            <label for="long_description" class="mb-1 block text-sm font-medium text-slate-700">Schulungsübersicht S2</label>
             <input id="long_description" type="hidden" name="long_description" value="{{ old('long_description', $course?->long_description) }}">
             <trix-editor input="long_description" class="trix-content min-h-[200px] rounded-lg border border-slate-300 shadow-sm"></trix-editor>
             @error('long_description')

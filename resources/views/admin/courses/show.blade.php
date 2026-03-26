@@ -118,9 +118,9 @@
                 </div>
             @endif
 
-            @if ($course->modules->isNotEmpty())
+            @if ($course->is_s2_modules_enabled && $course->modules->isNotEmpty())
                 <div class="mt-8">
-                    <h2 class="text-lg font-medium text-slate-900">Module</h2>
+                    <h2 class="text-lg font-medium text-slate-900">S2 Module</h2>
                     <ol class="mt-2 list-decimal space-y-2 pl-5 text-sm text-slate-800">
                         @foreach ($course->modules as $m)
                             <li>
@@ -157,7 +157,7 @@
             @endif
 
             <div class="mt-8">
-                <h2 class="text-lg font-medium text-slate-900">Langtext</h2>
+                <h2 class="text-lg font-medium text-slate-900">Schulungsübersicht S2</h2>
                 <div class="mt-2 max-w-none whitespace-pre-wrap text-sm text-slate-800">{{ $course->long_description ?: '—' }}</div>
             </div>
         </div>

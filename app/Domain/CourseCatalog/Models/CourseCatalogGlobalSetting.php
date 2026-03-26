@@ -23,6 +23,7 @@ class CourseCatalogGlobalSetting extends Model
         'early_bird_discount_percent',
         'group_discount_enabled',
         'group_discount_layout',
+        'default_s2_modules_enabled',
     ];
 
     protected function casts(): array
@@ -37,6 +38,7 @@ class CourseCatalogGlobalSetting extends Model
             'early_bird_discount_percent' => 'decimal:2',
             'group_discount_enabled' => 'boolean',
             'group_discount_layout' => GroupDiscountLayout::class,
+            'default_s2_modules_enabled' => 'boolean',
         ];
     }
 
@@ -55,6 +57,7 @@ class CourseCatalogGlobalSetting extends Model
                 'early_bird_discount_percent' => 3,
                 'group_discount_enabled' => false,
                 'group_discount_layout' => GroupDiscountLayout::Layout2,
+                'default_s2_modules_enabled' => false,
             ]
         );
     }

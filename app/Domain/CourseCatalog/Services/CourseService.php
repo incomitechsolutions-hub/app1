@@ -4,6 +4,7 @@ namespace App\Domain\CourseCatalog\Services;
 
 use App\Domain\CourseCatalog\Enums\CourseStatus;
 use App\Domain\CourseCatalog\Models\Course;
+use App\Domain\CourseCatalog\Models\CourseCatalogGlobalSetting;
 use App\Domain\Localization\Services\DefaultLocaleTranslationSync;
 use App\Domain\Seo\Services\SeoMetaSyncService;
 use App\Domain\Taxonomy\Models\Category;
@@ -25,6 +26,10 @@ class CourseService
             $seo = Arr::pull($data, 'seo', []);
             if (! is_array($seo)) {
                 $seo = [];
+            }
+
+            if (! array_key_exists('is_s2_modules_enabled', $data)) {
+                $data['is_s2_modules_enabled'] = CourseCatalogGlobalSetting::singleton()->default_s2_modules_enabled ?? false;
             }
 
             $course = new Course($this->extractCourseAttributes($data));
@@ -148,6 +153,7 @@ class CourseService
             'external_course_code',
             'short_description',
             'long_description',
+            'is_s2_modules_enabled',
             'target_audience_text',
             'prerequisites_text',
             'duration_hours',
@@ -194,6 +200,11 @@ class CourseService
             $course->published_at = $course->published_at ?? now();
         } else {
             $course->published_at = null;
+        }
+
+        // S2 Module-Section ist standardmäßig deaktiviert und erst nach redaktionellem Review aktivierbar.
+        if ($enum === CourseStatus::Draft) {
+            $course->is_s2_modules_enabled = false;
         }
     }
 

@@ -18,6 +18,7 @@ class PublicCourseController
                 'heroMedia',
                 'tags',
                 'discountTiers',
+                'modules',
                 'faqs',
                 'openClassrooms',
                 'courseRelations.relatedCourse',

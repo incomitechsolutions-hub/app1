@@ -90,6 +90,22 @@
 
             <div class="admin-panel space-y-6 p-6">
                 <div class="flex items-center justify-between gap-4">
+                    <h2 class="text-lg font-semibold text-slate-900">S2 Modul-Status (Default)</h2>
+                    <label class="relative inline-flex cursor-pointer items-center">
+                        <input type="hidden" name="default_s2_modules_enabled" value="0">
+                        <input type="checkbox" name="default_s2_modules_enabled" value="1" class="peer sr-only"
+                            @checked(old('default_s2_modules_enabled', $settings->default_s2_modules_enabled ?? false))>
+                        <div class="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all peer-checked:bg-sky-600 peer-checked:after:translate-x-full"></div>
+                    </label>
+                </div>
+                <p class="text-sm text-slate-500">Neue Kurse erhalten standardmäßig deaktivierte S2 Module. Nach redaktionellem Review können sie pro Kurs gezielt aktiviert werden.</p>
+                @error('default_s2_modules_enabled')
+                    <p class="text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="admin-panel space-y-6 p-6">
+                <div class="flex items-center justify-between gap-4">
                     <h2 class="text-lg font-semibold text-slate-900">Early Bird Rabatt</h2>
                     <label class="relative inline-flex cursor-pointer items-center">
                         <input type="hidden" name="early_bird_enabled" value="0">

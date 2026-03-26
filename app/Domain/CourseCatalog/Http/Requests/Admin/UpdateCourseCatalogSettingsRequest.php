@@ -17,6 +17,7 @@ class UpdateCourseCatalogSettingsRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
+            'default_s2_modules_enabled' => $this->boolean('default_s2_modules_enabled'),
             'early_bird_enabled' => $this->boolean('early_bird_enabled'),
             'group_discount_enabled' => $this->boolean('group_discount_enabled'),
         ]);
@@ -39,6 +40,7 @@ class UpdateCourseCatalogSettingsRequest extends FormRequest
             'default_language_code' => ['required', 'string', 'max:16'],
             'default_min_participants' => ['required', 'integer', 'min:1'],
             'tax_rate_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+            'default_s2_modules_enabled' => ['boolean'],
             'early_bird_enabled' => ['boolean'],
             'early_bird_days_before' => ['nullable', 'integer', 'min:0'],
             'early_bird_discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
