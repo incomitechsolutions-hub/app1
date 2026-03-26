@@ -20,6 +20,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -188,6 +189,37 @@ class CategoryController extends Controller
         return redirect()
             ->route('admin.taxonomy.categories.index')
             ->with('status', __('Kategorie wurde aktualisiert.'));
+    }
+
+    public function storeQuick(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $base = Str::slug($data['name']);
+        $slug = $base;
+        $n = 0;
+        while (Category::query()->where('slug', $slug)->exists()) {
+            $n++;
+            $slug = $base.'-'.$n;
+        }
+
+        $maxSort = Category::query()->whereNull('parent_id')->max('sort_order');
+        $category = Category::query()->create([
+            'name' => trim($data['name']),
+            'slug' => $slug,
+            'description' => null,
+            'parent_id' => null,
+            'sort_order' => is_numeric($maxSort) ? ((int) $maxSort + 1) : 0,
+            'status' => CategoryTaxonomySetting::singleton()->default_new_category_status,
+        ]);
+
+        $this->translationSync->syncCategory($category);
+
+        return response()->json([
+            'category' => ['id' => $category->id, 'name' => $category->name],
+        ], 201);
     }
 
     public function destroy(Request $request, Category $category): RedirectResponse|JsonResponse

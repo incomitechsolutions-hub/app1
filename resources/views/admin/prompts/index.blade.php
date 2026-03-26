@@ -44,7 +44,9 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($prompts as $prompt)
-                        <tr class="hover:bg-slate-50/50">
+                        <tr class="hover:bg-slate-50/50"
+                            data-edit-url="{{ route('admin.prompt-management.prompts.edit', $prompt) }}"
+                            title="Zeile anklicken zum Bearbeiten">
                             <td class="px-4 py-3 font-medium text-slate-900">{{ $prompt->title }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ $prompt->slug }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ \App\Domain\PromptManagement\Enums\PromptUseCase::labelForValue($prompt->use_case) }}</td>

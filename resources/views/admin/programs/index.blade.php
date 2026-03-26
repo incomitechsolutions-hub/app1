@@ -28,7 +28,9 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($programs as $program)
-                        <tr class="hover:bg-slate-50/50">
+                        <tr class="hover:bg-slate-50/50"
+                            data-edit-url="{{ route('admin.course-catalog.programs.edit', $program) }}"
+                            title="Zeile anklicken zum Bearbeiten">
                             <td class="px-4 py-3 font-medium text-slate-900">{{ $program->title }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ $program->slug }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ $program->status }}</td>

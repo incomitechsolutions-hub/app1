@@ -28,7 +28,9 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($tags as $tag)
-                        <tr>
+                        <tr class="hover:bg-slate-50/70"
+                            data-edit-url="{{ route('admin.taxonomy.tags.edit', $tag) }}"
+                            title="Zeile anklicken zum Bearbeiten">
                             <td class="px-4 py-2 font-medium text-slate-900">{{ $tag->name }}</td>
                             <td class="px-4 py-2 font-mono text-slate-600">{{ $tag->slug }}</td>
                             <td class="px-4 py-2 text-right">

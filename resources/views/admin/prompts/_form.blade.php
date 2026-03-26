@@ -81,8 +81,13 @@
             if (!slug) {
                 return;
             }
+            this.options.unshift({
+                value: slug,
+                label: `${slug} · eigen`,
+                isCustom: true,
+            });
             this.useCaseValue = slug;
-            this.query = slug;
+            this.query = `${slug} · eigen`;
             this.open = false;
             this.errorMessage = '';
         },
@@ -159,7 +164,12 @@
                 @keydown.enter.prevent="applyTypedQuery()"
                 @blur="setTimeout(() => { applyTypedQuery(); open = false; }, 120)"
                 placeholder="{{ __('Anwendungsfall suchen oder neu eingeben') }}"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 pr-9 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 pr-16 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+            <button type="button" x-show="canCreateFromQuery()" x-cloak
+                @mousedown.prevent="createFromQuery()"
+                class="absolute inset-y-0 right-7 px-1.5 text-base font-semibold text-sky-600 hover:text-sky-700"
+                title="{{ __('Neu anlegen') }}"
+                aria-label="{{ __('Neu anlegen') }}">+</button>
             <button type="button" @click="open = !open"
                 class="absolute inset-y-0 right-2 text-slate-400"
                 aria-label="{{ __('Anwendungsfälle öffnen') }}">▾</button>

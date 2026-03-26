@@ -44,6 +44,7 @@
     data-live-sync="{{ $course ? '1' : '0' }}"
     data-patch-url="{{ $course ? route('admin.course-catalog.courses.patch-fields', $course) : '' }}"
     data-category-search-url="{{ route('admin.taxonomy.categories.options') }}"
+    data-category-quick-url="{{ route('admin.taxonomy.categories.quick-store') }}"
     data-tag-quick-url="{{ route('admin.taxonomy.tags.quick-store') }}"
     data-audience-quick-url="{{ route('admin.taxonomy.audiences.quick-store') }}"
     data-initial-primary-options="{{ e(json_encode($initialPrimaryOptions)) }}"
@@ -206,9 +207,6 @@
     <div class="admin-panel space-y-6 p-6">
         <h2 class="text-lg font-semibold text-slate-900">Kategorie</h2>
         <p class="text-sm text-slate-500">Genau eine Kategorie pro Kurs. Beim Bearbeiten wird die Auswahl per AJAX gespeichert.</p>
-        <label for="category_filter" class="block text-xs font-medium text-slate-600">Kategorie suchen</label>
-        <input id="category_filter" type="search" placeholder="Tippen zum Filtern …"
-            class="mt-1 block w-full max-w-lg rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
         <div class="max-w-xl">
             <label for="primary_category_id" class="block text-sm font-medium text-slate-700">Kurs-Kategorie</label>
             <select id="primary_category_id" name="primary_category_id"
@@ -236,7 +234,7 @@
                     <a href="{{ route('admin.taxonomy.tags.index') }}" target="_blank" rel="noopener"
                         class="text-xs font-medium text-sky-600 hover:underline">Verwaltung</a>
                 </div>
-                <p class="mt-0.5 text-xs text-slate-500">Neu: Namen eingeben und mit Enter anlegen (nur beim Bearbeiten).</p>
+                <p class="mt-0.5 text-xs text-slate-500">Neu: Namen eingeben und mit Enter oder + direkt anlegen.</p>
                 <select id="tag_ids" name="tag_ids[]" multiple
                     class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
                     @foreach ($tags as $tag)
@@ -253,7 +251,7 @@
                     <a href="{{ route('admin.taxonomy.audiences.index') }}" target="_blank" rel="noopener"
                         class="text-xs font-medium text-sky-600 hover:underline">Verwaltung</a>
                 </div>
-                <p class="mt-0.5 text-xs text-slate-500">Neu: Namen eingeben und mit Enter anlegen (nur beim Bearbeiten).</p>
+                <p class="mt-0.5 text-xs text-slate-500">Neu: Namen eingeben und mit Enter oder + direkt anlegen.</p>
                 <select id="audience_ids" name="audience_ids[]" multiple
                     class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
                     @foreach ($audiences as $audience)

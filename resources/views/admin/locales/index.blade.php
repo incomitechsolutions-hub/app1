@@ -63,7 +63,9 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($locales as $locale)
-                        <tr class="hover:bg-slate-50/70">
+                        <tr class="hover:bg-slate-50/70"
+                            data-edit-url="{{ route('admin.localization.locales.edit', $locale) }}"
+                            title="Zeile anklicken zum Bearbeiten">
                             <td class="px-4 py-3 text-slate-500">{{ $locale->id }}</td>
                             <td class="px-4 py-3 font-mono text-slate-900">{{ $locale->code }}</td>
                             <td class="px-4 py-3 text-slate-900">{{ $locale->name }}</td>

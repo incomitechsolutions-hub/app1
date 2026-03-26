@@ -64,7 +64,9 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($markets as $market)
-                        <tr class="hover:bg-slate-50/70">
+                        <tr class="hover:bg-slate-50/70"
+                            data-edit-url="{{ route('admin.localization.markets.edit', $market) }}"
+                            title="Zeile anklicken zum Bearbeiten">
                             <td class="px-4 py-3 text-slate-500">{{ $market->id }}</td>
                             <td class="px-4 py-3">
                                 <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-400">

@@ -12,6 +12,55 @@ function getCsrfToken() {
     return document.querySelector('input[name="_token"]')?.value ?? '';
 }
 
+function attachInlineCreateButton(ts) {
+    const update = () => {
+        const input = ts.control_input;
+        if (!input) {
+            return;
+        }
+
+        const value = input.value.trim();
+        const canCreate = Boolean(ts.settings.create) && value.length >= 2 && ts.canCreate(value);
+        let btn = ts.control.querySelector('[data-ts-inline-create]');
+
+        if (!canCreate) {
+            if (btn) {
+                btn.remove();
+            }
+            return;
+        }
+
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.type = 'button';
+            btn.setAttribute('data-ts-inline-create', '1');
+            btn.className = 'ml-1 inline-flex h-6 w-6 items-center justify-center rounded border border-sky-200 text-sky-600 hover:bg-sky-50 hover:text-sky-700';
+            btn.title = 'Neu anlegen';
+            btn.setAttribute('aria-label', 'Neu anlegen');
+            btn.textContent = '+';
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const current = ts.control_input?.value?.trim() || '';
+                if (!current || !ts.canCreate(current)) {
+                    return;
+                }
+                ts.createItem(current, true, () => {
+                    ts.close();
+                });
+            });
+            ts.control.appendChild(btn);
+        }
+    };
+
+    ts.on('type', update);
+    ts.on('dropdown_open', update);
+    ts.on('item_add', update);
+    ts.on('item_remove', update);
+    ts.on('clear', update);
+    ts.on('initialize', update);
+}
+
 function initCourseFormLive() {
     const root = document.querySelector('[data-course-live-root]');
     if (!root) {
@@ -55,6 +104,7 @@ function initCourseFormLive() {
             initialPrimary = [];
         }
         const searchUrl = root.getAttribute('data-category-search-url') || '';
+        const quickUrl = root.getAttribute('data-category-quick-url') || '';
 
         primaryTom = new TomSelect(primarySelect, {
             plugins: ['dropdown_input'],
@@ -66,6 +116,34 @@ function initCourseFormLive() {
             preload: 'focus',
             loadThrottle: 200,
             maxOptions: 100,
+            create: (input, callback) => {
+                const name = input.trim();
+                if (!name) {
+                    callback();
+                    return;
+                }
+                fetch(quickUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ name }),
+                })
+                    .then((r) => r.json())
+                    .then((j) => {
+                        if (j.category) {
+                            callback({ id: j.category.id, name: j.category.name });
+                        } else {
+                            callback();
+                        }
+                    })
+                    .catch(() => callback());
+            },
+            createFilter: (input) => input.trim().length >= 2,
             load(query, callback) {
                 const url = `${searchUrl}?q=${encodeURIComponent(query)}`;
                 fetch(url, {
@@ -91,18 +169,7 @@ function initCourseFormLive() {
                 patch({ primary_category_id: v ? Number(v) : null });
             },
         });
-
-        const categoryFilter = document.getElementById('category_filter');
-        if (categoryFilter && primaryTom) {
-            const runFilter = () => {
-                const q = categoryFilter.value.trim();
-                primaryTom.clearOptions();
-                primaryTom.load(q);
-                primaryTom.open();
-            };
-            categoryFilter.addEventListener('input', runFilter);
-            categoryFilter.addEventListener('focus', runFilter);
-        }
+        attachInlineCreateButton(primaryTom);
     }
 
     const tagSelect = document.getElementById('tag_ids');
@@ -115,41 +182,39 @@ function initCourseFormLive() {
         }
         const quickUrl = root.getAttribute('data-tag-quick-url') || '';
 
-        new TomSelect(tagSelect, {
+        const tagTom = new TomSelect(tagSelect, {
             plugins: ['remove_button', 'dropdown_input'],
             valueField: 'id',
             labelField: 'name',
             searchField: ['name'],
             options: initialTags,
-            create: live
-                ? (input, callback) => {
-                      const name = input.trim();
-                      if (!name) {
-                          callback();
-                          return;
-                      }
-                      fetch(quickUrl, {
-                          method: 'POST',
-                          headers: {
-                              'Content-Type': 'application/json',
-                              Accept: 'application/json',
-                              'X-CSRF-TOKEN': getCsrfToken(),
-                              'X-Requested-With': 'XMLHttpRequest',
-                          },
-                          credentials: 'same-origin',
-                          body: JSON.stringify({ name }),
-                      })
-                          .then((r) => r.json())
-                          .then((j) => {
-                              if (j.tag) {
-                                  callback({ id: j.tag.id, name: j.tag.name });
-                              } else {
-                                  callback();
-                              }
-                          })
-                          .catch(() => callback());
-                  }
-                : false,
+            create: (input, callback) => {
+                const name = input.trim();
+                if (!name) {
+                    callback();
+                    return;
+                }
+                fetch(quickUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ name }),
+                })
+                    .then((r) => r.json())
+                    .then((j) => {
+                        if (j.tag) {
+                            callback({ id: j.tag.id, name: j.tag.name });
+                        } else {
+                            callback();
+                        }
+                    })
+                    .catch(() => callback());
+            },
             createFilter: (input) => input.trim().length >= 2,
             controlClass: tsControl,
             dropdownClass: tsDropdown,
@@ -157,6 +222,7 @@ function initCourseFormLive() {
                 patch({ tag_ids: this.getValue().map((v) => Number(v)) });
             },
         });
+        attachInlineCreateButton(tagTom);
     }
 
     const audienceSelect = document.getElementById('audience_ids');
@@ -169,41 +235,39 @@ function initCourseFormLive() {
         }
         const quickUrl = root.getAttribute('data-audience-quick-url') || '';
 
-        new TomSelect(audienceSelect, {
+        const audienceTom = new TomSelect(audienceSelect, {
             plugins: ['remove_button', 'dropdown_input'],
             valueField: 'id',
             labelField: 'name',
             searchField: ['name'],
             options: initialAud,
-            create: live
-                ? (input, callback) => {
-                      const name = input.trim();
-                      if (!name) {
-                          callback();
-                          return;
-                      }
-                      fetch(quickUrl, {
-                          method: 'POST',
-                          headers: {
-                              'Content-Type': 'application/json',
-                              Accept: 'application/json',
-                              'X-CSRF-TOKEN': getCsrfToken(),
-                              'X-Requested-With': 'XMLHttpRequest',
-                          },
-                          credentials: 'same-origin',
-                          body: JSON.stringify({ name }),
-                      })
-                          .then((r) => r.json())
-                          .then((j) => {
-                              if (j.audience) {
-                                  callback({ id: j.audience.id, name: j.audience.name });
-                              } else {
-                                  callback();
-                              }
-                          })
-                          .catch(() => callback());
-                  }
-                : false,
+            create: (input, callback) => {
+                const name = input.trim();
+                if (!name) {
+                    callback();
+                    return;
+                }
+                fetch(quickUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ name }),
+                })
+                    .then((r) => r.json())
+                    .then((j) => {
+                        if (j.audience) {
+                            callback({ id: j.audience.id, name: j.audience.name });
+                        } else {
+                            callback();
+                        }
+                    })
+                    .catch(() => callback());
+            },
             createFilter: (input) => input.trim().length >= 2,
             controlClass: tsControl,
             dropdownClass: tsDropdown,
@@ -211,6 +275,7 @@ function initCourseFormLive() {
                 patch({ audience_ids: this.getValue().map((v) => Number(v)) });
             },
         });
+        attachInlineCreateButton(audienceTom);
     }
 
     const levelSelect = document.getElementById('difficulty_level_id');
