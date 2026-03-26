@@ -51,6 +51,9 @@ class AiCourseGenerationPromptBuilderService
         if (! empty($context['locked_title']) && is_string($context['locked_title'])) {
             $parts[] = 'WICHTIG: Der Kurstitel ist fix und darf nicht geändert werden: '.$context['locked_title'];
         }
+        if (! empty($context['locked_subtitle']) && is_string($context['locked_subtitle'])) {
+            $parts[] = 'WICHTIG: Der Kurs-Untertitel ist fix und darf nicht geändert werden: '.$context['locked_subtitle'];
+        }
 
         $parts[] = 'Hinweis: Dieser Text ist die vorbereitete Eingabe für einen späteren KI-Aufruf (noch nicht ausgeführt).';
 

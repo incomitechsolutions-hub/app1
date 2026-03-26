@@ -185,6 +185,10 @@ class AiCourseGenerationWizardController extends Controller
             return null;
         }
 
-        return $audit['crawl'];
+        $crawl = $audit['crawl'];
+        $crawl['locked_title'] = is_string($audit['locked_title'] ?? null) ? $audit['locked_title'] : null;
+        $crawl['locked_subtitle'] = is_string($audit['locked_subtitle'] ?? null) ? $audit['locked_subtitle'] : null;
+
+        return $crawl;
     }
 }

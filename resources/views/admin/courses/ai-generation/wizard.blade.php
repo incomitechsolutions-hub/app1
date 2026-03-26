@@ -57,6 +57,12 @@
             <div class="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-950">
                 <p class="font-semibold">Quelle: Webseite gecrawlt</p>
                 <p class="mt-1">URL: {{ $crawlContext['source_url'] ?? '—' }}</p>
+                @if (! empty($crawlContext['locked_title'] ?? null))
+                    <p class="mt-1">Übernommener Titel: {{ $crawlContext['locked_title'] }}</p>
+                @endif
+                @if (! empty($crawlContext['locked_subtitle'] ?? null))
+                    <p class="mt-1">Übernommener Untertitel: {{ $crawlContext['locked_subtitle'] }}</p>
+                @endif
                 @if (! empty($crawlContext['h1'] ?? null))
                     <p class="mt-1">H1: {{ $crawlContext['h1'] }}</p>
                 @endif

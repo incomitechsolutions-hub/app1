@@ -61,6 +61,7 @@ class AiCourseGenerationSessionService
             'model' => (string) (AiSetting::singleton()->default_model ?: 'gpt-4o-mini'),
             'crawl' => is_array($context['crawl'] ?? null) ? $context['crawl'] : null,
             'locked_title' => is_string($context['locked_title'] ?? null) ? $context['locked_title'] : null,
+            'locked_subtitle' => is_string($context['locked_subtitle'] ?? null) ? $context['locked_subtitle'] : null,
         ];
 
         $session = AiCourseGenerationSession::query()->create([
@@ -115,7 +116,7 @@ class AiCourseGenerationSessionService
         $draftPayload = $result['draft_payload'];
         $taxStarted = microtime(true);
         $draftPayload = $this->taxonomySuggestion->applySuggestionsIfNeeded($draftPayload, (string) $session->brief);
-        $draftPayload = $this->applyLockedTitle($session, $draftPayload);
+        $draftPayload = $this->applyLockedFields($session, $draftPayload);
         $taxMs = (int) round((microtime(true) - $taxStarted) * 1000);
 
         if (! empty($draftPayload['ai_taxonomy_warning'] ?? null)) {
@@ -150,7 +151,7 @@ class AiCourseGenerationSessionService
      */
     public function saveDraftPayload(AiCourseGenerationSession $session, User $user, array $draftPayload): void
     {
-        $draftPayload = $this->applyLockedTitle($session, $draftPayload);
+        $draftPayload = $this->applyLockedFields($session, $draftPayload);
 
         $session->update([
             'draft_payload' => $draftPayload,
@@ -194,7 +195,7 @@ class AiCourseGenerationSessionService
         }
 
         $session->update([
-            'draft_payload' => $this->applyLockedTitle($session, $result['draft_payload']),
+            'draft_payload' => $this->applyLockedFields($session, $result['draft_payload']),
             'last_regenerated_section' => $section,
             'status' => AiCourseGenerationSessionStatus::InReview,
             'last_error' => null,
@@ -230,7 +231,7 @@ class AiCourseGenerationSessionService
 
         $draftPayload = $session->draft_payload ?? [];
         if (is_array($draftPayload)) {
-            $enforced = $this->applyLockedTitle($session, $draftPayload);
+            $enforced = $this->applyLockedFields($session, $draftPayload);
             if ($enforced !== $draftPayload) {
                 $session->update(['draft_payload' => $enforced]);
                 $session = $session->fresh();
@@ -257,16 +258,19 @@ class AiCourseGenerationSessionService
      * @param  array<string, mixed>  $draftPayload
      * @return array<string, mixed>
      */
-    private function applyLockedTitle(AiCourseGenerationSession $session, array $draftPayload): array
+    private function applyLockedFields(AiCourseGenerationSession $session, array $draftPayload): array
     {
         $lockedTitle = $this->resolveLockedTitle($session);
-        if ($lockedTitle === null) {
-            return $draftPayload;
+        if ($lockedTitle !== null) {
+            $draftPayload['title'] = $lockedTitle;
+            if (! isset($draftPayload['slug']) || ! is_string($draftPayload['slug']) || trim($draftPayload['slug']) === '') {
+                $draftPayload['slug'] = Str::slug($lockedTitle);
+            }
         }
 
-        $draftPayload['title'] = $lockedTitle;
-        if (! isset($draftPayload['slug']) || ! is_string($draftPayload['slug']) || trim($draftPayload['slug']) === '') {
-            $draftPayload['slug'] = Str::slug($lockedTitle);
+        $lockedSubtitle = $this->resolveLockedSubtitle($session);
+        if ($lockedSubtitle !== null) {
+            $draftPayload['subtitle'] = $lockedSubtitle;
         }
 
         return $draftPayload;
@@ -290,5 +294,25 @@ class AiCourseGenerationSessionService
         }
 
         return trim($lockedTitle);
+    }
+
+    private function resolveLockedSubtitle(AiCourseGenerationSession $session): ?string
+    {
+        $auditRaw = $session->full_prompt_audit;
+        if (! is_string($auditRaw) || trim($auditRaw) === '') {
+            return null;
+        }
+
+        $decoded = json_decode($auditRaw, true);
+        if (! is_array($decoded)) {
+            return null;
+        }
+
+        $lockedSubtitle = $decoded['locked_subtitle'] ?? null;
+        if (! is_string($lockedSubtitle) || trim($lockedSubtitle) === '') {
+            return null;
+        }
+
+        return trim($lockedSubtitle);
     }
 }

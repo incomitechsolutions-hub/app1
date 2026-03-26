@@ -153,7 +153,7 @@ class AiCourseGenerationTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_crawl_submit_redirects_to_wizard_with_locked_title(): void
+    public function test_crawl_submit_redirects_to_wizard_with_locked_title_and_subtitle(): void
     {
         $aiJson = json_encode([
             'title' => 'KI Titel',
@@ -221,10 +221,13 @@ class AiCourseGenerationTest extends TestCase
 
         $draft = $session->fresh()->draft_payload ?? [];
         $this->assertSame('Fixierter Kurstitel', $draft['title'] ?? null);
+        $this->assertSame('Meta Desc', $draft['subtitle'] ?? null);
 
         $audit = json_decode((string) $session->full_prompt_audit, true);
         $this->assertIsArray($audit);
         $this->assertSame('https://example.com/kurs', $audit['crawl']['source_url'] ?? null);
+        $this->assertSame('Fixierter Kurstitel', $audit['locked_title'] ?? null);
+        $this->assertSame('Meta Desc', $audit['locked_subtitle'] ?? null);
     }
 
     public function test_crawl_submit_redirects_back_with_flash_on_source_fetch_failure(): void
@@ -245,5 +248,55 @@ class AiCourseGenerationTest extends TestCase
             ->assertSessionHas('crawl_info');
 
         $this->assertDatabaseCount('ai_course_generation_sessions', 0);
+    }
+
+    public function test_locked_subtitle_is_preserved_on_draft_update(): void
+    {
+        $user = User::factory()->create();
+
+        $session = AiCourseGenerationSession::query()->create([
+            'user_id' => $user->id,
+            'ai_prompt_id' => null,
+            'status' => AiCourseGenerationSessionStatus::InReview,
+            'template_snapshot' => null,
+            'placeholder_input' => [],
+            'brief' => 'Crawler import',
+            'interpolated_body' => null,
+            'compiled_prompt' => 'compiled',
+            'full_prompt_audit' => json_encode([
+                'locked_title' => 'Fixierter Titel',
+                'locked_subtitle' => 'Fixierter Untertitel',
+                'crawl' => ['source_url' => 'https://example.com/kurs'],
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'draft_payload' => [
+                'title' => 'Fixierter Titel',
+                'subtitle' => 'Fixierter Untertitel',
+                'slug' => 'fixierter-titel',
+                'short_description' => str_repeat('a', 24),
+                'language_code' => 'de',
+                'currency_code' => 'EUR',
+                'status' => 'draft',
+            ],
+            'confirmed_steps' => null,
+            'last_regenerated_section' => null,
+            'resulting_course_id' => null,
+            'last_error' => null,
+            'expires_at' => now()->addDay(),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->patch(route('admin.course-catalog.courses.ai-generation.draft.update', $session), [
+                'draft' => [
+                    'title' => 'Vom Nutzer geaendert',
+                    'subtitle' => 'Vom Nutzer geaendert',
+                    'slug' => 'vom-nutzer-geaendert',
+                ],
+            ]);
+
+        $response->assertRedirect(route('admin.course-catalog.courses.ai-generation.wizard', $session));
+
+        $fresh = $session->fresh();
+        $this->assertSame('Fixierter Titel', $fresh->draft_payload['title'] ?? null);
+        $this->assertSame('Fixierter Untertitel', $fresh->draft_payload['subtitle'] ?? null);
     }
 }

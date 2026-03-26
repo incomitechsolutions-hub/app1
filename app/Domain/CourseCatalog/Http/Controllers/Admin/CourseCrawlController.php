@@ -33,6 +33,7 @@ class CourseCrawlController extends Controller
             $crawl = $this->crawlService->extractSinglePage($sourceUrl);
 
             $lockedTitle = trim((string) ($crawl['h1'] ?: $crawl['title']));
+            $lockedSubtitle = trim((string) ($crawl['meta_description'] ?? ''));
 
             $brief = $this->buildBriefFromCrawl($crawl);
             $template = $this->prompts->activeForUseCase(PromptUseCase::CourseCreation)->first();
@@ -45,6 +46,7 @@ class CourseCrawlController extends Controller
                 [
                     'crawl' => $crawl,
                     'locked_title' => $lockedTitle !== '' ? $lockedTitle : null,
+                    'locked_subtitle' => $lockedSubtitle !== '' ? $lockedSubtitle : null,
                 ]
             );
 
