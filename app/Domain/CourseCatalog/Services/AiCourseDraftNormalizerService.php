@@ -102,7 +102,7 @@ class AiCourseDraftNormalizerService
             'long_description' => $this->nullIfEmptyString($parsed['long_description'] ?? null),
             'target_audience_text' => $this->nullIfEmptyString($parsed['target_audience_text'] ?? null),
             'prerequisites_text' => $this->nullIfEmptyString($parsed['prerequisites_text'] ?? null),
-            'duration_days' => isset($parsed['duration_days']) && $parsed['duration_days'] !== '' ? (int) $parsed['duration_days'] : null,
+            'duration_hours' => $this->resolveDurationHours($parsed),
             'language_code' => trim((string) ($parsed['language_code'] ?? 'de')) ?: 'de',
             'currency_code' => strtoupper(trim((string) ($parsed['currency_code'] ?? 'EUR'))) ?: 'EUR',
             'status' => CourseStatus::Draft->value,
@@ -135,6 +135,18 @@ class AiCourseDraftNormalizerService
             'price_research_parse_warning' => $priceResearchParseWarning,
             'price_research_raw' => $priceResearchRaw,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $parsed
+     */
+    private function resolveDurationHours(array $parsed): ?float
+    {
+        if (isset($parsed['duration_hours']) && $parsed['duration_hours'] !== '') {
+            return (float) $parsed['duration_hours'];
+        }
+
+        return null;
     }
 
     /**

@@ -34,8 +34,7 @@ Fields:
 - long_description
 - target_audience_text (nullable longtext)
 - prerequisites_text (nullable longtext)
-- duration_hours
-- duration_days (nullable unsigned smallint)
+- duration_hours (nullable, decimal)
 - language_code
 - currency_code (char 3, default EUR)
 - status

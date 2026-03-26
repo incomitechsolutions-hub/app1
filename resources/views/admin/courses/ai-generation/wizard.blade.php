@@ -225,8 +225,9 @@
                                 class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-slate-700">Dauer (Tage)</label>
-                            <input type="number" name="draft[duration_days]" value="{{ old('draft.duration_days', $d['duration_days'] ?? '') }}"
+                            <label class="block text-sm font-medium text-slate-700">Dauer (Stunden)</label>
+                            <input type="number" step="0.25" min="0" name="draft[duration_hours]"
+                                value="{{ old('draft.duration_hours', $d['duration_hours'] ?? '') }}"
                                 class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         </div>
                         <div>

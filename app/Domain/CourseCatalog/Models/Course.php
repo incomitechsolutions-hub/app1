@@ -33,7 +33,7 @@ class Course extends Model
         'long_description',
         'target_audience_text',
         'prerequisites_text',
-        'duration_days',
+        'duration_hours',
         'language_code',
         'currency_code',
         'status',
@@ -67,7 +67,7 @@ class Course extends Model
         return [
             'status' => CourseStatus::class,
             'published_at' => 'datetime',
-            'duration_days' => 'integer',
+            'duration_hours' => 'decimal:2',
             'delivery_format' => DeliveryFormat::class,
             'is_featured' => 'boolean',
             'price' => 'decimal:2',

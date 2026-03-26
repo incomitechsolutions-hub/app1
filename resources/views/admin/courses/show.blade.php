@@ -54,8 +54,10 @@
                     <dd class="mt-1 text-sm text-slate-900">{{ $course->language_code }}</dd>
                 </div>
                 <div>
-                    <dt class="text-sm font-medium text-slate-500">Dauer (Tage)</dt>
-                    <dd class="mt-1 text-sm text-slate-900">{{ $course->duration_days ?? '—' }}</dd>
+                    <dt class="text-sm font-medium text-slate-500">Dauer (Stunden)</dt>
+                    <dd class="mt-1 text-sm text-slate-900">
+                        {{ $course->duration_hours !== null ? number_format((float) $course->duration_hours, 1, ',', '.') : '—' }}
+                    </dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-slate-500">Preis (EUR)</dt>

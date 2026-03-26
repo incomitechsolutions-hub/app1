@@ -167,11 +167,11 @@
                 @enderror
             </div>
             <div>
-                <label for="duration_days" class="block text-sm font-medium text-slate-700">Dauer (Tage)</label>
-                <input id="duration_days" name="duration_days" type="number" min="0" max="3660"
-                    value="{{ old('duration_days', $course?->duration_days) }}"
+                <label for="duration_hours" class="block text-sm font-medium text-slate-700">Dauer (Stunden)</label>
+                <input id="duration_hours" name="duration_hours" type="number" step="0.25" min="0" max="25620"
+                    value="{{ old('duration_hours', $course?->duration_hours) }}"
                     class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
-                @error('duration_days')
+                @error('duration_hours')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>

@@ -21,8 +21,8 @@ class CourseOpenClassroomGenerator
         shuffle($locations);
 
         $base = now()->addWeeks(2)->startOfDay()->setTime(9, 30);
-        $durationHours = $course->duration_days !== null
-            ? max(1, (float) $course->duration_days * 8)
+        $durationHours = $course->duration_hours !== null
+            ? max(1, (float) $course->duration_hours)
             : 14.0;
 
         for ($i = 0; $i < $count; $i++) {

@@ -49,10 +49,10 @@
                 <p class="mt-4 text-lg text-gray-600 dark:text-gray-300">{{ $course->short_description }}</p>
             @endif
             <dl class="mt-6 grid gap-4 text-sm sm:grid-cols-2">
-                @if ($course->duration_days)
+                @if ($course->duration_hours !== null)
                     <div>
                         <dt class="font-medium text-gray-500 dark:text-gray-400">Dauer</dt>
-                        <dd class="text-gray-900 dark:text-white">{{ $course->duration_days === 1 ? '1 Tag' : $course->duration_days.' Tage' }}</dd>
+                        <dd class="text-gray-900 dark:text-white">{{ number_format((float) $course->duration_hours, 1, ',', '.') }} Std.</dd>
                     </div>
                 @endif
                 @if ($course->price !== null)

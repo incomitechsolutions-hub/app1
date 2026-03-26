@@ -150,7 +150,7 @@ class CourseService
             'long_description',
             'target_audience_text',
             'prerequisites_text',
-            'duration_days',
+            'duration_hours',
             'language_code',
             'currency_code',
             'status',

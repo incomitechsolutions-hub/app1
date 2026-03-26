@@ -169,8 +169,8 @@
                                     </div>
                                 </td>
                                 <td class="px-3 py-3 text-slate-700">
-                                    @if ($course->duration_days !== null)
-                                        {{ $course->duration_days === 1 ? '1 Tag' : $course->duration_days.' Tage' }}
+                                    @if ($course->duration_hours !== null)
+                                        {{ number_format((float) $course->duration_hours, 1, ',', '.') }} Std.
                                     @else
                                         —
                                     @endif

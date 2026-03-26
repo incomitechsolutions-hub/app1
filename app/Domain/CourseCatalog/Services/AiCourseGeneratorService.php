@@ -37,7 +37,7 @@ class AiCourseGeneratorService
         $instruction = $template.'Erzeuge einen Kursentwurf basierend auf folgender Beschreibung. '
             .'Antworte NUR mit einem JSON-Objekt (kein Markdown, kein Code-Fence) mit exakt diesen Schlüsseln: '
             .'title (string), slug (string, nur a-z0-9 und Bindestriche), short_description (string, mindestens 20 Zeichen), '
-            .'long_description (string oder leer), duration_days (integer oder null), price (number oder null), '
+            .'long_description (string oder leer), duration_hours (number oder null), price (number oder null), '
             .'language_code (string, z.B. de), seo_title (string oder leer), meta_description (string oder leer). '
             ."Beschreibung des gewünschten Kurses:\n\n".$brief;
 
@@ -160,8 +160,8 @@ class AiCourseGeneratorService
 
         $long = trim((string) ($parsed['long_description'] ?? ''));
 
-        $duration = $parsed['duration_days'] ?? null;
-        $durationDays = $duration !== null && $duration !== '' ? (int) $duration : null;
+        $duration = $parsed['duration_hours'] ?? null;
+        $durationHours = $duration !== null && $duration !== '' ? (float) $duration : null;
 
         $price = $parsed['price'] ?? null;
         $priceVal = $price !== null && $price !== '' ? (float) $price : null;
@@ -176,7 +176,7 @@ class AiCourseGeneratorService
             'slug' => $slug,
             'short_description' => $short,
             'long_description' => $long !== '' ? $long : null,
-            'duration_days' => $durationDays,
+            'duration_hours' => $durationHours,
             'price' => $priceVal,
             'language_code' => $lang,
             'seo_title' => trim((string) ($parsed['seo_title'] ?? '')),
@@ -192,7 +192,7 @@ Antworte NUR mit einem JSON-Objekt (kein Markdown, kein Code-Fence). Nutze folge
 title (string), slug (string, nur a-z0-9 und Bindestriche), subtitle (string|null),
 short_description (string, mindestens 20 Zeichen), long_description (string|null),
 target_audience_text (string|null), prerequisites_text (string|null),
-duration_days (int|null), language_code (string), currency_code (string, z.B. EUR),
+duration_hours (number|null), language_code (string), currency_code (string, z.B. EUR),
 price (number|null), delivery_format ("online"|"presence"|"hybrid"|null),
 lessons_count (int|null), min_participants (int|null), instructor_name (string|null),
 certificate_label (string|null), is_featured (boolean),

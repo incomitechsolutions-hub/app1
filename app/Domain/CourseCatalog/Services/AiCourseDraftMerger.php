@@ -19,8 +19,8 @@ class AiCourseDraftMerger
         $out = $draft;
 
         $scalarKeys = match ($section) {
-            'basics' => ['title', 'subtitle', 'slug', 'language_code', 'currency_code', 'duration_days', 'primary_category_id', 'difficulty_level_id', 'is_featured', 'booking_url', 'offer_url', 'lessons_count', 'min_participants', 'instructor_name', 'certificate_label'],
-            'pricing' => ['price', 'currency_code', 'duration_days', 'delivery_format', 'price_research_parse_warning', 'price_research_raw'],
+            'basics' => ['title', 'subtitle', 'slug', 'language_code', 'currency_code', 'duration_hours', 'primary_category_id', 'difficulty_level_id', 'is_featured', 'booking_url', 'offer_url', 'lessons_count', 'min_participants', 'instructor_name', 'certificate_label'],
+            'pricing' => ['price', 'currency_code', 'duration_hours', 'delivery_format', 'price_research_parse_warning', 'price_research_raw'],
             'details_copy' => ['short_description', 'long_description', 'target_audience_text', 'prerequisites_text'],
             default => [],
         };

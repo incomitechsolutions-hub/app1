@@ -39,6 +39,9 @@ class StoreCourseRequest extends FormRequest
         if ($this->input('published_at') === '') {
             $this->merge(['published_at' => null]);
         }
+        if ($this->input('duration_hours') === '' || $this->input('duration_hours') === null) {
+            $this->merge(['duration_hours' => null]);
+        }
         if ($this->input('average_rating') === '' || $this->input('average_rating') === null) {
             $this->merge(['average_rating' => 0]);
         }
@@ -61,7 +64,7 @@ class StoreCourseRequest extends FormRequest
             'long_description' => ['nullable', 'string'],
             'target_audience_text' => ['nullable', 'string'],
             'prerequisites_text' => ['nullable', 'string'],
-            'duration_days' => ['nullable', 'integer', 'min:0', 'max:3660'],
+            'duration_hours' => ['nullable', 'numeric', 'min:0', 'max:25620'],
             'language_code' => ['required', 'string', 'max:16'],
             'currency_code' => ['required', 'string', 'size:3'],
             'status' => ['required', new Enum(CourseStatus::class)],
