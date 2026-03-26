@@ -53,6 +53,18 @@
         @if (session('ai_error'))
             <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">{{ session('ai_error') }}</div>
         @endif
+        @if (! empty($crawlContext))
+            <div class="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-950">
+                <p class="font-semibold">Quelle: Webseite gecrawlt</p>
+                <p class="mt-1">URL: {{ $crawlContext['source_url'] ?? '—' }}</p>
+                @if (! empty($crawlContext['h1'] ?? null))
+                    <p class="mt-1">H1: {{ $crawlContext['h1'] }}</p>
+                @endif
+                @if (! empty($crawlContext['meta_description'] ?? null))
+                    <p class="mt-1">Meta: {{ $crawlContext['meta_description'] }}</p>
+                @endif
+            </div>
+        @endif
 
         <form method="post" action="{{ route('admin.course-catalog.courses.ai-generation.regenerate', $session) }}" class="admin-panel space-y-4 p-6">
             @csrf

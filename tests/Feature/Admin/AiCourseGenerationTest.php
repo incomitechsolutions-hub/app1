@@ -153,19 +153,97 @@ class AiCourseGenerationTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_crawl_submit_redirects_with_flash(): void
+    public function test_crawl_submit_redirects_to_wizard_with_locked_title(): void
     {
+        $aiJson = json_encode([
+            'title' => 'KI Titel',
+            'slug' => 'ki-titel',
+            'short_description' => str_repeat('a', 24),
+            'long_description' => 'Langtext',
+            'language_code' => 'de',
+            'currency_code' => 'EUR',
+            'tag_slugs' => [],
+            'audience_slugs' => [],
+            'modules' => [],
+            'objectives' => [],
+            'prerequisites' => [],
+            'faqs' => [],
+            'seo_title' => 'SEO Titel',
+            'meta_description' => 'Meta hier',
+        ], JSON_THROW_ON_ERROR);
+
+        $taxJson = json_encode([
+            'primary_category_slug' => null,
+            'audience_slugs' => [],
+            'rationale' => 'Kein Mapping',
+        ], JSON_THROW_ON_ERROR);
+
+        Http::fake([
+            'https://example.com/kurs' => Http::response(
+                '<html><head><title>ChatGPT Kurs</title><meta name="description" content="Meta Desc"></head><body><h1>Fixierter Kurstitel</h1><h2>Prompt Engineering</h2><p>Inhalt</p></body></html>',
+                200,
+                ['Content-Type' => 'text/html']
+            ),
+            'https://api.openai.com/v1/chat/completions' => Http::sequence()
+                ->push([
+                    'choices' => [
+                        ['message' => ['content' => $aiJson]],
+                    ],
+                ], 200)
+                ->push([
+                    'choices' => [
+                        ['message' => ['content' => $taxJson]],
+                    ],
+                ], 200),
+        ]);
+
+        $settings = AiSetting::singleton();
+        $settings->openai_api_key = 'sk-test-123456789012345678901234567890';
+        $settings->default_model = 'gpt-4o-mini';
+        $settings->openai_base_url = 'https://api.openai.com/v1';
+        $settings->save();
+
         $user = User::factory()->create();
 
         $this->actingAs($user)
             ->get(route('admin.course-catalog.courses.create'))
             ->assertOk();
 
-        $this->actingAs($user)
+        $response = $this->actingAs($user)
             ->post(route('admin.course-catalog.courses.crawl-from-website'), [
                 'source_url' => 'https://example.com/kurs',
-            ])
+            ]);
+
+        $session = AiCourseGenerationSession::query()->first();
+        $this->assertNotNull($session);
+
+        $response->assertRedirect(route('admin.course-catalog.courses.ai-generation.wizard', $session));
+
+        $draft = $session->fresh()->draft_payload ?? [];
+        $this->assertSame('Fixierter Kurstitel', $draft['title'] ?? null);
+
+        $audit = json_decode((string) $session->full_prompt_audit, true);
+        $this->assertIsArray($audit);
+        $this->assertSame('https://example.com/kurs', $audit['crawl']['source_url'] ?? null);
+    }
+
+    public function test_crawl_submit_redirects_back_with_flash_on_source_fetch_failure(): void
+    {
+        Http::fake([
+            'https://example.com/kurs' => Http::response('Not found', 404),
+        ]);
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->post(route('admin.course-catalog.courses.crawl-from-website'), [
+                'source_url' => 'https://example.com/kurs',
+            ]);
+
+        $response
             ->assertRedirect(route('admin.course-catalog.courses.create'))
             ->assertSessionHas('crawl_info');
+
+        $this->assertDatabaseCount('ai_course_generation_sessions', 0);
     }
 }

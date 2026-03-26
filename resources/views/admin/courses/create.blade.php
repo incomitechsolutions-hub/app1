@@ -31,7 +31,7 @@
                 </a>
                 <button type="button" @click="crawlOpen = true"
                     class="inline-flex items-center rounded-lg border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-900 transition hover:bg-violet-100">
-                    Crawl from website
+                    Webseite crawlen
                 </button>
             </div>
         </div>
@@ -110,9 +110,9 @@
             <div x-cloak x-show="crawlOpen" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
                 @keydown.escape.window="crawlOpen = false">
                 <div class="max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl" @click.outside="crawlOpen = false">
-                    <h2 class="text-lg font-semibold text-slate-900">Crawl from website</h2>
+                    <h2 class="text-lg font-semibold text-slate-900">Webseite crawlen</h2>
                     <p class="mt-2 text-sm text-slate-600">
-                        Geben Sie die vollständige URL der Quellseite ein. Automatisches Crawling ist derzeit nicht aktiv — es wird nur gespeichert, dass Sie diese Funktion nutzen möchten.
+                        Geben Sie eine URL ein. Die Seite wird ausgelesen und die SEO-relevanten Inhalte (z. B. H1, Meta, Headings) werden für den KI-Wizard verwendet.
                     </p>
                     <form method="post" action="{{ route('admin.course-catalog.courses.crawl-from-website') }}" class="mt-4 space-y-4">
                         @csrf
@@ -125,7 +125,7 @@
                         <div class="flex flex-wrap gap-2">
                             <button type="submit"
                                 class="rounded-lg bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800">
-                                Absenden
+                                Webseite crawlen
                             </button>
                             <button type="button" @click="crawlOpen = false"
                                 class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">

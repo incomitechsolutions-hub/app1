@@ -70,7 +70,8 @@ class AiCourseGenerationController extends Controller
             $request->user(),
             $template,
             $values,
-            $brief
+            $brief,
+            []
         );
 
         $session = $this->sessionService->runInitialAiGeneration($session, $request->user());

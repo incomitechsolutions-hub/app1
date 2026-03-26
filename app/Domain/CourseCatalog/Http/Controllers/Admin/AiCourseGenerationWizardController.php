@@ -44,6 +44,7 @@ class AiCourseGenerationWizardController extends Controller
             [
                 'session' => $aiCourseGenerationSession,
                 'draft' => $aiCourseGenerationSession->draft_payload ?? [],
+                'crawlContext' => $this->crawlContext($aiCourseGenerationSession),
             ],
             $this->formOptions()
         ));
@@ -167,5 +168,23 @@ class AiCourseGenerationWizardController extends Controller
             'mediaAssets' => MediaAsset::query()->orderByDesc('id')->limit(200)->get(),
             'catalogDefaults' => $globals,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function crawlContext(AiCourseGenerationSession $session): ?array
+    {
+        $raw = $session->full_prompt_audit;
+        if (! is_string($raw) || trim($raw) === '') {
+            return null;
+        }
+
+        $audit = json_decode($raw, true);
+        if (! is_array($audit) || ! is_array($audit['crawl'] ?? null)) {
+            return null;
+        }
+
+        return $audit['crawl'];
     }
 }

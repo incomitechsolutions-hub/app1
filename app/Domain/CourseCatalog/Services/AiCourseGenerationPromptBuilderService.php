@@ -12,9 +12,10 @@ class AiCourseGenerationPromptBuilderService
      * Assembles the full text that will later be sent to the AI (no API call here).
      *
      * @param  array<string, string|null>  $placeholderValues
+     * @param  array<string, mixed>  $context
      * @return array{interpolated_body: ?string, compiled_prompt: string}
      */
-    public function build(?string $templateBody, array $placeholderValues, string $brief): array
+    public function build(?string $templateBody, array $placeholderValues, string $brief, array $context = []): array
     {
         $brief = trim($brief);
 
@@ -32,6 +33,25 @@ class AiCourseGenerationPromptBuilderService
         $parts[] = 'Kursidee / Anforderungen:';
         $parts[] = $brief;
         $parts[] = '---';
+
+        if (! empty($context['crawl']) && is_array($context['crawl'])) {
+            $crawl = $context['crawl'];
+            $parts[] = 'Quelle (Webseite gecrawlt):';
+            $parts[] = implode("\n", array_filter([
+                'URL: '.(string) ($crawl['source_url'] ?? ''),
+                'Titel: '.(string) ($crawl['title'] ?? ''),
+                'H1: '.(string) ($crawl['h1'] ?? ''),
+                'Meta Description: '.(string) ($crawl['meta_description'] ?? ''),
+                'SEO-Keywords: '.implode(', ', is_array($crawl['seo_keywords'] ?? null) ? $crawl['seo_keywords'] : []),
+                'Headings (H2/H3): '.implode(' | ', is_array($crawl['headings'] ?? null) ? $crawl['headings'] : []),
+            ]));
+            $parts[] = 'Nimm die SEO-relevanten Infos aus der Quelle auf und orientiere Inhalte/Module daran.';
+        }
+
+        if (! empty($context['locked_title']) && is_string($context['locked_title'])) {
+            $parts[] = 'WICHTIG: Der Kurstitel ist fix und darf nicht geändert werden: '.$context['locked_title'];
+        }
+
         $parts[] = 'Hinweis: Dieser Text ist die vorbereitete Eingabe für einen späteren KI-Aufruf (noch nicht ausgeführt).';
 
         $compiled = implode("\n\n", $parts);

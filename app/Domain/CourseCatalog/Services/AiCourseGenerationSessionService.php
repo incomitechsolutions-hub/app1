@@ -10,6 +10,7 @@ use App\Domain\CourseCatalog\Models\Course;
 use App\Domain\PromptManagement\Models\AiPrompt;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class AiCourseGenerationSessionService
 {
@@ -24,12 +25,14 @@ class AiCourseGenerationSessionService
 
     /**
      * @param  array<string, string>  $placeholderValues
+     * @param  array<string, mixed>  $context
      */
     public function createFromWizardStart(
         User $user,
         ?AiPrompt $template,
         array $placeholderValues,
-        string $brief
+        string $brief,
+        array $context = []
     ): AiCourseGenerationSession {
         $templateBody = null;
         $snapshot = null;
@@ -51,11 +54,13 @@ class AiCourseGenerationSessionService
             $values[$key] = $placeholderValues[$key] ?? '';
         }
 
-        $built = $this->promptBuilder->build($templateBody, $values, $brief);
+        $built = $this->promptBuilder->build($templateBody, $values, $brief, $context);
 
         $audit = [
             'compiled_prompt' => $built['compiled_prompt'],
             'model' => (string) (AiSetting::singleton()->default_model ?: 'gpt-4o-mini'),
+            'crawl' => is_array($context['crawl'] ?? null) ? $context['crawl'] : null,
+            'locked_title' => is_string($context['locked_title'] ?? null) ? $context['locked_title'] : null,
         ];
 
         $session = AiCourseGenerationSession::query()->create([
@@ -110,6 +115,7 @@ class AiCourseGenerationSessionService
         $draftPayload = $result['draft_payload'];
         $taxStarted = microtime(true);
         $draftPayload = $this->taxonomySuggestion->applySuggestionsIfNeeded($draftPayload, (string) $session->brief);
+        $draftPayload = $this->applyLockedTitle($session, $draftPayload);
         $taxMs = (int) round((microtime(true) - $taxStarted) * 1000);
 
         if (! empty($draftPayload['ai_taxonomy_warning'] ?? null)) {
@@ -144,6 +150,8 @@ class AiCourseGenerationSessionService
      */
     public function saveDraftPayload(AiCourseGenerationSession $session, User $user, array $draftPayload): void
     {
+        $draftPayload = $this->applyLockedTitle($session, $draftPayload);
+
         $session->update([
             'draft_payload' => $draftPayload,
             'status' => AiCourseGenerationSessionStatus::InReview,
@@ -186,7 +194,7 @@ class AiCourseGenerationSessionService
         }
 
         $session->update([
-            'draft_payload' => $result['draft_payload'],
+            'draft_payload' => $this->applyLockedTitle($session, $result['draft_payload']),
             'last_regenerated_section' => $section,
             'status' => AiCourseGenerationSessionStatus::InReview,
             'last_error' => null,
@@ -220,6 +228,15 @@ class AiCourseGenerationSessionService
     {
         $this->events->log($session, AiCourseGenerationEventType::FinalizeAttempted, $user, []);
 
+        $draftPayload = $session->draft_payload ?? [];
+        if (is_array($draftPayload)) {
+            $enforced = $this->applyLockedTitle($session, $draftPayload);
+            if ($enforced !== $draftPayload) {
+                $session->update(['draft_payload' => $enforced]);
+                $session = $session->fresh();
+            }
+        }
+
         return DB::transaction(function () use ($session, $user) {
             $course = $this->persistAiCourse->persistFromSession($session);
 
@@ -234,5 +251,44 @@ class AiCourseGenerationSessionService
 
             return $course;
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $draftPayload
+     * @return array<string, mixed>
+     */
+    private function applyLockedTitle(AiCourseGenerationSession $session, array $draftPayload): array
+    {
+        $lockedTitle = $this->resolveLockedTitle($session);
+        if ($lockedTitle === null) {
+            return $draftPayload;
+        }
+
+        $draftPayload['title'] = $lockedTitle;
+        if (! isset($draftPayload['slug']) || ! is_string($draftPayload['slug']) || trim($draftPayload['slug']) === '') {
+            $draftPayload['slug'] = Str::slug($lockedTitle);
+        }
+
+        return $draftPayload;
+    }
+
+    private function resolveLockedTitle(AiCourseGenerationSession $session): ?string
+    {
+        $auditRaw = $session->full_prompt_audit;
+        if (! is_string($auditRaw) || trim($auditRaw) === '') {
+            return null;
+        }
+
+        $decoded = json_decode($auditRaw, true);
+        if (! is_array($decoded)) {
+            return null;
+        }
+
+        $lockedTitle = $decoded['locked_title'] ?? null;
+        if (! is_string($lockedTitle) || trim($lockedTitle) === '') {
+            return null;
+        }
+
+        return trim($lockedTitle);
     }
 }
