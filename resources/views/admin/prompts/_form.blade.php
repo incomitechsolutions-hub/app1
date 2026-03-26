@@ -80,7 +80,7 @@
             try {
                 const endpoint = this.deleteUrlTemplate.replace('__slug__', encodeURIComponent(option.value));
                 const csrfMeta = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') ?? '';
-                const csrfInput = document.querySelector('input[name=\"_token\"]')?.value ?? '';
+                const csrfInput = document.querySelector('input[name=_token]')?.value ?? '';
                 const csrfToken = csrfMeta || csrfInput;
                 const response = await fetch(endpoint, {
                     method: 'DELETE',
