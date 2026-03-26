@@ -32,6 +32,12 @@ class StoreAiCourseGenerationSessionRequest extends FormRequest
             'ai_prompt_id' => ['nullable', 'integer', 'exists:ai_prompts,id'],
             'placeholders' => ['nullable', 'array'],
             'placeholders.*' => ['nullable', 'string', 'max:8000'],
+            'keyword_data' => ['nullable', 'array'],
+            'keyword_data.primary_keyword' => ['nullable', 'string', 'max:500'],
+            'keyword_data.keyword_variants' => ['nullable', 'array', 'max:50'],
+            'keyword_data.keyword_variants.*' => ['string', 'max:500'],
+            'keyword_data.supporting_keywords' => ['nullable', 'array', 'max:100'],
+            'keyword_data.supporting_keywords.*' => ['string', 'max:500'],
         ];
     }
 

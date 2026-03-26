@@ -75,6 +75,14 @@ Rules:
 - human review required
 - prompts/versioning live in repository
 
+## SEO — Keyword suggestions (admin, KI-Kursgenerator)
+Used for:
+- optional keyword research before the OpenAI course draft is generated
+
+Implementation notes:
+- Google Suggest (`suggestqueries.google.com`, `client=firefox`) via Laravel HTTP client with a short timeout; failures yield an empty suggestion list and scoring fallbacks apply
+- entry point: `App\Domain\Seo\Services\GoogleSuggestService` and `KeywordResearchOrchestrator`; admin route `POST /admin/courses/ai-generation/keyword-research` (session auth, JSON)
+
 ## Queues / Jobs
 Later recommended for:
 - CRM sync

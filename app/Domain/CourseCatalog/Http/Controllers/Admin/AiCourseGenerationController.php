@@ -6,6 +6,7 @@ use App\Domain\CourseCatalog\Http\Requests\Admin\StoreAiCourseGenerationSessionR
 use App\Domain\CourseCatalog\Models\AiCourseGenerationSession;
 use App\Domain\CourseCatalog\Models\Course;
 use App\Domain\CourseCatalog\Services\AiCourseGenerationSessionService;
+use App\Domain\CourseCatalog\Services\CourseKeywordPayloadBuilder;
 use App\Domain\CourseCatalog\Services\PromptPlaceholderInterpolationService;
 use App\Domain\PromptManagement\Enums\PromptUseCase;
 use App\Domain\PromptManagement\Models\AiPrompt;
@@ -19,7 +20,8 @@ class AiCourseGenerationController extends Controller
     public function __construct(
         private readonly PromptService $prompts,
         private readonly PromptPlaceholderInterpolationService $interpolation,
-        private readonly AiCourseGenerationSessionService $sessionService
+        private readonly AiCourseGenerationSessionService $sessionService,
+        private readonly CourseKeywordPayloadBuilder $courseKeywordPayload
     ) {}
 
     public function create(): View
@@ -66,12 +68,22 @@ class AiCourseGenerationController extends Controller
             }
         }
 
+        $context = [];
+        $rawKeywordData = $request->validated('keyword_data');
+        if (is_array($rawKeywordData)) {
+            $built = $this->courseKeywordPayload->build($brief, $rawKeywordData);
+            $kd = $built['keyword_data'];
+            if ($kd['primary_keyword'] !== '' || $kd['keyword_variants'] !== [] || $kd['supporting_keywords'] !== []) {
+                $context['keyword_data'] = $kd;
+            }
+        }
+
         $session = $this->sessionService->createFromWizardStart(
             $request->user(),
             $template,
             $values,
             $brief,
-            []
+            $context
         );
 
         $session = $this->sessionService->runInitialAiGeneration($session, $request->user());

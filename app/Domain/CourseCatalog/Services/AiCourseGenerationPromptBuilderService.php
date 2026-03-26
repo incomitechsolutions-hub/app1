@@ -34,6 +34,30 @@ class AiCourseGenerationPromptBuilderService
         $parts[] = $brief;
         $parts[] = '---';
 
+        if (! empty($context['keyword_data']) && is_array($context['keyword_data'])) {
+            $kd = $context['keyword_data'];
+            $primary = trim((string) ($kd['primary_keyword'] ?? ''));
+            $variants = is_array($kd['keyword_variants'] ?? null) ? $kd['keyword_variants'] : [];
+            $supporting = is_array($kd['supporting_keywords'] ?? null) ? $kd['supporting_keywords'] : [];
+            $variantLine = implode(', ', array_map(static fn ($v) => (string) $v, $variants));
+            $supportLine = implode(', ', array_map(static fn ($v) => (string) $v, $supporting));
+            $lines = [];
+            if ($primary !== '') {
+                $lines[] = 'Primary: '.$primary;
+            }
+            if ($variantLine !== '') {
+                $lines[] = 'Varianten: '.$variantLine;
+            }
+            if ($supportLine !== '') {
+                $lines[] = 'Supporting: '.$supportLine;
+            }
+            if ($lines !== []) {
+                $parts[] = 'SEO-Keywords (für Inhalte und Terminologie nutzen):';
+                $parts[] = implode("\n", $lines);
+                $parts[] = 'Baue diese Begriffe natürlich in Titel, Teaser, Texte und Module ein, ohne Keyword-Stuffing.';
+            }
+        }
+
         if (! empty($context['crawl']) && is_array($context['crawl'])) {
             $crawl = $context['crawl'];
             $parts[] = 'Quelle (Webseite gecrawlt):';

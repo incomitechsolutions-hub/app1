@@ -62,6 +62,7 @@ class AiCourseGenerationSessionService
             'crawl' => is_array($context['crawl'] ?? null) ? $context['crawl'] : null,
             'locked_title' => is_string($context['locked_title'] ?? null) ? $context['locked_title'] : null,
             'locked_subtitle' => is_string($context['locked_subtitle'] ?? null) ? $context['locked_subtitle'] : null,
+            'keyword_data' => is_array($context['keyword_data'] ?? null) ? $context['keyword_data'] : null,
         ];
 
         $session = AiCourseGenerationSession::query()->create([

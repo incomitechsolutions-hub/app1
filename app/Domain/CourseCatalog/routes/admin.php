@@ -2,6 +2,7 @@
 
 use App\Domain\CourseCatalog\Http\Controllers\Admin\AiCourseGenerationController;
 use App\Domain\CourseCatalog\Http\Controllers\Admin\AiCourseGenerationWizardController;
+use App\Domain\CourseCatalog\Http\Controllers\Admin\KeywordResearchController;
 use App\Domain\CourseCatalog\Http\Controllers\Admin\CourseCatalogSettingsController;
 use App\Domain\CourseCatalog\Http\Controllers\Admin\CourseController;
 use App\Domain\CourseCatalog\Http\Controllers\Admin\CourseCrawlController;
@@ -38,6 +39,9 @@ Route::middleware(['web', 'auth', 'module.enabled:course_catalog'])->prefix('adm
     Route::post('courses/ai-generation', [AiCourseGenerationController::class, 'store'])
         ->middleware('throttle:10,1')
         ->name('courses.ai-generation.store');
+    Route::post('courses/ai-generation/keyword-research', KeywordResearchController::class)
+        ->middleware('throttle:30,1')
+        ->name('courses.ai-generation.keyword-research');
     Route::get('courses/ai-generation/{ai_course_generation_session}', [AiCourseGenerationController::class, 'show'])
         ->name('courses.ai-generation.show');
 
