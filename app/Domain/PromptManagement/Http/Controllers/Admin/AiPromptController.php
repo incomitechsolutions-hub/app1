@@ -8,6 +8,7 @@ use App\Domain\PromptManagement\Http\Requests\Admin\UpdateAiPromptRequest;
 use App\Domain\PromptManagement\Models\AiPrompt;
 use App\Domain\PromptManagement\Services\PromptService;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -43,6 +44,7 @@ class AiPromptController extends Controller
     {
         return view('admin.prompts.create', [
             'useCaseSelectOptions' => $this->useCaseSelectOptions(),
+            'useCaseDeleteUrlTemplate' => route('admin.prompt-management.use-cases.destroy', ['slug' => '__slug__']),
         ]);
     }
 
@@ -65,6 +67,7 @@ class AiPromptController extends Controller
         return view('admin.prompts.edit', [
             'prompt' => $ai_prompt,
             'useCaseSelectOptions' => $this->useCaseSelectOptions(),
+            'useCaseDeleteUrlTemplate' => route('admin.prompt-management.use-cases.destroy', ['slug' => '__slug__']),
         ]);
     }
 
@@ -74,11 +77,15 @@ class AiPromptController extends Controller
     private function useCaseSelectOptions(): array
     {
         $options = [];
-        foreach (PromptUseCase::cases() as $case) {
-            $options[] = ['value' => $case->value, 'label' => $case->label()];
-        }
+        $enumValues = $this->prompts->builtInUseCaseValues();
 
-        $enumValues = array_map(static fn (PromptUseCase $c) => $c->value, PromptUseCase::cases());
+        foreach (PromptUseCase::cases() as $case) {
+            $options[] = [
+                'value' => $case->value,
+                'label' => $case->label(),
+                'is_custom' => false,
+            ];
+        }
 
         $customSlugs = AiPrompt::query()
             ->whereNotIn('use_case', $enumValues)
@@ -94,6 +101,7 @@ class AiPromptController extends Controller
             $options[] = [
                 'value' => $slug,
                 'label' => $slug.' · '.__('eigen'),
+                'is_custom' => true,
             ];
         }
 
@@ -116,5 +124,39 @@ class AiPromptController extends Controller
         return redirect()
             ->route('admin.prompt-management.prompts.index')
             ->with('status', __('Prompt gelöscht.'));
+    }
+
+    public function destroyUseCase(string $slug): JsonResponse
+    {
+        $this->authorize('delete', new AiPrompt());
+
+        if (! preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
+            return response()->json([
+                'ok' => false,
+                'message' => __('Ungültiger Anwendungsfall-Slug.'),
+            ], 422);
+        }
+
+        if (in_array($slug, $this->prompts->builtInUseCaseValues(), true)) {
+            return response()->json([
+                'ok' => false,
+                'message' => __('Standard-Anwendungsfälle können nicht gelöscht werden.'),
+            ], 422);
+        }
+
+        $deleted = $this->prompts->deleteCustomUseCase($slug);
+        if ($deleted < 1) {
+            return response()->json([
+                'ok' => false,
+                'message' => __('Der Anwendungsfall wurde nicht gefunden.'),
+            ], 404);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => __('Anwendungsfall gelöscht (:count Prompt(s)).', ['count' => $deleted]),
+            'deleted_count' => $deleted,
+            'slug' => $slug,
+        ]);
     }
 }

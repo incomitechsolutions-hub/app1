@@ -8,6 +8,14 @@ use Illuminate\Database\Eloquent\Collection;
 
 class PromptService
 {
+    /**
+     * @return list<string>
+     */
+    public function builtInUseCaseValues(): array
+    {
+        return array_map(static fn (PromptUseCase $c) => $c->value, PromptUseCase::cases());
+    }
+
     public function store(array $data): AiPrompt
     {
         return AiPrompt::query()->create($data);
@@ -24,6 +32,13 @@ class PromptService
     public function delete(AiPrompt $prompt): void
     {
         $prompt->delete();
+    }
+
+    public function deleteCustomUseCase(string $slug): int
+    {
+        return AiPrompt::query()
+            ->where('use_case', $slug)
+            ->delete();
     }
 
     /**
