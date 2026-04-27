@@ -33,7 +33,7 @@ return new class extends Migration
         // Recreate duration_days from duration_hours (best-effort).
         if (! Schema::hasColumn('courses', 'duration_days')) {
             Schema::table('courses', function (Blueprint $table): void {
-                $table->unsignedSmallInteger('duration_days')->nullable()->after('duration_hours');
+                $table->unsignedSmallInteger('duration_days')->nullable();
             });
         }
 

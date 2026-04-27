@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('courses', function (Blueprint $table) {
             $table->string('external_course_code')->nullable()->unique()->after('slug');
             $table->string('subtitle')->nullable()->after('title');
-            $table->unsignedSmallInteger('duration_days')->nullable()->after('duration_hours');
+            $table->unsignedSmallInteger('duration_days')->nullable()->after('subtitle');
             $table->char('currency_code', 3)->default('EUR')->after('price');
             $table->string('delivery_mode', 32)->nullable()->after('delivery_format');
             $table->unsignedInteger('lessons_count')->nullable()->after('duration_days');
