@@ -10,11 +10,16 @@ return new class extends Migration
     {
         Schema::create('course_group_discount_tiers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('course_catalog_global_setting_id')->constrained('course_catalog_global_settings')->restrictOnDelete();
+            $table->unsignedBigInteger('course_catalog_global_setting_id');
             $table->unsignedInteger('sort_order')->default(0);
             $table->unsignedInteger('min_participants');
             $table->decimal('discount_percent', 5, 2);
             $table->timestamps();
+
+            $table->foreign('course_catalog_global_setting_id', 'cgdt_ccgs_fk')
+                ->references('id')
+                ->on('course_catalog_global_settings')
+                ->restrictOnDelete();
         });
     }
 

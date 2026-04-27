@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('ai_course_generation_sessions', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('ai_prompt_id')->nullable()->constrained('ai_prompts')->nullOnDelete();
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('ai_prompt_id')->nullable();
             $table->string('status', 32);
             $table->json('template_snapshot')->nullable();
             $table->json('placeholder_values');
@@ -21,8 +21,16 @@ return new class extends Migration
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
 
-            $table->index(['user_id', 'status']);
-            $table->index('expires_at');
+            $table->foreign('user_id', 'acgs_user_fk')
+                ->references('id')
+                ->on('users')
+                ->cascadeOnDelete();
+            $table->foreign('ai_prompt_id', 'acgs_prompt_fk')
+                ->references('id')
+                ->on('ai_prompts')
+                ->nullOnDelete();
+            $table->index(['user_id', 'status'], 'acgs_user_status_idx');
+            $table->index('expires_at', 'acgs_expires_idx');
         });
     }
 

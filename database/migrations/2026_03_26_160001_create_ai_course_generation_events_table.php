@@ -24,7 +24,7 @@ return new class extends Migration
                 ->references('id')
                 ->on('users')
                 ->nullOnDelete();
-            $table->index(['ai_course_generation_session_id', 'type']);
+            $table->index(['ai_course_generation_session_id', 'type'], 'acge_session_type_idx');
         });
     }
 

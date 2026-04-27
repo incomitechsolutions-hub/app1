@@ -10,15 +10,23 @@ return new class extends Migration
     {
         Schema::create('category_translations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('category_id')->constrained('categories')->cascadeOnDelete();
-            $table->foreignId('locale_id')->constrained('locales')->cascadeOnDelete();
+            $table->unsignedBigInteger('category_id');
+            $table->unsignedBigInteger('locale_id');
             $table->string('name');
             $table->string('slug');
             $table->text('description')->nullable();
             $table->timestamps();
 
-            $table->unique(['category_id', 'locale_id']);
-            $table->unique(['locale_id', 'slug']);
+            $table->foreign('category_id', 'cattr_category_fk')
+                ->references('id')
+                ->on('categories')
+                ->cascadeOnDelete();
+            $table->foreign('locale_id', 'cattr_locale_fk')
+                ->references('id')
+                ->on('locales')
+                ->cascadeOnDelete();
+            $table->unique(['category_id', 'locale_id'], 'cattr_category_locale_uq');
+            $table->unique(['locale_id', 'slug'], 'cattr_locale_slug_uq');
         });
     }
 

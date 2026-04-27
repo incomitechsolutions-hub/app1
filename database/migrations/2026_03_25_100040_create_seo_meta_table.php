@@ -18,9 +18,14 @@ return new class extends Migration
             $table->boolean('robots_follow')->default(true);
             $table->string('og_title')->nullable();
             $table->text('og_description')->nullable();
-            $table->foreignId('og_image_media_asset_id')->nullable()->constrained('media_assets')->nullOnDelete();
+            $table->unsignedBigInteger('og_image_media_asset_id')->nullable();
             $table->json('schema_json')->nullable();
             $table->timestamps();
+
+            $table->foreign('og_image_media_asset_id', 'seo_meta_og_media_fk')
+                ->references('id')
+                ->on('media_assets')
+                ->nullOnDelete();
         });
     }
 

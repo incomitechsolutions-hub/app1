@@ -10,16 +10,24 @@ return new class extends Migration
     {
         Schema::create('course_translations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('course_id')->constrained('courses')->cascadeOnDelete();
-            $table->foreignId('locale_id')->constrained('locales')->cascadeOnDelete();
+            $table->unsignedBigInteger('course_id');
+            $table->unsignedBigInteger('locale_id');
             $table->string('title');
             $table->string('slug');
             $table->text('short_description')->nullable();
             $table->longText('long_description')->nullable();
             $table->timestamps();
 
-            $table->unique(['course_id', 'locale_id']);
-            $table->unique(['locale_id', 'slug']);
+            $table->foreign('course_id', 'ct_course_fk')
+                ->references('id')
+                ->on('courses')
+                ->cascadeOnDelete();
+            $table->foreign('locale_id', 'ct_locale_fk')
+                ->references('id')
+                ->on('locales')
+                ->cascadeOnDelete();
+            $table->unique(['course_id', 'locale_id'], 'ct_course_locale_uq');
+            $table->unique(['locale_id', 'slug'], 'ct_locale_slug_uq');
         });
     }
 
