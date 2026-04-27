@@ -10,12 +10,20 @@ return new class extends Migration
     {
         Schema::create('ai_course_generation_events', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('ai_course_generation_session_id')->constrained('ai_course_generation_sessions')->cascadeOnDelete();
-            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedBigInteger('ai_course_generation_session_id');
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->string('type', 64);
             $table->json('meta')->nullable();
             $table->timestamps();
 
+            $table->foreign('ai_course_generation_session_id', 'acge_session_fk')
+                ->references('id')
+                ->on('ai_course_generation_sessions')
+                ->cascadeOnDelete();
+            $table->foreign('user_id', 'acge_user_fk')
+                ->references('id')
+                ->on('users')
+                ->nullOnDelete();
             $table->index(['ai_course_generation_session_id', 'type']);
         });
     }
