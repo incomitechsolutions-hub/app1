@@ -226,11 +226,11 @@
     </div>
 
     <div class="admin-panel space-y-6 p-6">
-        <h2 class="text-lg font-semibold text-slate-900">Taxonomie</h2>
+        <h2 class="text-lg font-semibold text-slate-900">Tags</h2>
         <div class="grid gap-4 sm:grid-cols-2">
             <div>
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                    <label for="tag_ids" class="block text-sm font-medium text-slate-700">Taxonomy Skills</label>
+                    <label for="tag_ids" class="block text-sm font-medium text-slate-700">Tags (#chatgpt)</label>
                     <a href="{{ route('admin.taxonomy.tags.index') }}" target="_blank" rel="noopener"
                         class="text-xs font-medium text-sky-600 hover:underline">Verwaltung</a>
                 </div>

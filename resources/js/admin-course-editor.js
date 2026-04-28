@@ -61,7 +61,46 @@ function attachInlineCreateButton(ts) {
     ts.on('initialize', update);
 }
 
+function toSlug(value) {
+    return String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/-{2,}/g, '-');
+}
+
+function initTitleSlugAutofill() {
+    const titleInput = document.getElementById('title');
+    const slugInput = document.getElementById('slug');
+
+    if (!titleInput || !slugInput) {
+        return;
+    }
+
+    const initialTitleSlug = toSlug(titleInput.value);
+    const initialSlug = (slugInput.value || '').trim();
+    let slugManuallyEdited = initialSlug.length > 0 && initialSlug !== initialTitleSlug;
+
+    slugInput.addEventListener('input', () => {
+        const normalizedCurrent = toSlug(slugInput.value);
+        if (normalizedCurrent !== toSlug(titleInput.value)) {
+            slugManuallyEdited = true;
+        }
+    });
+
+    titleInput.addEventListener('input', () => {
+        if (slugManuallyEdited) {
+            return;
+        }
+        slugInput.value = toSlug(titleInput.value);
+    });
+}
+
 function initCourseFormLive() {
+    initTitleSlugAutofill();
+
     const root = document.querySelector('[data-course-live-root]');
     if (!root) {
         return;
