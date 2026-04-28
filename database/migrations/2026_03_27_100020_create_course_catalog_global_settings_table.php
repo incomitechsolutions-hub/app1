@@ -9,6 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('course_catalog_global_settings')) {
+            return;
+        }
+
         Schema::create('course_catalog_global_settings', function (Blueprint $table) {
             $table->id();
             $table->char('default_currency', 3)->default('EUR');
@@ -24,21 +28,23 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::table('course_catalog_global_settings')->insert([
-            'id' => 1,
-            'default_currency' => 'EUR',
-            'default_delivery_format' => 'presence',
-            'default_language_code' => 'de',
-            'default_min_participants' => 3,
-            'tax_rate_percent' => 19,
-            'early_bird_enabled' => false,
-            'early_bird_days_before' => 50,
-            'early_bird_discount_percent' => 3,
-            'group_discount_enabled' => false,
-            'group_discount_layout' => 'layout_2',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        if (! DB::table('course_catalog_global_settings')->where('id', 1)->exists()) {
+            DB::table('course_catalog_global_settings')->insert([
+                'id' => 1,
+                'default_currency' => 'EUR',
+                'default_delivery_format' => 'presence',
+                'default_language_code' => 'de',
+                'default_min_participants' => 3,
+                'tax_rate_percent' => 19,
+                'early_bird_enabled' => false,
+                'early_bird_days_before' => 50,
+                'early_bird_discount_percent' => 3,
+                'group_discount_enabled' => false,
+                'group_discount_layout' => 'layout_2',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     public function down(): void
