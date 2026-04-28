@@ -317,6 +317,20 @@ function initCourseFormLive() {
         attachInlineCreateButton(audienceTom);
     }
 
+    const deliveryFormatsSelect = document.getElementById('delivery_format_content');
+    if (deliveryFormatsSelect) {
+        new TomSelect(deliveryFormatsSelect, {
+            plugins: ['remove_button'],
+            create: false,
+            maxItems: null,
+            controlClass: tsControl,
+            dropdownClass: tsDropdown,
+            onChange() {
+                patch({ delivery_formats: this.getValue() });
+            },
+        });
+    }
+
     const levelSelect = document.getElementById('difficulty_level_id');
     if (levelSelect && live) {
         levelSelect.addEventListener('change', () => {

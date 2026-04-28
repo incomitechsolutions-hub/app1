@@ -286,6 +286,7 @@ class CategoryController extends Controller
         $category = Category::query()->create([
             'name' => trim($data['name']),
             'slug' => $slug,
+            'course_code_prefix' => $this->generateCategoryPrefix($data['name']),
             'description' => null,
             'parent_id' => null,
             'sort_order' => is_numeric($maxSort) ? ((int) $maxSort + 1) : 0,
@@ -398,5 +399,21 @@ class CategoryController extends Controller
         }
 
         return $data;
+    }
+
+    private function generateCategoryPrefix(string $name): string
+    {
+        $base = strtoupper((string) preg_replace('/[^A-Z0-9]+/', '', strtoupper($name)));
+        $base = substr($base !== '' ? $base : 'CAT', 0, 18);
+        $candidate = $base;
+        $i = 1;
+
+        while ($candidate === '' || Category::query()->where('course_code_prefix', $candidate)->exists()) {
+            $suffix = (string) $i;
+            $candidate = substr($base, 0, max(1, 24 - strlen($suffix))).$suffix;
+            $i++;
+        }
+
+        return $candidate;
     }
 }

@@ -2,6 +2,7 @@
 
 use App\Domain\CourseCatalog\Http\Controllers\Admin\AiCourseGenerationController;
 use App\Domain\CourseCatalog\Http\Controllers\Admin\AiCourseGenerationWizardController;
+use App\Domain\CourseCatalog\Http\Controllers\Admin\AiCourseWizardController;
 use App\Domain\CourseCatalog\Http\Controllers\Admin\KeywordResearchController;
 use App\Domain\CourseCatalog\Http\Controllers\Admin\CourseCatalogSettingsController;
 use App\Domain\CourseCatalog\Http\Controllers\Admin\CourseController;
@@ -61,6 +62,16 @@ Route::middleware(['web', 'auth', 'module.enabled:course_catalog'])->prefix('adm
     Route::post('courses/crawl-from-website', [CourseCrawlController::class, 'store'])
         ->middleware('throttle:20,1')
         ->name('courses.crawl-from-website');
+
+    Route::post('ai-course-wizard/keyword-discovery', [AiCourseWizardController::class, 'keywordDiscovery'])
+        ->middleware('throttle:20,1')
+        ->name('ai-wizard.keyword-discovery');
+    Route::post('ai-course-wizard/save-selection', [AiCourseWizardController::class, 'saveSelection'])
+        ->middleware('throttle:20,1')
+        ->name('ai-wizard.save-selection');
+    Route::post('ai-course-wizard/regenerate-field', [AiCourseWizardController::class, 'regenerateField'])
+        ->middleware('throttle:30,1')
+        ->name('ai-wizard.regenerate-field');
 
     Route::resource('programs', ProgramController::class);
     Route::resource('courses', CourseController::class);

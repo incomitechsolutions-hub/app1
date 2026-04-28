@@ -22,6 +22,7 @@ class Category extends Model
     protected $fillable = [
         'name',
         'slug',
+        'course_code_prefix',
         'description',
         'parent_id',
         'sort_order',

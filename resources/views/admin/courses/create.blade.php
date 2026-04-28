@@ -4,7 +4,7 @@
 @section('breadcrumb', 'Kurse')
 
 @push('scripts')
-    @vite(['resources/js/admin-course-editor.js'])
+    @vite(['resources/js/admin-course-editor.js', 'resources/js/admin-ai-generator2.js'])
 @endpush
 
 @section('content')
@@ -29,6 +29,10 @@
                     class="inline-flex items-center rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-900 transition hover:bg-sky-100">
                     AI Generator
                 </a>
+                <button type="button" id="open-ai-generator-2"
+                    class="inline-flex items-center rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-900 transition hover:bg-sky-100">
+                    AI Generator 2
+                </button>
                 <button type="button" @click="crawlOpen = true"
                     class="inline-flex items-center rounded-lg border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-900 transition hover:bg-violet-100">
                     Webseite crawlen
@@ -36,8 +40,9 @@
             </div>
         </div>
 
-        <form method="post" action="{{ route('admin.course-catalog.courses.store') }}" class="space-y-6">
+        <form method="post" action="{{ route('admin.course-catalog.courses.store') }}" class="space-y-6" id="course-create-form">
             @csrf
+            <input type="hidden" name="wizard_analysis_id" id="wizard_analysis_id" value="">
             <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-1">
                 <button type="button" @click="tab = 'content'"
                     :class="tab === 'content' ? 'border-sky-600 text-sky-800' : 'border-transparent text-slate-500 hover:text-slate-800'"
@@ -108,6 +113,16 @@
             </div>
 
         </form>
+
+        <div id="ai-generator-2-root"
+            data-keyword-discovery-url="{{ route('admin.course-catalog.ai-wizard.keyword-discovery') }}"
+            data-save-selection-url="{{ route('admin.course-catalog.ai-wizard.save-selection') }}"
+            data-regenerate-field-url="{{ route('admin.course-catalog.ai-wizard.regenerate-field') }}"
+            data-category-search-url="{{ route('admin.taxonomy.categories.options') }}"
+            data-tag-quick-url="{{ route('admin.taxonomy.tags.quick-store') }}"
+            data-audience-quick-url="{{ route('admin.taxonomy.audiences.quick-store') }}"
+            data-course-search-url="{{ route('admin.course-catalog.courses.index') }}">
+        </div>
 
         <div x-cloak x-show="crawlOpen" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
             @keydown.escape.window="crawlOpen = false">

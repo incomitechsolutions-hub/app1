@@ -4,6 +4,13 @@
 
     $selectedTags = old('tag_ids', $course?->tags->pluck('id')->all() ?? []);
     $selectedAudiences = old('audience_ids', $course?->audiences->pluck('id')->all() ?? []);
+    $selectedDeliveryFormats = old('delivery_formats');
+    if (! is_array($selectedDeliveryFormats)) {
+        $selectedDeliveryFormats = $course?->delivery_formats ?? [];
+    }
+    if ($selectedDeliveryFormats === [] && $course?->delivery_format) {
+        $selectedDeliveryFormats = [$course->delivery_format->value];
+    }
     $defLang = old('language_code', $course?->language_code ?? $catalogDefaults->default_language_code ?? 'de');
 
     $primaryId = old('primary_category_id', $course?->primary_category_id);
@@ -142,18 +149,19 @@
                 <label for="external_course_code" class="block text-sm font-medium text-slate-700">Kurs-ID</label>
                 <input id="external_course_code" name="external_course_code" type="text"
                     value="{{ old('external_course_code', $course?->external_course_code) }}" placeholder="z. B. KURS0001"
+                    readonly
                     class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                <p class="mt-1 text-xs text-slate-500">Wird automatisch aus dem Kategorie-Präfix erzeugt.</p>
                 @error('external_course_code')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>
             <div>
                 <label for="delivery_format_content" class="block text-sm font-medium text-slate-700">Format</label>
-                <select id="delivery_format_content" name="delivery_format"
+                <select id="delivery_format_content" name="delivery_formats[]" multiple
                     class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
-                    <option value="">—</option>
                     @foreach (DeliveryFormat::cases() as $fmt)
-                        <option value="{{ $fmt->value }}" @selected(old('delivery_format', $course?->delivery_format?->value) === $fmt->value)>
+                        <option value="{{ $fmt->value }}" @selected(in_array($fmt->value, $selectedDeliveryFormats, true))>
                             @switch($fmt)
                                 @case(DeliveryFormat::Online) Online @break
                                 @case(DeliveryFormat::Presence) Präsenz @break
@@ -162,7 +170,11 @@
                         </option>
                     @endforeach
                 </select>
-                @error('delivery_format')
+                <p class="mt-1 text-xs text-slate-500">Mehrfachauswahl mit Strg/Cmd + Klick.</p>
+                @error('delivery_formats')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+                @error('delivery_formats.*')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>

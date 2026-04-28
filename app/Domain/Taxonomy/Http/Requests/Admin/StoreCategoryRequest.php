@@ -25,6 +25,11 @@ class StoreCategoryRequest extends FormRequest
                 $this->merge([$key => null]);
             }
         }
+
+        if ($this->has('course_code_prefix')) {
+            $prefix = strtoupper(trim((string) $this->input('course_code_prefix')));
+            $this->merge(['course_code_prefix' => $prefix]);
+        }
     }
 
     /**
@@ -35,6 +40,7 @@ class StoreCategoryRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('categories', 'slug')],
+            'course_code_prefix' => ['required', 'string', 'max:24', 'regex:/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/', Rule::unique('categories', 'course_code_prefix')],
             'description' => ['nullable', 'string', 'max:200'],
             'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:4294967295'],

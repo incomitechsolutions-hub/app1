@@ -31,9 +31,15 @@ class UpdateCourseRequest extends FormRequest
                 'is_s2_modules_enabled' => $this->boolean('is_s2_modules_enabled'),
             ]);
         }
-        if ($this->input('delivery_format') === '' || $this->input('delivery_format') === null) {
-            $this->merge(['delivery_format' => null]);
+        $formats = $this->input('delivery_formats');
+        if (! is_array($formats)) {
+            $formats = [];
         }
+        $formats = array_values(array_filter(array_map(
+            static fn ($value): string => trim((string) $value),
+            $formats
+        ), static fn (string $value): bool => $value !== ''));
+        $this->merge(['delivery_formats' => $formats]);
         if ($this->input('external_course_code') === '') {
             $this->merge(['external_course_code' => null]);
         }
@@ -106,7 +112,8 @@ class UpdateCourseRequest extends FormRequest
             'course_discount_tiers' => ['nullable', 'array'],
             'course_discount_tiers.*.min_participants' => ['nullable', 'integer', 'min:1'],
             'course_discount_tiers.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'delivery_format' => ['nullable', new Enum(DeliveryFormat::class)],
+            'delivery_formats' => ['nullable', 'array'],
+            'delivery_formats.*' => ['string', new Enum(DeliveryFormat::class)],
             'lessons_count' => ['nullable', 'integer', 'min:0'],
             'min_participants' => ['nullable', 'integer', 'min:0'],
             'instructor_name' => ['nullable', 'string', 'max:255'],

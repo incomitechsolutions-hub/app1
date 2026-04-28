@@ -30,6 +30,17 @@
         </div>
 
         <div>
+            <label for="course_code_prefix" class="mb-1 block text-sm font-medium text-slate-700">Kurs-ID Präfix *</label>
+            <input id="course_code_prefix" name="course_code_prefix" type="text" required
+                value="{{ old('course_code_prefix') }}" placeholder="z. B. CHATGPTFUND"
+                class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm uppercase shadow-sm placeholder:text-slate-400 focus:border-slate-500 focus:ring-slate-500">
+            <p class="mt-1 text-xs text-slate-500">Wird für automatische Kurs-IDs verwendet (Beispiel: CHATGPTFUND-0001).</p>
+            @error('course_code_prefix')
+                <p class="mt-1 text-xs text-rose-600">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div>
             <label for="sort_order" class="mb-1 block text-sm font-medium text-slate-700">Sortierung</label>
             <input id="sort_order" name="sort_order" type="number" value="{{ old('sort_order', 0) }}" min="0" step="1"
                 class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500">

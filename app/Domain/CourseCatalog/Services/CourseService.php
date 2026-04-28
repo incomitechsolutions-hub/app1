@@ -3,6 +3,8 @@
 namespace App\Domain\CourseCatalog\Services;
 
 use App\Domain\CourseCatalog\Enums\CourseStatus;
+use App\Domain\CourseCatalog\Models\CourseKeyword;
+use App\Domain\CourseCatalog\Models\CourseKeywordAnalysis;
 use App\Domain\CourseCatalog\Models\Course;
 use App\Domain\CourseCatalog\Models\CourseCatalogGlobalSetting;
 use App\Domain\Localization\Services\DefaultLocaleTranslationSync;
@@ -32,13 +34,23 @@ class CourseService
                 $data['is_s2_modules_enabled'] = CourseCatalogGlobalSetting::singleton()->default_s2_modules_enabled ?? false;
             }
 
-            $course = new Course($this->extractCourseAttributes($data));
+            $attributes = $this->extractCourseAttributes($data);
+            $attributes = $this->normalizeDeliveryFormats($attributes);
+
+            if (blank($attributes['external_course_code'] ?? null)) {
+                $attributes['external_course_code'] = $this->generateExternalCourseCode(
+                    $attributes['primary_category_id'] ?? null
+                );
+            }
+
+            $course = new Course($attributes);
             $this->applyPublishingTimestamp($course, $data);
             $course->save();
             $this->syncTaxonomy($course, $data);
             $this->syncChildren($course, $data);
             $this->syncCourseDiscountTiers($course, $data['course_discount_tiers'] ?? []);
             $course->refresh();
+            $this->attachKeywordAnalysis($course, $data['wizard_analysis_id'] ?? null);
             $this->assertPublishRules($course);
             $this->openClassroomGenerator->generateForNewCourse($course);
             $this->translationSync->syncCourse($course);
@@ -56,7 +68,9 @@ class CourseService
                 $seo = [];
             }
 
-            $course->fill($this->extractCourseAttributes($data));
+            $attributes = $this->extractCourseAttributes($data);
+            $attributes = $this->normalizeDeliveryFormats($attributes);
+            $course->fill($attributes);
             $this->applyPublishingTimestamp($course, $data);
             $course->save();
             $this->syncTaxonomy($course, $data);
@@ -168,6 +182,7 @@ class CourseService
             'content_version',
             'price',
             'delivery_format',
+            'delivery_formats',
             'lessons_count',
             'min_participants',
             'instructor_name',
@@ -411,5 +426,77 @@ class CourseService
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    protected function normalizeDeliveryFormats(array $attributes): array
+    {
+        $raw = $attributes['delivery_formats'] ?? [];
+        if (! is_array($raw)) {
+            $raw = [];
+        }
+
+        $formats = array_values(array_unique(array_filter(array_map(
+            static fn ($value): string => trim((string) $value),
+            $raw
+        ), static fn (string $value): bool => $value !== '')));
+
+        $attributes['delivery_formats'] = $formats;
+        $attributes['delivery_format'] = $formats[0] ?? null;
+
+        return $attributes;
+    }
+
+    protected function generateExternalCourseCode(mixed $primaryCategoryId): string
+    {
+        if (! is_numeric($primaryCategoryId)) {
+            throw ValidationException::withMessages([
+                'primary_category_id' => [__('Bitte zuerst eine Kategorie wählen, um die Kurs-ID zu erzeugen.')],
+            ]);
+        }
+
+        $category = Category::query()->find((int) $primaryCategoryId);
+        $prefix = strtoupper(trim((string) ($category?->course_code_prefix ?? '')));
+
+        if ($prefix === '') {
+            throw ValidationException::withMessages([
+                'primary_category_id' => [__('Die gewählte Kategorie hat kein Kurs-ID-Präfix.')],
+            ]);
+        }
+
+        $latestCode = Course::query()
+            ->where('external_course_code', 'like', $prefix.'-%')
+            ->lockForUpdate()
+            ->orderByDesc('external_course_code')
+            ->value('external_course_code');
+
+        $nextNumber = 1;
+        if (is_string($latestCode) && preg_match('/-(\d+)$/', $latestCode, $matches) === 1) {
+            $nextNumber = ((int) $matches[1]) + 1;
+        }
+
+        return sprintf('%s-%04d', $prefix, $nextNumber);
+    }
+
+    protected function attachKeywordAnalysis(Course $course, mixed $analysisId): void
+    {
+        if (! is_numeric($analysisId)) {
+            return;
+        }
+
+        $analysis = CourseKeywordAnalysis::query()->find((int) $analysisId);
+        if (! $analysis) {
+            return;
+        }
+
+        $analysis->course_id = (int) $course->getKey();
+        $analysis->save();
+
+        CourseKeyword::query()
+            ->where('analysis_id', $analysis->id)
+            ->update(['course_id' => (int) $course->getKey()]);
     }
 }
