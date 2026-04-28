@@ -26,6 +26,8 @@ Route::middleware(['web', 'auth', 'module.enabled:taxonomy'])->prefix('admin')->
 
     Route::post('categories/bulk-update', [CategoryController::class, 'bulkUpdate'])
         ->name('categories.bulk-update');
+    Route::patch('categories/{category}/fields', [CategoryController::class, 'patchFields'])
+        ->name('categories.patch-fields');
     Route::post('categories/reorder', [CategoryController::class, 'reorder'])
         ->name('categories.reorder');
 

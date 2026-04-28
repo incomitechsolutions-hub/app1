@@ -7,6 +7,7 @@ use App\Domain\Media\Models\MediaAsset;
 use App\Domain\Media\Services\MediaStorageService;
 use App\Domain\Taxonomy\Http\Requests\Admin\BulkUpdateCategoriesRequest;
 use App\Domain\Taxonomy\Http\Requests\Admin\CategoryAiFinalizeRequest;
+use App\Domain\Taxonomy\Http\Requests\Admin\PatchCategoryRequest;
 use App\Domain\Taxonomy\Http\Requests\Admin\StoreCategoryRequest;
 use App\Domain\Taxonomy\Http\Requests\Admin\UpdateCategoryRequest;
 use App\Domain\Taxonomy\Models\Category;
@@ -110,6 +111,39 @@ class CategoryController extends Controller
         ]);
     }
 
+    public function patchFields(PatchCategoryRequest $request, Category $category): JsonResponse
+    {
+        $validated = $request->validated();
+        $fillable = collect($validated)
+            ->only(['name', 'slug', 'parent_id', 'sort_order', 'status'])
+            ->all();
+
+        if ($fillable === []) {
+            return response()->json([
+                'ok' => false,
+                'message' => __('Keine gültigen Felder zum Speichern übergeben.'),
+            ], 422);
+        }
+
+        $category->update($fillable);
+        $category->refresh();
+        $this->translationSync->syncCategory($category);
+
+        return response()->json([
+            'ok' => true,
+            'message' => __('Kategorie aktualisiert.'),
+            'category' => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'parent_id' => $category->parent_id,
+                'parent_name' => $category->parent?->name,
+                'sort_order' => (int) $category->sort_order,
+                'status' => $category->status,
+            ],
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -125,6 +159,7 @@ class CategoryController extends Controller
 
         return [
             'treeRows' => $treeRows,
+            'parentPickerOptions' => $this->categoryTree->buildParentPickerOptions(null),
             'level' => $level,
             'status' => $status,
             'search' => $search,
@@ -326,11 +361,11 @@ class CategoryController extends Controller
 
     private function resolveSort(Request $request): string
     {
-        $sort = (string) $request->query('sort', 'name');
+        $sort = (string) $request->query('sort', 'sort_order');
 
         return match ($sort) {
-            'id', 'name', 'slug', 'status', 'children_count', 'courses_count' => $sort,
-            default => 'name',
+            'id', 'name', 'slug', 'parent_name', 'status', 'sort_order', 'children_count', 'courses_count' => $sort,
+            default => 'sort_order',
         };
     }
 

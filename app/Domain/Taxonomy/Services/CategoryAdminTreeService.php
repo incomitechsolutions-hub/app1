@@ -52,8 +52,8 @@ final class CategoryAdminTreeService
         string $sort,
         string $order,
     ): array {
-        if ($level === 'all' && $search === '') {
-            return $this->buildTreeRows($status, $sort, $order);
+        if ($level === 'all') {
+            return $this->buildTreeRows($status, $sort, $order, $search);
         }
 
         return $this->buildFlatRows($level, $status, $search, $sort, $order);
@@ -169,7 +169,7 @@ final class CategoryAdminTreeService
     /**
      * @return list<CategoryTreeRow>
      */
-    private function buildTreeRows(string $status, string $sort, string $order): array
+    private function buildTreeRows(string $status, string $sort, string $order, string $search = ''): array
     {
         $categories = $this->baseQuery($status)
             ->with('parent')
@@ -177,6 +177,10 @@ final class CategoryAdminTreeService
             ->orderBy('name')
             ->orderBy('id')
             ->get();
+
+        if ($search !== '') {
+            $categories = $this->filterForTreeSearch($categories->all(), $search);
+        }
 
         /** @var array<int|null, list<Category>> $byParent */
         $byParent = [];
@@ -195,7 +199,14 @@ final class CategoryAdminTreeService
         }
 
         $rows = [];
-        $roots = $byParent[null] ?? [];
+        $roots = [];
+        foreach ($categories as $category) {
+            $parentId = $category->parent_id;
+            if ($parentId === null || ! isset($byParent[$parentId])) {
+                $roots[] = $category;
+            }
+        }
+        usort($roots, fn (Category $a, Category $b): int => $this->compareCategories($a, $b, $sort, $order));
 
         foreach ($roots as $root) {
             $this->appendDepthFirst($root, 0, $byParent, $rows);
@@ -246,10 +257,18 @@ final class CategoryAdminTreeService
             $query->whereNotNull('parent_id');
         }
 
-        $query->orderBy($sort, $order);
+        if ($sort === 'parent_name') {
+            $query
+                ->leftJoin('categories as parent_categories', 'categories.parent_id', '=', 'parent_categories.id')
+                ->select('categories.*')
+                ->orderBy('parent_categories.name', $order)
+                ->orderBy('categories.id', 'asc');
+        } else {
+            $query->orderBy($sort, $order);
 
-        if ($sort !== 'id') {
-            $query->orderBy('id', 'asc');
+            if ($sort !== 'id') {
+                $query->orderBy('id', 'asc');
+            }
         }
 
         $categories = $query->get();
@@ -283,6 +302,7 @@ final class CategoryAdminTreeService
             'id' => $a->getKey() <=> $b->getKey(),
             'name' => $this->compareBySortOrderThenName($a, $b, $order),
             'slug' => strcmp((string) $a->slug, (string) $b->slug),
+            'parent_name' => strcmp((string) ($a->parent?->name ?? ''), (string) ($b->parent?->name ?? '')),
             'status' => strcmp((string) $a->status, (string) $b->status),
             'children_count' => ($a->children_count ?? 0) <=> ($b->children_count ?? 0),
             'courses_count' => ($a->courses_count ?? 0) <=> ($b->courses_count ?? 0),
@@ -346,5 +366,60 @@ final class CategoryAdminTreeService
         }
 
         return $depthMap;
+    }
+
+    /**
+     * @param  array<int, Category>  $categories
+     * @return \Illuminate\Support\Collection<int, Category>
+     */
+    private function filterForTreeSearch(array $categories, string $search)
+    {
+        $search = mb_strtolower(trim($search));
+        if ($search === '') {
+            return collect($categories);
+        }
+
+        $byId = [];
+        $childrenByParent = [];
+        foreach ($categories as $category) {
+            $id = (int) $category->getKey();
+            $byId[$id] = $category;
+            $parentId = $category->parent_id === null ? 0 : (int) $category->parent_id;
+            if (! isset($childrenByParent[$parentId])) {
+                $childrenByParent[$parentId] = [];
+            }
+            $childrenByParent[$parentId][] = $id;
+        }
+
+        $include = [];
+        foreach ($categories as $category) {
+            $haystack = mb_strtolower(implode(' ', [
+                (string) $category->name,
+                (string) $category->slug,
+                (string) ($category->description ?? ''),
+            ]));
+            if (str_contains($haystack, $search)) {
+                $id = (int) $category->getKey();
+                $include[$id] = true;
+                $this->includeDescendants($id, $childrenByParent, $include);
+            }
+        }
+
+        return collect($categories)->filter(fn (Category $category) => isset($include[(int) $category->getKey()]))->values();
+    }
+
+    /**
+     * @param  array<int, array<int, int>>  $childrenByParent
+     * @param  array<int, bool>  $include
+     */
+    private function includeDescendants(int $id, array $childrenByParent, array &$include): void
+    {
+        foreach ($childrenByParent[$id] ?? [] as $childId) {
+            if (isset($include[$childId])) {
+                continue;
+            }
+            $include[$childId] = true;
+            $this->includeDescendants($childId, $childrenByParent, $include);
+        }
     }
 }

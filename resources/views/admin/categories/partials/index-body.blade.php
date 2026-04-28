@@ -5,6 +5,20 @@
 
         return route('admin.taxonomy.categories.index', array_merge($params, ['sort' => $column, 'order' => $nextOrder]));
     };
+    $sortLinkClass = function (string $column) use ($sort): string {
+        $base = 'js-category-ajax inline-flex items-center gap-1';
+
+        return $sort === $column
+            ? $base.' font-semibold text-slate-900'
+            : $base.' text-slate-700 hover:text-slate-900';
+    };
+    $sortArrow = function (string $column) use ($sort, $order): string {
+        if ($sort !== $column) {
+            return '↕';
+        }
+
+        return $order === 'asc' ? '↑' : '↓';
+    };
     $statusLabel = function (string $status): string {
         return match ($status) {
             'draft' => 'Entwurf',
@@ -149,34 +163,51 @@
                             data-row-action aria-label="Alle sichtbaren Kategorien auswählen">
                     </th>
                     <th class="px-4 py-3 text-left font-medium text-slate-700">
-                        <a href="{{ $sortUrl('id') }}" class="js-category-ajax inline-flex items-center gap-1 hover:text-slate-900">
+                        <a href="{{ $sortUrl('id') }}" class="{{ $sortLinkClass('id') }}">
                             ID
+                            <span class="text-xs text-slate-400">{{ $sortArrow('id') }}</span>
                         </a>
                     </th>
                     <th class="px-4 py-3 text-left font-medium text-slate-700">
-                        <a href="{{ $sortUrl('name') }}" class="js-category-ajax inline-flex items-center gap-1 hover:text-slate-900">
+                        <a href="{{ $sortUrl('name') }}" class="{{ $sortLinkClass('name') }}">
                             Name
+                            <span class="text-xs text-slate-400">{{ $sortArrow('name') }}</span>
                         </a>
                     </th>
                     <th class="px-4 py-3 text-left font-medium text-slate-700">
-                        <a href="{{ $sortUrl('slug') }}" class="js-category-ajax inline-flex items-center gap-1 hover:text-slate-900">
+                        <a href="{{ $sortUrl('slug') }}" class="{{ $sortLinkClass('slug') }}">
                             Slug
+                            <span class="text-xs text-slate-400">{{ $sortArrow('slug') }}</span>
                         </a>
                     </th>
-                    <th class="px-4 py-3 text-left font-medium text-slate-700">Parent</th>
                     <th class="px-4 py-3 text-left font-medium text-slate-700">
-                        <a href="{{ $sortUrl('children_count') }}" class="js-category-ajax inline-flex items-center gap-1 hover:text-slate-900">
+                        <a href="{{ $sortUrl('parent_name') }}" class="{{ $sortLinkClass('parent_name') }}">
+                            Parent
+                            <span class="text-xs text-slate-400">{{ $sortArrow('parent_name') }}</span>
+                        </a>
+                    </th>
+                    <th class="px-4 py-3 text-left font-medium text-slate-700">
+                        <a href="{{ $sortUrl('sort_order') }}" class="{{ $sortLinkClass('sort_order') }}">
+                            Sortierindex
+                            <span class="text-xs text-slate-400">{{ $sortArrow('sort_order') }}</span>
+                        </a>
+                    </th>
+                    <th class="px-4 py-3 text-left font-medium text-slate-700">
+                        <a href="{{ $sortUrl('children_count') }}" class="{{ $sortLinkClass('children_count') }}">
                             Kinder
+                            <span class="text-xs text-slate-400">{{ $sortArrow('children_count') }}</span>
                         </a>
                     </th>
                     <th class="px-4 py-3 text-left font-medium text-slate-700">
-                        <a href="{{ $sortUrl('courses_count') }}" class="js-category-ajax inline-flex items-center gap-1 hover:text-slate-900">
+                        <a href="{{ $sortUrl('courses_count') }}" class="{{ $sortLinkClass('courses_count') }}">
                             Kurse
+                            <span class="text-xs text-slate-400">{{ $sortArrow('courses_count') }}</span>
                         </a>
                     </th>
                     <th class="px-4 py-3 text-left font-medium text-slate-700">
-                        <a href="{{ $sortUrl('status') }}" class="js-category-ajax inline-flex items-center gap-1 hover:text-slate-900">
+                        <a href="{{ $sortUrl('status') }}" class="{{ $sortLinkClass('status') }}">
                             Status
+                            <span class="text-xs text-slate-400">{{ $sortArrow('status') }}</span>
                         </a>
                     </th>
                     <th class="px-4 py-3 text-right font-medium text-slate-700">Aktionen</th>
@@ -196,6 +227,8 @@
                         data-category-id="{{ $category->id }}"
                         data-parent-id="{{ $category->parent_id ?? '' }}"
                         data-depth="{{ $depth }}"
+                        data-has-children="{{ ($category->children_count ?? 0) > 0 ? '1' : '0' }}"
+                        data-patch-url="{{ route('admin.taxonomy.categories.patch-fields', $category) }}"
                         data-edit-url="{{ route('admin.taxonomy.categories.edit', $category) }}"
                         title="Zeile anklicken zum Bearbeiten">
                         <td class="px-2 py-3 align-middle" data-row-action>
@@ -215,6 +248,17 @@
                                         <path d="M7 4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM7 10a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM7 16a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM15 4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM15 10a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM15 16a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/>
                                     </svg>
                                 </button>
+                                @if (($category->children_count ?? 0) > 0)
+                                    <button type="button"
+                                        class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                                        title="Unterkategorien ein-/ausblenden"
+                                        data-row-action
+                                        data-tree-toggle>
+                                        <span data-tree-toggle-icon>▾</span>
+                                    </button>
+                                @else
+                                    <span class="inline-flex h-7 w-7 shrink-0"></span>
+                                @endif
                                 @if ($depth > 0)
                                     <div
                                         class="flex shrink-0 items-center gap-1 border-l-2 border-slate-200 pl-2"
@@ -236,21 +280,53 @@
                                         </svg>
                                     @endif
                                 </span>
-                                <span @class([
-                                    'min-w-0 font-medium',
-                                    'text-slate-900' => $depth === 0,
-                                    'text-slate-700' => $depth > 0,
-                                ])>{{ $category->name }}</span>
+                                <input type="text"
+                                    value="{{ $category->name }}"
+                                    data-row-action
+                                    data-inline-field="name"
+                                    class="min-w-[14rem] rounded border border-slate-200 px-2 py-1 text-sm font-medium text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
                             </div>
                         </td>
-                        <td class="px-4 py-3 text-slate-600">{{ $category->slug }}</td>
-                        <td class="px-4 py-3 text-slate-600">{{ $category->parent?->name ?? 'Hauptkategorie' }}</td>
+                        <td class="px-4 py-3 text-slate-600">
+                            <input type="text"
+                                value="{{ $category->slug }}"
+                                data-row-action
+                                data-inline-field="slug"
+                                class="min-w-[12rem] rounded border border-slate-200 px-2 py-1 text-sm text-slate-700 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                        </td>
+                        <td class="px-4 py-3 text-slate-600">
+                            <select
+                                data-row-action
+                                data-inline-field="parent_id"
+                                class="min-w-[12rem] rounded border border-slate-200 px-2 py-1 text-sm text-slate-700 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                                <option value="">Hauptkategorie</option>
+                                @foreach ($parentPickerOptions as $option)
+                                    @if ((int) $option['id'] === (int) $category->id)
+                                        @continue
+                                    @endif
+                                    <option value="{{ $option['id'] }}" @selected((int) ($category->parent_id ?? 0) === (int) $option['id'])>{{ $option['label'] }}</option>
+                                @endforeach
+                            </select>
+                        </td>
+                        <td class="px-4 py-3 text-slate-600">
+                            <input type="number"
+                                min="0"
+                                value="{{ (int) $category->sort_order }}"
+                                data-row-action
+                                data-inline-field="sort_order"
+                                class="w-24 rounded border border-slate-200 px-2 py-1 text-sm text-slate-700 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                        </td>
                         <td class="px-4 py-3 text-slate-600">{{ $category->children_count }}</td>
                         <td class="px-4 py-3 text-slate-600">{{ $category->courses_count }}</td>
                         <td class="px-4 py-3">
-                            <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $statusBadgeClass($category->status) }}">
-                                {{ $statusLabel($category->status) }}
-                            </span>
+                            <select
+                                data-row-action
+                                data-inline-field="status"
+                                class="rounded border border-slate-200 px-2 py-1 text-xs font-medium focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+                                <option value="draft" @selected($category->status === 'draft')>Entwurf</option>
+                                <option value="published" @selected($category->status === 'published')>Veröffentlicht</option>
+                                <option value="archived" @selected($category->status === 'archived')>Archiviert</option>
+                            </select>
                         </td>
                         <td class="px-4 py-3 text-right" data-row-action>
                             <div class="inline-flex flex-nowrap items-center justify-end gap-2 whitespace-nowrap">
@@ -289,7 +365,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="px-4 py-8 text-center text-slate-500">Keine Kategorien für den aktuellen Filter gefunden.</td>
+                        <td colspan="10" class="px-4 py-8 text-center text-slate-500">Keine Kategorien für den aktuellen Filter gefunden.</td>
                     </tr>
                 @endforelse
             </tbody>

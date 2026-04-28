@@ -25,10 +25,47 @@ function initCategoryIndex() {
 
     let searchTimer = null;
     let dragState = null;
+    let collapsedIds = new Set();
     const debounceMs = 400;
 
     function getVisibleRows() {
         return [...swap.querySelectorAll('tbody tr[data-category-id]')];
+    }
+
+    function initializeInlineFieldSnapshots() {
+        swap.querySelectorAll('[data-inline-field]').forEach((el) => {
+            el.dataset.lastValue = String(el.value ?? '');
+        });
+    }
+
+    function applyTreeVisibility() {
+        const rows = getVisibleRows();
+        rows.forEach((row) => {
+            const depth = Number(row.dataset.depth || '0');
+            const id = Number(row.dataset.categoryId || '0');
+            let hidden = false;
+            if (depth > 0) {
+                let seekDepth = depth;
+                for (let i = rows.indexOf(row) - 1; i >= 0; i -= 1) {
+                    const parentRow = rows[i];
+                    const parentDepth = Number(parentRow.dataset.depth || '0');
+                    if (parentDepth < seekDepth) {
+                        const parentId = Number(parentRow.dataset.categoryId || '0');
+                        if (collapsedIds.has(parentId)) {
+                            hidden = true;
+                            break;
+                        }
+                        seekDepth = parentDepth;
+                    }
+                }
+            }
+
+            row.classList.toggle('hidden', hidden);
+            const icon = row.querySelector('[data-tree-toggle-icon]');
+            if (icon) {
+                icon.textContent = collapsedIds.has(id) ? '▸' : '▾';
+            }
+        });
     }
 
     function collectDragBlock(rows, startIndex) {
@@ -87,6 +124,99 @@ function initCategoryIndex() {
             showInlineMessage(swap, payload.message, 'success');
         }
         return true;
+    }
+
+    function normalizeInlineValue(field, element) {
+        const raw = element.value;
+        if (field === 'parent_id') {
+            return raw === '' ? null : Number(raw);
+        }
+        if (field === 'sort_order') {
+            if (raw === '') {
+                return 0;
+            }
+            const parsed = Number(raw);
+            return Number.isNaN(parsed) ? raw : parsed;
+        }
+        return raw;
+    }
+
+    function elementVisualState(element, state) {
+        element.classList.remove('border-amber-300', 'border-emerald-300', 'bg-emerald-50', 'bg-amber-50');
+        if (state === 'saving') {
+            element.classList.add('border-amber-300', 'bg-amber-50');
+        } else if (state === 'saved') {
+            element.classList.add('border-emerald-300', 'bg-emerald-50');
+            window.setTimeout(() => {
+                element.classList.remove('border-emerald-300', 'bg-emerald-50');
+            }, 1000);
+        }
+    }
+
+    async function saveInlineField(element) {
+        const tr = element.closest('tr[data-category-id]');
+        if (!tr) {
+            return;
+        }
+        const endpoint = tr.dataset.patchUrl || '';
+        const field = element.dataset.inlineField || '';
+        if (!endpoint || !field) {
+            return;
+        }
+
+        const value = normalizeInlineValue(field, element);
+        const current = element.dataset.lastValue ?? String(element.value ?? '');
+        const nextComparable = value === null ? '' : String(value);
+        if (current === nextComparable) {
+            return;
+        }
+
+        element.disabled = true;
+        elementVisualState(element, 'saving');
+
+        const res = await fetch(endpoint, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ [field]: value }),
+        });
+
+        const payload = await res.json().catch(() => ({}));
+        element.disabled = false;
+
+        if (!res.ok || payload.ok !== true) {
+            const message =
+                payload?.errors?.[field]?.[0] ||
+                payload?.message ||
+                'Speichern fehlgeschlagen.';
+            showInlineMessage(swap, message, 'error');
+            const fallback = element.dataset.lastValue ?? '';
+            element.value = fallback;
+            elementVisualState(element, null);
+            return;
+        }
+
+        const savedValue = payload?.category?.[field];
+        if (savedValue !== undefined && savedValue !== null) {
+            element.value = String(savedValue);
+            element.dataset.lastValue = String(savedValue);
+        } else if (savedValue === null) {
+            element.value = '';
+            element.dataset.lastValue = '';
+        } else {
+            element.dataset.lastValue = String(element.value ?? '');
+        }
+
+        if (field === 'parent_id') {
+            tr.dataset.parentId = element.value;
+        }
+
+        elementVisualState(element, 'saved');
     }
 
     function setupRowDragAndDrop() {
@@ -241,6 +371,8 @@ function initCategoryIndex() {
 
         const html = await res.text();
         swap.innerHTML = html;
+        initializeInlineFieldSnapshots();
+        applyTreeVisibility();
         setupRowDragAndDrop();
 
         if (pushHistory) {
@@ -285,12 +417,39 @@ function initCategoryIndex() {
         }
         const form = e.target.closest('form.admin-panel');
         if (!form || !swap.contains(e.target)) {
+            if (e.target.matches('[data-inline-field]')) {
+                void saveInlineField(e.target);
+            }
             return;
         }
         if (e.target.name === 'search') {
             return;
         }
         void loadFragment(buildUrlFromForm(form));
+    });
+
+    root.addEventListener('focusin', (e) => {
+        if (!e.target.matches('[data-inline-field]')) {
+            return;
+        }
+        e.target.dataset.lastValue = String(e.target.value ?? '');
+    });
+
+    root.addEventListener('blur', (e) => {
+        if (!e.target.matches('input[data-inline-field]')) {
+            return;
+        }
+        void saveInlineField(e.target);
+    }, true);
+
+    root.addEventListener('keydown', (e) => {
+        if (!e.target.matches('input[data-inline-field]')) {
+            return;
+        }
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.target.blur();
+        }
     });
 
     root.addEventListener('input', (e) => {
@@ -312,6 +471,23 @@ function initCategoryIndex() {
         if (ajaxNav && swap.contains(ajaxNav)) {
             e.preventDefault();
             void loadFragment(ajaxNav.href);
+            return;
+        }
+
+        const toggleBtn = e.target.closest('[data-tree-toggle]');
+        if (toggleBtn && swap.contains(toggleBtn)) {
+            e.preventDefault();
+            const tr = toggleBtn.closest('tr[data-category-id]');
+            if (!tr) {
+                return;
+            }
+            const id = Number(tr.dataset.categoryId || '0');
+            if (collapsedIds.has(id)) {
+                collapsedIds.delete(id);
+            } else {
+                collapsedIds.add(id);
+            }
+            applyTreeVisibility();
             return;
         }
 
@@ -373,6 +549,8 @@ function initCategoryIndex() {
         void loadFragment(window.location.href, { pushHistory: false });
     });
 
+    initializeInlineFieldSnapshots();
+    applyTreeVisibility();
     setupRowDragAndDrop();
 }
 
