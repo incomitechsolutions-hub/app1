@@ -1,6 +1,10 @@
 @php
     $navigation = config('navigation');
 @endphp
+@inject('categoryNavigation', 'App\Domain\Taxonomy\Services\PublicCategoryNavigationService')
+@php
+    $headerCategories = $categoryNavigation->topCategoriesWithChildren();
+@endphp
 
 <div x-cloak x-show="mobileMenuOpen" x-transition.opacity class="fixed inset-0 z-40 bg-black/50" @click="mobileMenuOpen = false"></div>
 
@@ -77,8 +81,55 @@
                     </div>
                 @endforeach
 
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700">
+                    <button
+                        type="button"
+                        class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white"
+                        @click="openMenus['menu-categories'] = !openMenus['menu-categories']"
+                        :aria-expanded="(openMenus['menu-categories'] ?? false).toString()">
+                        <span>Kategorien</span>
+                        <span class="text-gray-500 transition-transform" :class="openMenus['menu-categories'] ? 'rotate-180' : ''">▼</span>
+                    </button>
+
+                    <div x-cloak x-show="openMenus['menu-categories']" x-transition class="border-t border-gray-200 px-4 py-3 dark:border-gray-700">
+                        @foreach($headerCategories as $topIndex => $topCategory)
+                            <div class="mb-2 last:mb-0">
+                                <div class="flex items-center justify-between py-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                                    <a href="{{ route('public.categories.show', ['slug' => $topCategory->slug]) }}" class="hover:text-primary-600 dark:hover:text-primary-300">{{ $topCategory->name }}</a>
+                                    <button
+                                        type="button"
+                                        class="px-2 text-gray-400 transition-transform"
+                                        @click="openSections['cat-{{ $topIndex }}'] = !openSections['cat-{{ $topIndex }}']"
+                                        :aria-expanded="(openSections['cat-{{ $topIndex }}'] ?? false).toString()"
+                                        aria-label="Unterkategorien umschalten">
+                                        <span :class="openSections['cat-{{ $topIndex }}'] ? 'rotate-180' : ''">▼</span>
+                                    </button>
+                                </div>
+
+                                @if($topCategory->children->isNotEmpty())
+                                    <ul x-cloak x-show="openSections['cat-{{ $topIndex }}']" class="space-y-2 pb-2 pl-2" x-transition>
+                                        @foreach($topCategory->children as $childCategory)
+                                            <li>
+                                                <a href="{{ route('public.categories.show', ['slug' => $childCategory->slug]) }}" class="block rounded-lg px-3 py-2 text-sm text-gray-600 transition hover:bg-primary-50 hover:text-primary-700 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-primary-300">
+                                                    {{ $childCategory->name }}
+                                                </a>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </div>
+                        @endforeach
+
+                        <a href="{{ route('public.categories.index') }}" class="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-primary-600 dark:text-primary-300">
+                            <span>Alle Kategorien</span>
+                            <span aria-hidden="true">→</span>
+                        </a>
+                    </div>
+                </div>
+
                 <div class="space-y-1 border-t border-gray-200 pt-4 dark:border-gray-700">
                     @foreach($navigation['simple_links'] as $link)
+                        @continue(($link['label'] ?? '') === 'Alle Kategorien')
                         <a href="{{ $link['href'] }}" class="block rounded-lg px-3 py-2 text-sm font-semibold text-gray-900 transition hover:bg-primary-50 hover:text-primary-700 dark:text-white dark:hover:bg-gray-700 dark:hover:text-primary-300">
                             {{ $link['label'] }}
                         </a>
