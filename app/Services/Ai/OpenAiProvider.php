@@ -97,7 +97,8 @@ class OpenAiProvider implements AiProviderInterface
             return ['_meta' => ['reason' => 'http_error', 'status' => $response->status()]];
         }
 
-        $content = (string) data_get($response->json(), 'choices.0.message.content', '');
+        $rawJson = $response->json();
+        $content = (string) data_get($rawJson, 'choices.0.message.content', '');
         if ($content === '') {
             return ['_meta' => ['reason' => 'empty_content']];
         }
@@ -114,7 +115,72 @@ class OpenAiProvider implements AiProviderInterface
             return ['_meta' => ['reason' => 'json_decode_failed']];
         }
 
+        $value = $this->extractFieldValue($decoded, $content, $rawJson);
+        if ($value === null) {
+            return $decoded + ['_meta' => ['reason' => 'empty_value']];
+        }
+
+        $decoded['value'] = $value;
+
         return $decoded + ['_meta' => ['reason' => null]];
+    }
+
+    /**
+     * @param  array<string, mixed>  $decoded
+     * @param  array<string, mixed>  $rawJson
+     */
+    private function extractFieldValue(array $decoded, string $content, array $rawJson): ?string
+    {
+        $candidates = [
+            $decoded['value'] ?? null,
+            $decoded['title'] ?? null,
+            $decoded['text'] ?? null,
+            $decoded['output_text'] ?? null,
+            data_get($decoded, 'data.value'),
+            data_get($decoded, 'result.value'),
+            data_get($rawJson, 'choices.0.message.content'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            $resolved = $this->normalizeFieldValue($candidate);
+            if ($resolved !== null) {
+                return $resolved;
+            }
+        }
+
+        // Last resort: accept plain text responses by stripping code fences.
+        $plain = trim(preg_replace('/^```(?:json)?|```$/m', '', $content) ?? '');
+        if ($plain !== '' && ! str_starts_with($plain, '{')) {
+            return $plain;
+        }
+
+        return null;
+    }
+
+    private function normalizeFieldValue(mixed $candidate): ?string
+    {
+        if (is_string($candidate)) {
+            $trimmed = trim($candidate);
+            if ($trimmed === '') {
+                return null;
+            }
+
+            // If candidate itself is JSON, try to extract inner value-like keys.
+            if (str_starts_with($trimmed, '{') && str_ends_with($trimmed, '}')) {
+                $json = json_decode($trimmed, true);
+                if (is_array($json)) {
+                    foreach (['value', 'title', 'text', 'output_text'] as $key) {
+                        if (isset($json[$key]) && is_string($json[$key]) && trim($json[$key]) !== '') {
+                            return trim($json[$key]);
+                        }
+                    }
+                }
+            }
+
+            return $trimmed;
+        }
+
+        return null;
     }
 
     /**
