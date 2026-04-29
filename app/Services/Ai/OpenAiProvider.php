@@ -26,6 +26,9 @@ class OpenAiProvider implements AiProviderInterface
     {
         $prompt = "Gib valides JSON mit keys seo{}, base{}, details{} zurück.\n".
             'Kontext: '.json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (is_string($context['prompt_text'] ?? null) && trim((string) $context['prompt_text']) !== '') {
+            $prompt = "Zusatzanweisung fuer Regenerate:\n".trim((string) $context['prompt_text'])."\n\n".$prompt;
+        }
 
         return $this->chatJson($prompt);
     }
@@ -38,6 +41,9 @@ class OpenAiProvider implements AiProviderInterface
     {
         $prompt = "Gib valides JSON mit key value zurück.\n".
             'Kontext: '.json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (is_string($context['prompt_text'] ?? null) && trim((string) $context['prompt_text']) !== '') {
+            $prompt = "Zusatzanweisung fuer Regenerate:\n".trim((string) $context['prompt_text'])."\n\n".$prompt;
+        }
 
         return $this->chatJson($prompt);
     }

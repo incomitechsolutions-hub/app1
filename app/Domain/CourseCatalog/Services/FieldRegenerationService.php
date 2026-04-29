@@ -15,9 +15,15 @@ class FieldRegenerationService
     {
         $provider = $this->providerFactory->make();
         if ($provider) {
-            $result = $provider->regenerateField([
+            $payload = [
                 'field_name' => $fieldName,
                 'current_context' => $context,
+            ];
+            if (is_string($context['prompt_text'] ?? null) && trim((string) $context['prompt_text']) !== '') {
+                $payload['prompt_text'] = trim((string) $context['prompt_text']);
+            }
+            $result = $provider->regenerateField([
+                ...$payload,
             ]);
             $value = $result['value'] ?? null;
             if (is_string($value) && trim($value) !== '') {

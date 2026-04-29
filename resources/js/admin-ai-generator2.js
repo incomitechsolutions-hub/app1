@@ -39,6 +39,10 @@ function setByPath(obj, path, value) {
     });
 }
 
+function normalizeKeyword(value) {
+    return String(value ?? '').trim().toLowerCase();
+}
+
 function toSlug(value) {
     return String(value ?? '')
         .toLowerCase()
@@ -216,6 +220,12 @@ function initAiGenerator2() {
         keywords: [],
         selected: [],
         dirtyFields: new Set(),
+        customKeywords: [],
+        promptLibrary: [],
+        selectedPromptId: '',
+        inlinePromptText: '',
+        saveInlinePrompt: false,
+        promptTitle: '',
         topic: '',
         subtopics: '',
         targetAudience: '',
@@ -229,6 +239,58 @@ function initAiGenerator2() {
         saveSelection: root.dataset.saveSelectionUrl,
         regenerateField: root.dataset.regenerateFieldUrl,
         regenerateSection: root.dataset.regenerateSectionUrl,
+        promptLibrary: root.dataset.promptLibraryUrl,
+        savePrompt: root.dataset.promptLibraryStoreUrl,
+    };
+
+    const syncSeoFromSelectedKeywords = () => {
+        if (!state.draftGenerated.seo) state.draftGenerated.seo = {};
+        const tags = state.selected.join(', ');
+        state.draftGenerated.seo.tags_csv = tags;
+        const fallback = state.selected[0] || state.topic;
+        if (!state.draftGenerated.seo.focus_keyword || !state.selected.includes(state.draftGenerated.seo.focus_keyword)) {
+            state.draftGenerated.seo.focus_keyword = fallback;
+        }
+    };
+
+    const upsertKeyword = (keyword, type = 'custom', selected = true, source = ['custom']) => {
+        const cleaned = String(keyword ?? '').trim();
+        if (!cleaned) return;
+        const normalized = normalizeKeyword(cleaned);
+        const existing = state.keywords.find((row) => normalizeKeyword(row.keyword) === normalized);
+        if (existing) {
+            existing.type = existing.type || type;
+            existing.source = Array.isArray(existing.source) ? existing.source : source;
+            return;
+        }
+        state.keywords.push({
+            keyword: cleaned,
+            type,
+            intent: 'custom',
+            relevance_score: 5,
+            commercial_score: 5,
+            selected,
+            source,
+        });
+    };
+
+    const collectCustomKeywords = () => {
+        const customSet = new Map();
+        state.keywords.forEach((row) => {
+            const isCustom = (row.type || '') === 'custom' || (Array.isArray(row.source) && row.source.includes('custom'));
+            if (!isCustom) return;
+            const cleaned = String(row.keyword ?? '').trim();
+            const normalized = normalizeKeyword(cleaned);
+            if (!normalized || customSet.has(normalized)) return;
+            customSet.set(normalized, cleaned);
+        });
+        return Array.from(customSet.values());
+    };
+
+    const selectedPromptBody = () => {
+        if (!state.selectedPromptId) return '';
+        const selected = state.promptLibrary.find((item) => String(item.id) === String(state.selectedPromptId));
+        return selected?.body || '';
     };
 
     const setFeedback = (message, kind = 'warn') => {
@@ -253,7 +315,7 @@ function initAiGenerator2() {
     const request = async (url, payload, method = 'POST') => {
         let res;
         try {
-            res = await fetch(url, {
+            const init = {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
@@ -261,7 +323,12 @@ function initAiGenerator2() {
                     'X-CSRF-TOKEN': csrfToken(),
                     'X-Requested-With': 'XMLHttpRequest',
                 },
-                body: JSON.stringify(payload ?? {}),
+            };
+            if (method !== 'GET') {
+                init.body = JSON.stringify(payload ?? {});
+            }
+            res = await fetch(url, {
+                ...init,
             });
         } catch (_networkErr) {
             throw new Error('Netzwerkfehler. Bitte Verbindung pruefen und erneut versuchen.');
@@ -335,13 +402,13 @@ function initAiGenerator2() {
         }
 
         if (state.step === 2) {
-            const groups = ['primary', 'longtail', 'semantic', 'related'];
+            const groups = ['primary', 'longtail', 'semantic', 'related', 'custom'];
             const html = groups.map((g) => {
                 const list = state.keywords.filter((k) => (k.type || 'related') === g);
                 if (!list.length) return '';
                 return `<h4 class="mt-3 font-semibold">${g}</h4>` + list.map((k, idx) => `
                     <label class="flex items-center gap-2 rounded border p-2 text-sm">
-                        <input type="checkbox" data-kw="${idx}" ${state.selected.includes(k.keyword) ? 'checked' : ''}>
+                        <input type="checkbox" data-kw-keyword="${escapeHtml(k.keyword)}" ${state.selected.includes(k.keyword) ? 'checked' : ''}>
                         <span class="font-medium">${k.keyword}</span>
                         <span class="ml-auto text-xs text-slate-500">${k.intent || ''} | R${k.relevance_score} C${k.commercial_score}</span>
                     </label>`).join('');
@@ -352,6 +419,13 @@ function initAiGenerator2() {
                 <div class="flex gap-2">
                     <button type="button" id="ai2-select-recommended" class="rounded border px-2 py-1 text-xs">Empfohlene</button>
                     <button type="button" id="ai2-reset" class="rounded border px-2 py-1 text-xs">Reset</button>
+                </div>
+                <div class="rounded border border-slate-200 p-2">
+                    <label class="block text-xs font-semibold text-slate-600">Eigenes Keyword hinzufügen</label>
+                    <div class="mt-1 flex gap-2">
+                        <input id="ai2-custom-keyword-input" class="flex-1 rounded border px-2 py-1 text-sm" placeholder="z. B. schulung, weiterbildung">
+                        <button type="button" id="ai2-add-custom-keyword" class="rounded border px-2 py-1 text-xs">Hinzufügen</button>
+                    </div>
                 </div>
                 <div class="max-h-80 space-y-2 overflow-auto">${html}</div>
                 <div class="mt-3 grid gap-2">
@@ -365,12 +439,28 @@ function initAiGenerator2() {
         }
 
         if (state.step === 3) {
+            const promptOptions = state.promptLibrary.map((prompt) => `<option value="${prompt.id}" ${String(prompt.id) === String(state.selectedPromptId) ? 'selected' : ''}>${escapeHtml(prompt.title)}</option>`).join('');
             const seoFields = DRAFT_FIELD_CONFIG.filter((field) => field.section === 'seo').map(renderDraftField).join('');
             const baseFields = DRAFT_FIELD_CONFIG.filter((field) => field.section === 'base').map(renderDraftField).join('');
             const detailFields = DRAFT_FIELD_CONFIG.filter((field) => field.section === 'details').map(renderDraftField).join('');
             body.innerHTML = `
                 <h3 class="text-lg font-semibold">3 Vorschau & Bearbeiten</h3>
                 <p class="text-sm text-slate-600">Hier koennen Inhalte bearbeitet oder neu generiert werden. Gelb markierte Felder wurden manuell geaendert.</p>
+                <section class="rounded border border-slate-200 p-3">
+                    <h4 class="font-semibold">Prompt fuer Neu-Generierung</h4>
+                    <div class="mt-2 grid gap-2">
+                        <select id="ai2-prompt-library-select" class="rounded border px-2 py-1 text-sm">
+                            <option value="">Kein Library-Prompt</option>
+                            ${promptOptions}
+                        </select>
+                        <textarea id="ai2-inline-prompt-text" class="rounded border px-2 py-1 text-sm" rows="3" placeholder="Optional eigener Prompt fuer Regenerate...">${escapeHtml(state.inlinePromptText)}</textarea>
+                        <input id="ai2-inline-prompt-title" class="rounded border px-2 py-1 text-sm" value="${escapeHtml(state.promptTitle)}" placeholder="Titel fuer Speichern in Library (optional)">
+                        <label class="inline-flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" id="ai2-save-inline-prompt" ${state.saveInlinePrompt ? 'checked' : ''}> Prompt in Library speichern</label>
+                        <div class="flex justify-end">
+                            <button type="button" id="ai2-save-prompt-library-btn" class="rounded border px-2 py-1 text-xs">Prompt jetzt speichern</button>
+                        </div>
+                    </div>
+                </section>
                 <div class="space-y-4">
                     <section class="rounded border border-slate-200 p-3">
                         <div class="mb-2 flex items-center justify-between">
@@ -432,6 +522,8 @@ function initAiGenerator2() {
             state.generated = json.generated || {};
             state.draftGenerated = deepClone(state.generated);
             state.dirtyFields = new Set();
+            state.customKeywords = [];
+            syncSeoFromSelectedKeywords();
             return true;
         } catch (e) {
             setFeedback(e.message || 'Fehler', 'error');
@@ -448,6 +540,7 @@ function initAiGenerator2() {
             selected_keywords: selectedKeywords,
             selected_primary_keyword: selectedKeywords[0] || null,
             selected_clusters: [],
+            custom_keywords: collectCustomKeywords(),
         };
         await request(endpoint.saveSelection, bodyPayload);
 
@@ -459,6 +552,48 @@ function initAiGenerator2() {
         if (state.draftGenerated.base) {
             state.draftGenerated.base.slug = document.getElementById('ai2-seo-slug')?.value || state.draftGenerated.base.slug;
         }
+        syncSeoFromSelectedKeywords();
+    }
+
+    async function loadPromptLibrary() {
+        try {
+            const data = await request(endpoint.promptLibrary, {}, 'GET');
+            state.promptLibrary = Array.isArray(data.prompts) ? data.prompts : [];
+        } catch (_e) {
+            state.promptLibrary = [];
+        }
+    }
+
+    async function saveInlinePromptToLibrary() {
+        const bodyText = (state.inlinePromptText || '').trim();
+        if (!bodyText) {
+            setFeedback('Bitte zuerst Prompt-Text eingeben.', 'warn');
+            return;
+        }
+        const title = (state.promptTitle || '').trim() || `AI2 Prompt ${new Date().toISOString().slice(0, 19).replace('T', ' ')}`;
+        const data = await request(endpoint.savePrompt, {
+            title,
+            body: bodyText,
+            description: 'AI Generator 2 Regenerate Prompt',
+        });
+        const prompt = data.prompt;
+        if (prompt && prompt.id) {
+            state.promptLibrary.unshift(prompt);
+            state.selectedPromptId = String(prompt.id);
+        }
+        setFeedback('Prompt wurde in der Library gespeichert.', 'ok');
+    }
+
+    function buildPromptPayload() {
+        const selectedBody = selectedPromptBody();
+        const inline = (state.inlinePromptText || '').trim();
+        const promptText = inline !== '' ? inline : selectedBody;
+        return {
+            prompt_id: state.selectedPromptId ? Number(state.selectedPromptId) : null,
+            prompt_text: promptText !== '' ? promptText : null,
+            save_prompt: state.saveInlinePrompt && inline !== '',
+            prompt_title: state.promptTitle || null,
+        };
     }
 
     async function regenerateField(fieldName, draftPath, trigger) {
@@ -474,6 +609,7 @@ function initAiGenerator2() {
                 current_context: context,
                 selected_keywords: state.selected,
                 course_context: state.draftGenerated,
+                ...buildPromptPayload(),
             });
             setByPath(state.draftGenerated, draftPath, json.value || '');
             state.dirtyFields.delete(draftPath);
@@ -501,6 +637,7 @@ function initAiGenerator2() {
                     duration_days: state.durationDays ? Number(state.durationDays) : null,
                     focus: state.focus,
                 },
+                ...buildPromptPayload(),
             });
             const payload = json.payload && typeof json.payload === 'object' ? json.payload : {};
             setByPath(state.draftGenerated, section, payload);
@@ -526,11 +663,18 @@ function initAiGenerator2() {
         state.keywords = [];
         state.selected = [];
         state.dirtyFields = new Set();
+        state.customKeywords = [];
+        state.promptLibrary = [];
+        state.selectedPromptId = '';
+        state.inlinePromptText = '';
+        state.saveInlinePrompt = false;
+        state.promptTitle = '';
     }
 
     openBtn.addEventListener('click', () => {
         modal.classList.remove('hidden');
         resetState();
+        loadPromptLibrary();
         render();
     });
 
@@ -551,12 +695,12 @@ function initAiGenerator2() {
             return;
         }
         if (state.step === 2) {
-            const checkboxes = body.querySelectorAll('input[data-kw]');
+            const checkboxes = body.querySelectorAll('input[data-kw-keyword]');
             state.selected = [];
             checkboxes.forEach((cb) => {
                 if (cb.checked) {
-                    const kw = state.keywords[Number(cb.getAttribute('data-kw'))];
-                    if (kw) state.selected.push(kw.keyword);
+                    const keyword = String(cb.getAttribute('data-kw-keyword') || '').trim();
+                    if (keyword !== '') state.selected.push(keyword);
                 }
             });
             if (!state.selected.length) {
@@ -570,6 +714,7 @@ function initAiGenerator2() {
                 return;
             }
             state.step = 3;
+            await loadPromptLibrary();
             render();
             return;
         }
@@ -587,10 +732,35 @@ function initAiGenerator2() {
         if (!(target instanceof HTMLElement)) return;
         if (target.id === 'ai2-select-recommended') {
             state.selected = state.keywords.filter((k) => k.selected).map((k) => k.keyword);
+            syncSeoFromSelectedKeywords();
             render();
         } else if (target.id === 'ai2-reset') {
             state.selected = [];
+            syncSeoFromSelectedKeywords();
             render();
+        } else if (target.id === 'ai2-add-custom-keyword') {
+            const input = document.getElementById('ai2-custom-keyword-input');
+            const raw = input ? input.value : '';
+            raw.split(',').map((part) => part.trim()).filter(Boolean).forEach((keyword) => {
+                upsertKeyword(keyword, 'custom', true, ['custom']);
+                if (!state.selected.includes(keyword)) {
+                    state.selected.push(keyword);
+                }
+            });
+            state.customKeywords = collectCustomKeywords();
+            syncSeoFromSelectedKeywords();
+            if (input) input.value = '';
+            render();
+        } else if (target.id === 'ai2-save-prompt-library-btn') {
+            target.disabled = true;
+            try {
+                await saveInlinePromptToLibrary();
+                render();
+            } catch (e) {
+                setFeedback(e.message || 'Prompt konnte nicht gespeichert werden.', 'error');
+            } finally {
+                target.disabled = false;
+            }
         } else if (target.dataset.regenField) {
             await regenerateField(target.dataset.regenField, target.dataset.draftPath || '', target);
         } else if (target.dataset.regenSection) {
@@ -617,6 +787,40 @@ function initAiGenerator2() {
         state.dirtyFields.add(draftPath);
         target.classList.remove('border-slate-300', 'bg-white');
         target.classList.add('border-amber-400', 'bg-amber-50');
+    });
+
+    body.addEventListener('change', (e) => {
+        const target = e.target;
+        if (!(target instanceof HTMLElement)) return;
+        if (target.id === 'ai2-prompt-library-select' && target instanceof HTMLSelectElement) {
+            state.selectedPromptId = target.value;
+            return;
+        }
+        if (target.id === 'ai2-save-inline-prompt' && target instanceof HTMLInputElement) {
+            state.saveInlinePrompt = target.checked;
+            return;
+        }
+        if (target.matches('input[data-kw-keyword]') && target instanceof HTMLInputElement) {
+            const keyword = String(target.getAttribute('data-kw-keyword') || '').trim();
+            if (!keyword) return;
+            if (target.checked && !state.selected.includes(keyword)) {
+                state.selected.push(keyword);
+            } else if (!target.checked) {
+                state.selected = state.selected.filter((item) => item !== keyword);
+            }
+            syncSeoFromSelectedKeywords();
+        }
+    });
+
+    body.addEventListener('keyup', (e) => {
+        const target = e.target;
+        if (!(target instanceof HTMLElement)) return;
+        if (target.id === 'ai2-inline-prompt-text' && target instanceof HTMLTextAreaElement) {
+            state.inlinePromptText = target.value;
+        }
+        if (target.id === 'ai2-inline-prompt-title' && target instanceof HTMLInputElement) {
+            state.promptTitle = target.value;
+        }
     });
 }
 

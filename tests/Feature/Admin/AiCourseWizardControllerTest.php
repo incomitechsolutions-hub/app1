@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Domain\CourseCatalog\Models\CourseKeywordAnalysis;
+use App\Domain\PromptManagement\Models\AiPrompt;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -87,6 +88,106 @@ class AiCourseWizardControllerTest extends TestCase
             'analysis_id' => $analysis->id,
             'section' => 'invalid',
         ])->assertStatus(422);
+    }
+
+    public function test_save_selection_persists_custom_keywords(): void
+    {
+        $user = User::factory()->create();
+        $analysis = CourseKeywordAnalysis::query()->create([
+            'topic' => 'KI',
+            'subtopics' => [],
+            'raw_google_response' => [],
+            'raw_ai_response' => [],
+            'selected_primary_keyword' => null,
+            'selected_keywords' => [],
+            'selected_clusters' => [],
+            'seo_opportunity_score' => 10,
+            'created_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('admin.course-catalog.ai-wizard.save-selection'), [
+            'analysis_id' => $analysis->id,
+            'selected_keywords' => ['schulung'],
+            'selected_primary_keyword' => 'schulung',
+            'custom_keywords' => ['schulung', 'weiterbildung'],
+        ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('course_keywords', [
+            'analysis_id' => $analysis->id,
+            'keyword' => 'schulung',
+            'type' => 'custom',
+            'selected' => true,
+        ]);
+        $this->assertDatabaseHas('course_keywords', [
+            'analysis_id' => $analysis->id,
+            'keyword' => 'weiterbildung',
+            'type' => 'custom',
+            'selected' => false,
+        ]);
+    }
+
+    public function test_prompt_library_endpoints_list_and_store_prompts(): void
+    {
+        $user = User::factory()->create();
+        AiPrompt::query()->create([
+            'title' => 'Bestehender Prompt',
+            'slug' => 'bestehender-prompt',
+            'use_case' => 'course-wizard-regenerate',
+            'body' => 'Regenerate nur mit Praxisbeispielen.',
+            'placeholder_definitions' => [],
+            'description' => null,
+            'sort_order' => 0,
+            'is_active' => true,
+        ]);
+
+        $listResponse = $this->actingAs($user)
+            ->getJson(route('admin.course-catalog.ai-wizard.prompt-library'));
+
+        $listResponse->assertOk()
+            ->assertJsonStructure([
+                'prompts' => [
+                    ['id', 'title', 'body'],
+                ],
+            ]);
+
+        $storeResponse = $this->actingAs($user)
+            ->postJson(route('admin.course-catalog.ai-wizard.prompt-library.store'), [
+                'title' => 'Mein Prompt',
+                'body' => 'Bitte nur kurze Antworten.',
+            ]);
+
+        $storeResponse->assertCreated()
+            ->assertJsonPath('prompt.title', 'Mein Prompt');
+        $this->assertDatabaseHas('ai_prompts', [
+            'title' => 'Mein Prompt',
+            'use_case' => 'course-wizard-regenerate',
+            'is_active' => true,
+        ]);
+    }
+
+    public function test_regenerate_field_can_store_inline_prompt_in_library(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson(route('admin.course-catalog.ai-wizard.regenerate-field'), [
+            'field_name' => 'seo_title',
+            'current_context' => [
+                'topic' => 'Prompting',
+                'selected_primary_keyword' => 'prompt engineering kurs',
+            ],
+            'selected_keywords' => ['prompt engineering kurs'],
+            'course_context' => [],
+            'prompt_text' => 'Nutze einen sachlichen Ton mit Fokus auf B2B.',
+            'save_prompt' => true,
+            'prompt_title' => 'B2B Regenerate',
+        ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('ai_prompts', [
+            'title' => 'B2B Regenerate',
+            'use_case' => 'course-wizard-regenerate',
+        ]);
     }
 }
 

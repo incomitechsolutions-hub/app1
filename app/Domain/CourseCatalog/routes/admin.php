@@ -75,6 +75,11 @@ Route::middleware(['web', 'auth', 'module.enabled:course_catalog'])->prefix('adm
     Route::post('ai-course-wizard/regenerate-section', [AiCourseWizardController::class, 'regenerateSection'])
         ->middleware('throttle:20,1')
         ->name('ai-wizard.regenerate-section');
+    Route::get('ai-course-wizard/prompt-library', [AiCourseWizardController::class, 'promptLibrary'])
+        ->name('ai-wizard.prompt-library');
+    Route::post('ai-course-wizard/prompt-library', [AiCourseWizardController::class, 'savePrompt'])
+        ->middleware('throttle:20,1')
+        ->name('ai-wizard.prompt-library.store');
 
     Route::resource('programs', ProgramController::class);
     Route::resource('courses', CourseController::class);
