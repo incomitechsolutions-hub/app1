@@ -222,10 +222,7 @@ function initAiGenerator2() {
         dirtyFields: new Set(),
         customKeywords: [],
         promptLibrary: [],
-        selectedPromptId: '',
-        inlinePromptText: '',
-        saveInlinePrompt: false,
-        promptTitle: '',
+        fieldPromptState: {},
         topic: '',
         subtopics: '',
         targetAudience: '',
@@ -287,10 +284,17 @@ function initAiGenerator2() {
         return Array.from(customSet.values());
     };
 
-    const selectedPromptBody = () => {
-        if (!state.selectedPromptId) return '';
-        const selected = state.promptLibrary.find((item) => String(item.id) === String(state.selectedPromptId));
-        return selected?.body || '';
+    const ensureFieldPromptState = (path) => {
+        if (!state.fieldPromptState[path]) {
+            state.fieldPromptState[path] = {
+                open: false,
+                promptId: '',
+                promptText: '',
+                savePrompt: false,
+                promptTitle: '',
+            };
+        }
+        return state.fieldPromptState[path];
     };
 
     const setFeedback = (message, kind = 'warn') => {
@@ -357,12 +361,34 @@ function initAiGenerator2() {
     };
 
     const renderDraftField = (field) => {
+        const promptState = ensureFieldPromptState(field.path);
+        const promptOptions = state.promptLibrary.map((prompt) => `<option value="${prompt.id}" ${String(prompt.id) === String(promptState.promptId) ? 'selected' : ''}>${escapeHtml(prompt.title)}</option>`).join('');
         const current = getByPath(state.draftGenerated, field.path);
         const isDirty = state.dirtyFields.has(field.path);
         const dirtyClass = isDirty ? 'border-amber-400 bg-amber-50' : 'border-slate-300 bg-white';
         const value = field.type === 'json'
             ? escapeHtml(JSON.stringify(current ?? [], null, 2))
             : escapeHtml(current ?? '');
+
+        const promptPanel = `
+            <div class="mt-2">
+                <button type="button" data-prompt-toggle="${field.path}" class="rounded border px-2 py-1 text-xs">${promptState.open ? 'Prompt ausblenden' : 'Prompt für dieses Feld'}</button>
+                <div class="${promptState.open ? 'mt-2 block' : 'hidden'}" data-prompt-panel="${field.path}">
+                    <div class="rounded border border-slate-200 p-2 space-y-2">
+                        <select data-field-prompt-select="${field.path}" class="w-full rounded border px-2 py-1 text-xs">
+                            <option value="">Kein Library-Prompt</option>
+                            ${promptOptions}
+                        </select>
+                        <textarea data-field-prompt-text="${field.path}" rows="3" class="w-full rounded border px-2 py-1 text-xs" placeholder="Optional eigener Prompt für dieses Feld...">${escapeHtml(promptState.promptText)}</textarea>
+                        <input data-field-prompt-title="${field.path}" class="w-full rounded border px-2 py-1 text-xs" value="${escapeHtml(promptState.promptTitle)}" placeholder="Titel für Speichern in Library (optional)">
+                        <label class="inline-flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" data-field-prompt-save="${field.path}" ${promptState.savePrompt ? 'checked' : ''}> Prompt in Library speichern</label>
+                        <div class="flex justify-end">
+                            <button type="button" data-field-prompt-save-now="${field.path}" class="rounded border px-2 py-1 text-xs">Prompt jetzt speichern</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
 
         if (field.type === 'textarea' || field.type === 'json') {
             return `
@@ -371,6 +397,7 @@ function initAiGenerator2() {
                 <div class="mt-1 flex justify-end">
                     <button type="button" data-regen-field="${field.fieldName}" data-draft-path="${field.path}" class="rounded border px-2 py-1 text-xs">Feld neu generieren</button>
                 </div>
+                ${promptPanel}
             `;
         }
 
@@ -380,6 +407,7 @@ function initAiGenerator2() {
                 <input data-draft-path="${field.path}" data-draft-type="${field.type}" class="flex-1 rounded border ${dirtyClass} px-3 py-2 text-sm" value="${value}">
                 <button type="button" data-regen-field="${field.fieldName}" data-draft-path="${field.path}" class="rounded border px-2 py-1 text-xs">Neu</button>
             </div>
+            ${promptPanel}
         `;
     };
 
@@ -439,28 +467,12 @@ function initAiGenerator2() {
         }
 
         if (state.step === 3) {
-            const promptOptions = state.promptLibrary.map((prompt) => `<option value="${prompt.id}" ${String(prompt.id) === String(state.selectedPromptId) ? 'selected' : ''}>${escapeHtml(prompt.title)}</option>`).join('');
             const seoFields = DRAFT_FIELD_CONFIG.filter((field) => field.section === 'seo').map(renderDraftField).join('');
             const baseFields = DRAFT_FIELD_CONFIG.filter((field) => field.section === 'base').map(renderDraftField).join('');
             const detailFields = DRAFT_FIELD_CONFIG.filter((field) => field.section === 'details').map(renderDraftField).join('');
             body.innerHTML = `
                 <h3 class="text-lg font-semibold">3 Vorschau & Bearbeiten</h3>
                 <p class="text-sm text-slate-600">Hier koennen Inhalte bearbeitet oder neu generiert werden. Gelb markierte Felder wurden manuell geaendert.</p>
-                <section class="rounded border border-slate-200 p-3">
-                    <h4 class="font-semibold">Prompt fuer Neu-Generierung</h4>
-                    <div class="mt-2 grid gap-2">
-                        <select id="ai2-prompt-library-select" class="rounded border px-2 py-1 text-sm">
-                            <option value="">Kein Library-Prompt</option>
-                            ${promptOptions}
-                        </select>
-                        <textarea id="ai2-inline-prompt-text" class="rounded border px-2 py-1 text-sm" rows="3" placeholder="Optional eigener Prompt fuer Regenerate...">${escapeHtml(state.inlinePromptText)}</textarea>
-                        <input id="ai2-inline-prompt-title" class="rounded border px-2 py-1 text-sm" value="${escapeHtml(state.promptTitle)}" placeholder="Titel fuer Speichern in Library (optional)">
-                        <label class="inline-flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" id="ai2-save-inline-prompt" ${state.saveInlinePrompt ? 'checked' : ''}> Prompt in Library speichern</label>
-                        <div class="flex justify-end">
-                            <button type="button" id="ai2-save-prompt-library-btn" class="rounded border px-2 py-1 text-xs">Prompt jetzt speichern</button>
-                        </div>
-                    </div>
-                </section>
                 <div class="space-y-4">
                     <section class="rounded border border-slate-200 p-3">
                         <div class="mb-2 flex items-center justify-between">
@@ -564,13 +576,14 @@ function initAiGenerator2() {
         }
     }
 
-    async function saveInlinePromptToLibrary() {
-        const bodyText = (state.inlinePromptText || '').trim();
+    async function saveFieldPromptToLibrary(fieldPath) {
+        const promptState = ensureFieldPromptState(fieldPath);
+        const bodyText = (promptState.promptText || '').trim();
         if (!bodyText) {
             setFeedback('Bitte zuerst Prompt-Text eingeben.', 'warn');
             return;
         }
-        const title = (state.promptTitle || '').trim() || `AI2 Prompt ${new Date().toISOString().slice(0, 19).replace('T', ' ')}`;
+        const title = (promptState.promptTitle || '').trim() || `AI2 Prompt ${new Date().toISOString().slice(0, 19).replace('T', ' ')}`;
         const data = await request(endpoint.savePrompt, {
             title,
             body: bodyText,
@@ -579,20 +592,22 @@ function initAiGenerator2() {
         const prompt = data.prompt;
         if (prompt && prompt.id) {
             state.promptLibrary.unshift(prompt);
-            state.selectedPromptId = String(prompt.id);
+            promptState.promptId = String(prompt.id);
         }
         setFeedback('Prompt wurde in der Library gespeichert.', 'ok');
     }
 
-    function buildPromptPayload() {
-        const selectedBody = selectedPromptBody();
-        const inline = (state.inlinePromptText || '').trim();
+    function buildPromptPayload(fieldPath) {
+        const promptState = ensureFieldPromptState(fieldPath);
+        const selected = state.promptLibrary.find((item) => String(item.id) === String(promptState.promptId));
+        const selectedBody = selected?.body || '';
+        const inline = (promptState.promptText || '').trim();
         const promptText = inline !== '' ? inline : selectedBody;
         return {
-            prompt_id: state.selectedPromptId ? Number(state.selectedPromptId) : null,
+            prompt_id: promptState.promptId ? Number(promptState.promptId) : null,
             prompt_text: promptText !== '' ? promptText : null,
-            save_prompt: state.saveInlinePrompt && inline !== '',
-            prompt_title: state.promptTitle || null,
+            save_prompt: promptState.savePrompt && inline !== '',
+            prompt_title: promptState.promptTitle || null,
         };
     }
 
@@ -609,7 +624,7 @@ function initAiGenerator2() {
                 current_context: context,
                 selected_keywords: state.selected,
                 course_context: state.draftGenerated,
-                ...buildPromptPayload(),
+                ...buildPromptPayload(draftPath),
             });
             setByPath(state.draftGenerated, draftPath, json.value || '');
             state.dirtyFields.delete(draftPath);
@@ -637,7 +652,6 @@ function initAiGenerator2() {
                     duration_days: state.durationDays ? Number(state.durationDays) : null,
                     focus: state.focus,
                 },
-                ...buildPromptPayload(),
             });
             const payload = json.payload && typeof json.payload === 'object' ? json.payload : {};
             setByPath(state.draftGenerated, section, payload);
@@ -665,10 +679,7 @@ function initAiGenerator2() {
         state.dirtyFields = new Set();
         state.customKeywords = [];
         state.promptLibrary = [];
-        state.selectedPromptId = '';
-        state.inlinePromptText = '';
-        state.saveInlinePrompt = false;
-        state.promptTitle = '';
+        state.fieldPromptState = {};
     }
 
     openBtn.addEventListener('click', () => {
@@ -751,10 +762,14 @@ function initAiGenerator2() {
             syncSeoFromSelectedKeywords();
             if (input) input.value = '';
             render();
-        } else if (target.id === 'ai2-save-prompt-library-btn') {
+        } else if (target.dataset.promptToggle) {
+            const promptState = ensureFieldPromptState(target.dataset.promptToggle);
+            promptState.open = !promptState.open;
+            render();
+        } else if (target.dataset.fieldPromptSaveNow) {
             target.disabled = true;
             try {
-                await saveInlinePromptToLibrary();
+                await saveFieldPromptToLibrary(target.dataset.fieldPromptSaveNow);
                 render();
             } catch (e) {
                 setFeedback(e.message || 'Prompt konnte nicht gespeichert werden.', 'error');
@@ -792,12 +807,14 @@ function initAiGenerator2() {
     body.addEventListener('change', (e) => {
         const target = e.target;
         if (!(target instanceof HTMLElement)) return;
-        if (target.id === 'ai2-prompt-library-select' && target instanceof HTMLSelectElement) {
-            state.selectedPromptId = target.value;
+        if (target.dataset.fieldPromptSelect && target instanceof HTMLSelectElement) {
+            const promptState = ensureFieldPromptState(target.dataset.fieldPromptSelect);
+            promptState.promptId = target.value;
             return;
         }
-        if (target.id === 'ai2-save-inline-prompt' && target instanceof HTMLInputElement) {
-            state.saveInlinePrompt = target.checked;
+        if (target.dataset.fieldPromptSave && target instanceof HTMLInputElement) {
+            const promptState = ensureFieldPromptState(target.dataset.fieldPromptSave);
+            promptState.savePrompt = target.checked;
             return;
         }
         if (target.matches('input[data-kw-keyword]') && target instanceof HTMLInputElement) {
@@ -815,11 +832,13 @@ function initAiGenerator2() {
     body.addEventListener('keyup', (e) => {
         const target = e.target;
         if (!(target instanceof HTMLElement)) return;
-        if (target.id === 'ai2-inline-prompt-text' && target instanceof HTMLTextAreaElement) {
-            state.inlinePromptText = target.value;
+        if (target.dataset.fieldPromptText && target instanceof HTMLTextAreaElement) {
+            const promptState = ensureFieldPromptState(target.dataset.fieldPromptText);
+            promptState.promptText = target.value;
         }
-        if (target.id === 'ai2-inline-prompt-title' && target instanceof HTMLInputElement) {
-            state.promptTitle = target.value;
+        if (target.dataset.fieldPromptTitle && target instanceof HTMLInputElement) {
+            const promptState = ensureFieldPromptState(target.dataset.fieldPromptTitle);
+            promptState.promptTitle = target.value;
         }
     });
 }

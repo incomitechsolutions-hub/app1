@@ -189,5 +189,35 @@ class AiCourseWizardControllerTest extends TestCase
             'use_case' => 'course-wizard-regenerate',
         ]);
     }
+
+    public function test_regenerate_field_accepts_prompt_id_from_library(): void
+    {
+        $user = User::factory()->create();
+        $prompt = AiPrompt::query()->create([
+            'title' => 'Prompt from Library',
+            'slug' => 'prompt-from-library',
+            'use_case' => 'course-wizard-regenerate',
+            'body' => 'Nutze einen klaren, praxisnahen Stil.',
+            'placeholder_definitions' => [],
+            'description' => null,
+            'sort_order' => 0,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('admin.course-catalog.ai-wizard.regenerate-field'), [
+            'field_name' => 'subtitle',
+            'current_context' => [
+                'topic' => 'Prompting',
+                'selected_primary_keyword' => 'prompt engineering kurs',
+            ],
+            'selected_keywords' => ['prompt engineering kurs'],
+            'course_context' => [],
+            'prompt_id' => $prompt->id,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('field_name', 'subtitle');
+        $this->assertNotSame('', (string) $response->json('value'));
+    }
 }
 
