@@ -13,6 +13,15 @@ class FieldRegenerationService
      */
     public function regenerate(string $fieldName, array $context): string
     {
+        return $this->regenerateWithMeta($fieldName, $context)['value'];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array{value: string, source: 'provider'|'fallback'}
+     */
+    public function regenerateWithMeta(string $fieldName, array $context): array
+    {
         $provider = $this->providerFactory->make();
         if ($provider) {
             $payload = [
@@ -28,11 +37,17 @@ class FieldRegenerationService
             ]);
             $value = $result['value'] ?? null;
             if (is_string($value) && trim($value) !== '') {
-                return $value;
+                return [
+                    'value' => $value,
+                    'source' => 'provider',
+                ];
             }
         }
 
-        return $this->heuristic($fieldName, $context);
+        return [
+            'value' => $this->heuristic($fieldName, $context),
+            'source' => 'fallback',
+        ];
     }
 
     /**

@@ -181,9 +181,13 @@ class AiCourseWizardController extends Controller
             );
         }
 
-        $value = $this->fieldRegeneration->regenerate((string) $data['field_name'], $context);
+        $result = $this->fieldRegeneration->regenerateWithMeta((string) $data['field_name'], $context);
 
-        return response()->json(['field_name' => $data['field_name'], 'value' => $value]);
+        return response()->json([
+            'field_name' => $data['field_name'],
+            'value' => $result['value'],
+            'source' => $result['source'],
+        ]);
     }
 
     public function regenerateSection(Request $request): JsonResponse
