@@ -18,7 +18,7 @@ class FieldRegenerationService
 
     /**
      * @param  array<string, mixed>  $context
-     * @return array{value: string, source: 'provider'|'fallback'}
+     * @return array{value: string, source: 'provider'|'fallback', provider_attempted: bool, fallback_reason: string|null}
      */
     public function regenerateWithMeta(string $fieldName, array $context): array
     {
@@ -40,13 +40,26 @@ class FieldRegenerationService
                 return [
                     'value' => $value,
                     'source' => 'provider',
+                    'provider_attempted' => true,
+                    'fallback_reason' => null,
                 ];
             }
+
+            $reason = data_get($result, '_meta.reason');
+
+            return [
+                'value' => $this->heuristic($fieldName, $context),
+                'source' => 'fallback',
+                'provider_attempted' => true,
+                'fallback_reason' => is_string($reason) && $reason !== '' ? $reason : 'empty_value',
+            ];
         }
 
         return [
             'value' => $this->heuristic($fieldName, $context),
             'source' => 'fallback',
+            'provider_attempted' => false,
+            'fallback_reason' => 'provider_unavailable',
         ];
     }
 

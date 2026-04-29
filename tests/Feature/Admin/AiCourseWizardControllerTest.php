@@ -85,7 +85,7 @@ class AiCourseWizardControllerTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('field_name', 'seo_title')
-            ->assertJsonStructure(['field_name', 'value', 'source']);
+            ->assertJsonStructure(['field_name', 'value', 'source', 'provider_attempted', 'fallback_reason']);
         $this->assertNotSame('', (string) $response->json('value'));
     }
 
@@ -265,7 +265,7 @@ class AiCourseWizardControllerTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('field_name', 'subtitle')
-            ->assertJsonStructure(['field_name', 'value', 'source']);
+            ->assertJsonStructure(['field_name', 'value', 'source', 'provider_attempted', 'fallback_reason']);
         $this->assertNotSame('', (string) $response->json('value'));
     }
 

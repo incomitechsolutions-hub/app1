@@ -668,7 +668,8 @@ function initAiGenerator2() {
             state.dirtyFields.delete(draftPath);
             render();
             if (json.source === 'fallback') {
-                setFeedback('Kein neuer Vorschlag (Fallback aktiv). Bitte API-Key/Provider und Prompt prüfen.', 'warn');
+                const reason = json.fallback_reason ? ` Grund: ${json.fallback_reason}.` : '';
+                setFeedback(`Kein neuer Vorschlag (Fallback aktiv).${reason}`, 'warn');
             } else if (String(previousValue ?? '') === String(regeneratedValue ?? '')) {
                 setFeedback('Kein neuer Vorschlag - Prompt/Context anpassen.', 'warn');
             } else {

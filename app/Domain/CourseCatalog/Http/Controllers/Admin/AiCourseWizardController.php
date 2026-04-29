@@ -187,6 +187,8 @@ class AiCourseWizardController extends Controller
             'field_name' => $data['field_name'],
             'value' => $result['value'],
             'source' => $result['source'],
+            'provider_attempted' => $result['provider_attempted'],
+            'fallback_reason' => $result['fallback_reason'],
         ]);
     }
 
