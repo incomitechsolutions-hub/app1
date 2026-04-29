@@ -186,7 +186,6 @@ function createModal() {
                     <button type="button" data-close class="rounded border px-3 py-1 text-sm">Schliessen</button>
                 </div>
                 <div class="mb-4 h-2 w-full rounded bg-slate-100"><div id="ai2-progress" class="h-2 rounded bg-sky-500" style="width:16%"></div></div>
-                <div id="ai2-feedback" class="mb-3 hidden rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"></div>
                 <div id="ai2-step-body" class="space-y-4"></div>
                 <div class="mt-6 flex justify-between">
                     <button type="button" id="ai2-back" class="rounded border px-4 py-2 text-sm">Zurueck</button>
@@ -206,7 +205,6 @@ function initAiGenerator2() {
     const modal = createModal();
     const body = modal.querySelector('#ai2-step-body');
     const progress = modal.querySelector('#ai2-progress');
-    const feedback = modal.querySelector('#ai2-feedback');
     const backBtn = modal.querySelector('#ai2-back');
     const nextBtn = modal.querySelector('#ai2-next');
     const closeBtn = modal.querySelector('[data-close]');
@@ -239,6 +237,15 @@ function initAiGenerator2() {
         promptLibrary: root.dataset.promptLibraryUrl,
         savePrompt: root.dataset.promptLibraryStoreUrl,
     };
+
+    const toastRoot = (() => {
+        const el = document.createElement('div');
+        el.id = 'ai2-toast-root';
+        el.className = 'fixed right-4 top-4 z-[120] flex max-w-md flex-col gap-2';
+        document.body.appendChild(el);
+        return el;
+    })();
+    const toastTimers = new Map();
 
     const syncSeoFromSelectedKeywords = () => {
         if (!state.draftGenerated.seo) state.draftGenerated.seo = {};
@@ -297,23 +304,34 @@ function initAiGenerator2() {
         return state.fieldPromptState[path];
     };
 
+    const dismissToast = (id) => {
+        const toast = toastRoot.querySelector(`[data-toast-id="${id}"]`);
+        if (toast) toast.remove();
+        const timer = toastTimers.get(id);
+        if (timer) {
+            clearTimeout(timer);
+            toastTimers.delete(id);
+        }
+    };
+
     const setFeedback = (message, kind = 'warn') => {
-        if (!feedback) return;
-        if (!message) {
-            feedback.classList.add('hidden');
-            feedback.textContent = '';
-            return;
-        }
-        feedback.className = 'mb-3 rounded border px-3 py-2 text-sm';
-        if (kind === 'error') {
-            feedback.classList.add('border-red-200', 'bg-red-50', 'text-red-900');
-        } else if (kind === 'ok') {
-            feedback.classList.add('border-emerald-200', 'bg-emerald-50', 'text-emerald-900');
-        } else {
-            feedback.classList.add('border-amber-200', 'bg-amber-50', 'text-amber-900');
-        }
-        feedback.textContent = message;
-        feedback.classList.remove('hidden');
+        if (!message) return;
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const color = kind === 'error'
+            ? 'border-red-200 bg-red-50 text-red-900'
+            : (kind === 'ok' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900');
+        const toast = document.createElement('div');
+        toast.setAttribute('data-toast-id', id);
+        toast.className = `rounded border px-3 py-2 text-sm shadow ${color}`;
+        toast.innerHTML = `
+            <div class="flex items-start gap-2">
+                <p class="flex-1">${escapeHtml(message)}</p>
+                <button type="button" data-toast-close="${id}" class="rounded border px-1.5 py-0.5 text-xs">x</button>
+            </div>
+        `;
+        toastRoot.appendChild(toast);
+        const timer = window.setTimeout(() => dismissToast(id), 5000);
+        toastTimers.set(id, timer);
     };
 
     const request = async (url, payload, method = 'POST') => {
@@ -417,7 +435,6 @@ function initAiGenerator2() {
     };
 
     const render = () => {
-        setFeedback('');
         progress.style.width = `${(state.step / state.totalSteps) * 100}%`;
         if (state.step === 1) {
             body.innerHTML = `
@@ -650,7 +667,9 @@ function initAiGenerator2() {
             setByPath(state.draftGenerated, draftPath, regeneratedValue);
             state.dirtyFields.delete(draftPath);
             render();
-            if (String(previousValue ?? '') === String(regeneratedValue ?? '')) {
+            if (json.source === 'fallback') {
+                setFeedback('Kein neuer Vorschlag (Fallback aktiv). Bitte API-Key/Provider und Prompt prüfen.', 'warn');
+            } else if (String(previousValue ?? '') === String(regeneratedValue ?? '')) {
                 setFeedback('Kein neuer Vorschlag - Prompt/Context anpassen.', 'warn');
             } else {
                 setFeedback(`Feld "${fieldName}" wurde aktualisiert.`, 'ok');
@@ -759,6 +778,10 @@ function initAiGenerator2() {
     body.addEventListener('click', async (e) => {
         const target = e.target;
         if (!(target instanceof HTMLElement)) return;
+        if (target.dataset.toastClose) {
+            dismissToast(target.dataset.toastClose);
+            return;
+        }
         if (target.id === 'ai2-select-recommended') {
             state.selected = state.keywords.filter((k) => k.selected).map((k) => k.keyword);
             syncSeoFromSelectedKeywords();
