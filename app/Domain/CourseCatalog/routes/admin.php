@@ -72,6 +72,9 @@ Route::middleware(['web', 'auth', 'module.enabled:course_catalog'])->prefix('adm
     Route::post('ai-course-wizard/regenerate-field', [AiCourseWizardController::class, 'regenerateField'])
         ->middleware('throttle:30,1')
         ->name('ai-wizard.regenerate-field');
+    Route::post('ai-course-wizard/regenerate-section', [AiCourseWizardController::class, 'regenerateSection'])
+        ->middleware('throttle:20,1')
+        ->name('ai-wizard.regenerate-section');
 
     Route::resource('programs', ProgramController::class);
     Route::resource('courses', CourseController::class);

@@ -6,6 +6,7 @@ use App\Domain\CourseCatalog\Models\Course;
 use App\Domain\CourseCatalog\Models\CourseKeyword;
 use App\Domain\CourseCatalog\Models\CourseKeywordAnalysis;
 use App\Domain\CourseCatalog\Services\AiCourseWizardService;
+use App\Domain\CourseCatalog\Services\CourseContentGenerationService;
 use App\Domain\CourseCatalog\Services\FieldRegenerationService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +17,7 @@ class AiCourseWizardController extends Controller
     public function __construct(
         private readonly AiCourseWizardService $wizardService,
         private readonly FieldRegenerationService $fieldRegeneration,
+        private readonly CourseContentGenerationService $contentGeneration,
     ) {}
 
     public function keywordDiscovery(Request $request): JsonResponse
@@ -88,6 +90,37 @@ class AiCourseWizardController extends Controller
         $value = $this->fieldRegeneration->regenerate((string) $data['field_name'], $context);
 
         return response()->json(['field_name' => $data['field_name'], 'value' => $value]);
+    }
+
+    public function regenerateSection(Request $request): JsonResponse
+    {
+        $this->authorize('create', Course::class);
+
+        $data = $request->validate([
+            'analysis_id' => ['required', 'integer', 'exists:course_keyword_analyses,id'],
+            'section' => ['required', 'string', 'in:seo,base,details'],
+            'selected_keywords' => ['nullable', 'array'],
+            'selected_keywords.*' => ['string', 'max:255'],
+            'generation_input' => ['nullable', 'array'],
+        ]);
+
+        $analysis = CourseKeywordAnalysis::query()->findOrFail((int) $data['analysis_id']);
+        $input = [
+            'topic' => $analysis->topic,
+            'subtopics' => is_array($analysis->subtopics) ? $analysis->subtopics : [],
+        ];
+        $input = array_merge($input, is_array($data['generation_input'] ?? null) ? $data['generation_input'] : []);
+
+        $selectedKeywords = is_array($data['selected_keywords'] ?? null) && $data['selected_keywords'] !== []
+            ? array_values($data['selected_keywords'])
+            : (is_array($analysis->selected_keywords) ? array_values($analysis->selected_keywords) : []);
+
+        $payload = $this->contentGeneration->regenerateSection((string) $data['section'], $input, $selectedKeywords);
+
+        return response()->json([
+            'section' => $data['section'],
+            'payload' => $payload,
+        ]);
     }
 }
 

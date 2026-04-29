@@ -2,6 +2,43 @@ function csrfToken() {
     return document.querySelector('input[name="_token"]')?.value ?? '';
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function deepClone(value) {
+    if (value === undefined || value === null) return {};
+    try {
+        return JSON.parse(JSON.stringify(value));
+    } catch (_err) {
+        return {};
+    }
+}
+
+function getByPath(obj, path) {
+    return path.split('.').reduce((acc, key) => (acc && Object.prototype.hasOwnProperty.call(acc, key) ? acc[key] : undefined), obj);
+}
+
+function setByPath(obj, path, value) {
+    const keys = path.split('.');
+    let current = obj;
+    keys.forEach((key, index) => {
+        if (index === keys.length - 1) {
+            current[key] = value;
+            return;
+        }
+        if (!current[key] || typeof current[key] !== 'object') {
+            current[key] = {};
+        }
+        current = current[key];
+    });
+}
+
 function toSlug(value) {
     return String(value ?? '')
         .toLowerCase()
@@ -113,6 +150,26 @@ function applyGeneratedData(generated, state) {
     }
 }
 
+const DRAFT_FIELD_CONFIG = [
+    { section: 'seo', label: 'SEO Titel', path: 'seo.seo_title', type: 'input', fieldName: 'seo_title' },
+    { section: 'seo', label: 'Meta Description', path: 'seo.meta_description', type: 'textarea', rows: 2, fieldName: 'meta_description' },
+    { section: 'seo', label: 'Focus Keyword', path: 'seo.focus_keyword', type: 'input', fieldName: 'focus_keyword' },
+    { section: 'seo', label: 'Tags CSV', path: 'seo.tags_csv', type: 'input', fieldName: 'tags_csv' },
+    { section: 'base', label: 'Titel', path: 'base.title', type: 'input', fieldName: 'title' },
+    { section: 'base', label: 'Untertitel', path: 'base.subtitle', type: 'input', fieldName: 'subtitle' },
+    { section: 'base', label: 'Slug', path: 'base.slug', type: 'input', fieldName: 'slug' },
+    { section: 'base', label: 'Autor', path: 'base.author_name', type: 'input', fieldName: 'author_name' },
+    { section: 'base', label: 'Dauer Stunden', path: 'base.duration_hours', type: 'input', fieldName: 'duration_hours' },
+    { section: 'details', label: 'Kurzbeschreibung', path: 'details.short_description', type: 'textarea', rows: 3, fieldName: 'short_description' },
+    { section: 'details', label: 'Langbeschreibung', path: 'details.long_description', type: 'textarea', rows: 4, fieldName: 'long_description' },
+    { section: 'details', label: 'Zielgruppe Text', path: 'details.target_audience_text', type: 'textarea', rows: 2, fieldName: 'target_audience_text' },
+    { section: 'details', label: 'Voraussetzungen Text', path: 'details.prerequisites_text', type: 'textarea', rows: 2, fieldName: 'prerequisites_text' },
+    { section: 'details', label: 'Module (JSON)', path: 'details.modules', type: 'json', rows: 5, fieldName: 'modules' },
+    { section: 'details', label: 'Lernziele (JSON)', path: 'details.objectives', type: 'json', rows: 5, fieldName: 'objectives' },
+    { section: 'details', label: 'Prerequisites (JSON)', path: 'details.prerequisites', type: 'json', rows: 4, fieldName: 'prerequisites' },
+    { section: 'details', label: 'FAQ (JSON)', path: 'details.faqs', type: 'json', rows: 5, fieldName: 'faqs' },
+];
+
 function createModal() {
     const modal = document.createElement('div');
     modal.id = 'ai-generator-2-modal';
@@ -125,6 +182,7 @@ function createModal() {
                     <button type="button" data-close class="rounded border px-3 py-1 text-sm">Schliessen</button>
                 </div>
                 <div class="mb-4 h-2 w-full rounded bg-slate-100"><div id="ai2-progress" class="h-2 rounded bg-sky-500" style="width:16%"></div></div>
+                <div id="ai2-feedback" class="mb-3 hidden rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"></div>
                 <div id="ai2-step-body" class="space-y-4"></div>
                 <div class="mt-6 flex justify-between">
                     <button type="button" id="ai2-back" class="rounded border px-4 py-2 text-sm">Zurueck</button>
@@ -144,16 +202,20 @@ function initAiGenerator2() {
     const modal = createModal();
     const body = modal.querySelector('#ai2-step-body');
     const progress = modal.querySelector('#ai2-progress');
+    const feedback = modal.querySelector('#ai2-feedback');
     const backBtn = modal.querySelector('#ai2-back');
     const nextBtn = modal.querySelector('#ai2-next');
     const closeBtn = modal.querySelector('[data-close]');
 
     const state = {
         step: 1,
+        totalSteps: 4,
         analysisId: null,
         generated: {},
+        draftGenerated: {},
         keywords: [],
         selected: [],
+        dirtyFields: new Set(),
         topic: '',
         subtopics: '',
         targetAudience: '',
@@ -166,10 +228,97 @@ function initAiGenerator2() {
         keywordDiscovery: root.dataset.keywordDiscoveryUrl,
         saveSelection: root.dataset.saveSelectionUrl,
         regenerateField: root.dataset.regenerateFieldUrl,
+        regenerateSection: root.dataset.regenerateSectionUrl,
+    };
+
+    const setFeedback = (message, kind = 'warn') => {
+        if (!feedback) return;
+        if (!message) {
+            feedback.classList.add('hidden');
+            feedback.textContent = '';
+            return;
+        }
+        feedback.className = 'mb-3 rounded border px-3 py-2 text-sm';
+        if (kind === 'error') {
+            feedback.classList.add('border-red-200', 'bg-red-50', 'text-red-900');
+        } else if (kind === 'ok') {
+            feedback.classList.add('border-emerald-200', 'bg-emerald-50', 'text-emerald-900');
+        } else {
+            feedback.classList.add('border-amber-200', 'bg-amber-50', 'text-amber-900');
+        }
+        feedback.textContent = message;
+        feedback.classList.remove('hidden');
+    };
+
+    const request = async (url, payload, method = 'POST') => {
+        let res;
+        try {
+            res = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(payload ?? {}),
+            });
+        } catch (_networkErr) {
+            throw new Error('Netzwerkfehler. Bitte Verbindung pruefen und erneut versuchen.');
+        }
+
+        const contentType = res.headers.get('content-type') || '';
+        let data = {};
+        if (contentType.includes('application/json')) {
+            data = await res.json();
+        } else {
+            const text = await res.text();
+            data = { message: text.slice(0, 200) };
+        }
+
+        if (res.ok) {
+            return data;
+        }
+
+        if (res.status === 419) throw new Error('Sitzung abgelaufen. Bitte Seite neu laden.');
+        if (res.status === 401 || res.status === 403) throw new Error('Keine Berechtigung fuer diese Aktion.');
+        if (res.status === 429) throw new Error('Zu viele Anfragen. Bitte kurz warten und erneut versuchen.');
+        if (res.status === 422) throw new Error(data.message || 'Eingaben sind ungueltig.');
+        if (res.status >= 500) throw new Error('Serverfehler bei der AI-Verarbeitung.');
+
+        throw new Error(data.message || 'Anfrage fehlgeschlagen.');
+    };
+
+    const renderDraftField = (field) => {
+        const current = getByPath(state.draftGenerated, field.path);
+        const isDirty = state.dirtyFields.has(field.path);
+        const dirtyClass = isDirty ? 'border-amber-400 bg-amber-50' : 'border-slate-300 bg-white';
+        const value = field.type === 'json'
+            ? escapeHtml(JSON.stringify(current ?? [], null, 2))
+            : escapeHtml(current ?? '');
+
+        if (field.type === 'textarea' || field.type === 'json') {
+            return `
+                <label class="block text-xs font-semibold text-slate-600">${field.label}</label>
+                <textarea data-draft-path="${field.path}" data-draft-type="${field.type}" rows="${field.rows || 3}" class="w-full rounded border ${dirtyClass} px-3 py-2 text-sm">${value}</textarea>
+                <div class="mt-1 flex justify-end">
+                    <button type="button" data-regen-field="${field.fieldName}" data-draft-path="${field.path}" class="rounded border px-2 py-1 text-xs">Feld neu generieren</button>
+                </div>
+            `;
+        }
+
+        return `
+            <label class="block text-xs font-semibold text-slate-600">${field.label}</label>
+            <div class="flex gap-2">
+                <input data-draft-path="${field.path}" data-draft-type="${field.type}" class="flex-1 rounded border ${dirtyClass} px-3 py-2 text-sm" value="${value}">
+                <button type="button" data-regen-field="${field.fieldName}" data-draft-path="${field.path}" class="rounded border px-2 py-1 text-xs">Neu</button>
+            </div>
+        `;
     };
 
     const render = () => {
-        progress.style.width = `${(state.step / 6) * 100}%`;
+        setFeedback('');
+        progress.style.width = `${(state.step / state.totalSteps) * 100}%`;
         if (state.step === 1) {
             body.innerHTML = `
                 <h3 class="text-lg font-semibold">1 Thema</h3>
@@ -197,7 +346,7 @@ function initAiGenerator2() {
                         <span class="ml-auto text-xs text-slate-500">${k.intent || ''} | R${k.relevance_score} C${k.commercial_score}</span>
                     </label>`).join('');
             }).join('');
-            const seo = state.generated.seo || {};
+            const seo = state.draftGenerated.seo || {};
             body.innerHTML = `
                 <h3 class="text-lg font-semibold">2 Keyword SEO</h3>
                 <div class="flex gap-2">
@@ -209,31 +358,48 @@ function initAiGenerator2() {
                     <input id="ai2-seo-title" class="rounded border px-2 py-1" value="${seo.seo_title || ''}" placeholder="SEO Titel">
                     <textarea id="ai2-seo-desc" class="rounded border px-2 py-1" rows="2" placeholder="Meta Description">${seo.meta_description || ''}</textarea>
                     <input id="ai2-focus-keyword" class="rounded border px-2 py-1" value="${seo.focus_keyword || ''}" placeholder="Fokus Keyword">
-                    <div class="flex gap-2"><input id="ai2-seo-slug" class="flex-1 rounded border px-2 py-1" value="${(state.generated.base || {}).slug || ''}" placeholder="Slug">
-                    <button type="button" id="ai2-regen-seo-title" class="rounded border px-2 py-1 text-xs">Neu generieren SEO Titel</button></div>
+                    <div class="flex gap-2"><input id="ai2-seo-slug" class="flex-1 rounded border px-2 py-1" value="${(state.draftGenerated.base || {}).slug || ''}" placeholder="Slug"></div>
                 </div>`;
-            nextBtn.textContent = 'Weiter zur Content-Erstellung';
+            nextBtn.textContent = 'Weiter zur Vorschau';
             return;
         }
 
         if (state.step === 3) {
-            body.innerHTML = `<h3 class="text-lg font-semibold">3 SEO</h3><p>SEO-Felder werden in die bestehende SEO-Maske übernommen.</p>`;
+            const seoFields = DRAFT_FIELD_CONFIG.filter((field) => field.section === 'seo').map(renderDraftField).join('');
+            const baseFields = DRAFT_FIELD_CONFIG.filter((field) => field.section === 'base').map(renderDraftField).join('');
+            const detailFields = DRAFT_FIELD_CONFIG.filter((field) => field.section === 'details').map(renderDraftField).join('');
+            body.innerHTML = `
+                <h3 class="text-lg font-semibold">3 Vorschau & Bearbeiten</h3>
+                <p class="text-sm text-slate-600">Hier koennen Inhalte bearbeitet oder neu generiert werden. Gelb markierte Felder wurden manuell geaendert.</p>
+                <div class="space-y-4">
+                    <section class="rounded border border-slate-200 p-3">
+                        <div class="mb-2 flex items-center justify-between">
+                            <h4 class="font-semibold">SEO</h4>
+                            <button type="button" data-regen-section="seo" class="rounded border px-2 py-1 text-xs">Abschnitt neu generieren</button>
+                        </div>
+                        <div class="grid gap-2">${seoFields}</div>
+                    </section>
+                    <section class="rounded border border-slate-200 p-3">
+                        <div class="mb-2 flex items-center justify-between">
+                            <h4 class="font-semibold">Basisdaten</h4>
+                            <button type="button" data-regen-section="base" class="rounded border px-2 py-1 text-xs">Abschnitt neu generieren</button>
+                        </div>
+                        <div class="grid gap-2">${baseFields}</div>
+                    </section>
+                    <section class="rounded border border-slate-200 p-3">
+                        <div class="mb-2 flex items-center justify-between">
+                            <h4 class="font-semibold">Details</h4>
+                            <button type="button" data-regen-section="details" class="rounded border px-2 py-1 text-xs">Abschnitt neu generieren</button>
+                        </div>
+                        <div class="grid gap-2">${detailFields}</div>
+                    </section>
+                </div>`;
             nextBtn.textContent = 'Weiter';
             return;
         }
-        if (state.step === 4) {
-            body.innerHTML = `<h3 class="text-lg font-semibold">4 Basisdaten</h3><p>Basiseinstellungen werden in die vorhandenen Kursfelder geschrieben.</p>`;
-            nextBtn.textContent = 'Weiter';
-            return;
-        }
-        if (state.step === 5) {
-            body.innerHTML = `<h3 class="text-lg font-semibold">5 Details</h3><p>Beschreibung, Module, Lernziele, FAQ werden befüllt.</p>`;
-            nextBtn.textContent = 'Weiter';
-            return;
-        }
-        body.innerHTML = `<h3 class="text-lg font-semibold">6 Review</h3><p>Prüfen und als Entwurf speichern.</p>
-            <label class="mt-2 flex items-center gap-2 text-sm text-slate-500"><input type="checkbox" disabled> Auch Kursvarianten erzeugen</label>`;
-        nextBtn.textContent = 'Als Entwurf speichern';
+        body.innerHTML = `<h3 class="text-lg font-semibold">4 Uebernehmen</h3>
+            <p class="text-sm text-slate-600">Die Werte werden erst jetzt in das Kursformular geschrieben. Danach koennen Sie ausserhalb des Wizards weiter anpassen und normal speichern.</p>`;
+        nextBtn.textContent = 'In Formular uebernehmen';
     };
 
     async function runDiscovery() {
@@ -259,20 +425,16 @@ function initAiGenerator2() {
         nextBtn.disabled = true;
         nextBtn.textContent = 'Analyse läuft...';
         try {
-            const res = await fetch(endpoint.keywordDiscovery, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
-                body: JSON.stringify(payload),
-            });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.message || 'Keyword Discovery fehlgeschlagen');
+            const json = await request(endpoint.keywordDiscovery, payload);
             state.analysisId = json.analysis_id;
             state.keywords = Array.isArray(json.keywords) ? json.keywords : [];
             state.selected = state.keywords.filter((k) => k.selected).map((k) => k.keyword);
             state.generated = json.generated || {};
+            state.draftGenerated = deepClone(state.generated);
+            state.dirtyFields = new Set();
             return true;
         } catch (e) {
-            alert(e.message || 'Fehler');
+            setFeedback(e.message || 'Fehler', 'error');
             return false;
         } finally {
             nextBtn.disabled = false;
@@ -287,30 +449,88 @@ function initAiGenerator2() {
             selected_primary_keyword: selectedKeywords[0] || null,
             selected_clusters: [],
         };
-        const res = await fetch(endpoint.saveSelection, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
-            body: JSON.stringify(bodyPayload),
-        });
-        if (!res.ok) {
-            const j = await res.json();
-            throw new Error(j.message || 'Speichern der Auswahl fehlgeschlagen');
-        }
+        await request(endpoint.saveSelection, bodyPayload);
 
-        if (state.generated.seo) {
-            state.generated.seo.seo_title = document.getElementById('ai2-seo-title')?.value || state.generated.seo.seo_title;
-            state.generated.seo.meta_description = document.getElementById('ai2-seo-desc')?.value || state.generated.seo.meta_description;
-            state.generated.seo.focus_keyword = document.getElementById('ai2-focus-keyword')?.value || state.generated.seo.focus_keyword;
+        if (state.draftGenerated.seo) {
+            state.draftGenerated.seo.seo_title = document.getElementById('ai2-seo-title')?.value || state.draftGenerated.seo.seo_title;
+            state.draftGenerated.seo.meta_description = document.getElementById('ai2-seo-desc')?.value || state.draftGenerated.seo.meta_description;
+            state.draftGenerated.seo.focus_keyword = document.getElementById('ai2-focus-keyword')?.value || state.draftGenerated.seo.focus_keyword;
         }
-        if (state.generated.base) {
-            state.generated.base.slug = document.getElementById('ai2-seo-slug')?.value || state.generated.base.slug;
+        if (state.draftGenerated.base) {
+            state.draftGenerated.base.slug = document.getElementById('ai2-seo-slug')?.value || state.draftGenerated.base.slug;
         }
-        applyGeneratedData(state.generated, state);
+    }
+
+    async function regenerateField(fieldName, draftPath, trigger) {
+        const context = {
+            topic: state.topic,
+            selected_primary_keyword: state.selected[0] || state.topic,
+            current_value: getByPath(state.draftGenerated, draftPath),
+        };
+        if (trigger) trigger.disabled = true;
+        try {
+            const json = await request(endpoint.regenerateField, {
+                field_name: fieldName,
+                current_context: context,
+                selected_keywords: state.selected,
+                course_context: state.draftGenerated,
+            });
+            setByPath(state.draftGenerated, draftPath, json.value || '');
+            state.dirtyFields.delete(draftPath);
+            render();
+            setFeedback(`Feld "${fieldName}" wurde aktualisiert.`, 'ok');
+        } catch (e) {
+            setFeedback(e.message || 'Feld-Update fehlgeschlagen.', 'error');
+        } finally {
+            if (trigger) trigger.disabled = false;
+        }
+    }
+
+    async function regenerateSection(section, trigger) {
+        if (trigger) trigger.disabled = true;
+        try {
+            const json = await request(endpoint.regenerateSection, {
+                analysis_id: state.analysisId,
+                section,
+                selected_keywords: state.selected,
+                generation_input: {
+                    topic: state.topic,
+                    subtopics: state.subtopics.split(',').map((item) => item.trim()).filter(Boolean),
+                    target_audience: state.targetAudience,
+                    level: state.level,
+                    duration_days: state.durationDays ? Number(state.durationDays) : null,
+                    focus: state.focus,
+                },
+            });
+            const payload = json.payload && typeof json.payload === 'object' ? json.payload : {};
+            setByPath(state.draftGenerated, section, payload);
+            Array.from(state.dirtyFields).forEach((path) => {
+                if (path.startsWith(`${section}.`)) {
+                    state.dirtyFields.delete(path);
+                }
+            });
+            render();
+            setFeedback(`Abschnitt "${section}" wurde neu generiert.`, 'ok');
+        } catch (e) {
+            setFeedback(e.message || 'Abschnitt-Update fehlgeschlagen.', 'error');
+        } finally {
+            if (trigger) trigger.disabled = false;
+        }
+    }
+
+    function resetState() {
+        state.step = 1;
+        state.analysisId = null;
+        state.generated = {};
+        state.draftGenerated = {};
+        state.keywords = [];
+        state.selected = [];
+        state.dirtyFields = new Set();
     }
 
     openBtn.addEventListener('click', () => {
         modal.classList.remove('hidden');
-        state.step = 1;
+        resetState();
         render();
     });
 
@@ -340,25 +560,26 @@ function initAiGenerator2() {
                 }
             });
             if (!state.selected.length) {
-                alert('Bitte mindestens ein Keyword auswählen.');
+                setFeedback('Bitte mindestens ein Keyword auswaehlen.', 'warn');
                 return;
             }
             try {
                 await persistSelection();
             } catch (e) {
-                alert(e.message || 'Fehler');
+                setFeedback(e.message || 'Fehler', 'error');
                 return;
             }
             state.step = 3;
             render();
             return;
         }
-        if (state.step < 6) {
+        if (state.step < state.totalSteps) {
             state.step += 1;
             render();
             return;
         }
-        document.getElementById('course-create-form')?.submit();
+        applyGeneratedData(state.draftGenerated, state);
+        modal.classList.add('hidden');
     });
 
     body.addEventListener('click', async (e) => {
@@ -370,24 +591,32 @@ function initAiGenerator2() {
         } else if (target.id === 'ai2-reset') {
             state.selected = [];
             render();
-        } else if (target.id === 'ai2-regen-seo-title') {
-            const payload = {
-                field_name: 'seo_title',
-                current_context: { topic: state.topic, selected_primary_keyword: state.selected[0] || state.topic },
-                selected_keywords: state.selected,
-                course_context: {},
-            };
-            const res = await fetch(endpoint.regenerateField, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
-                body: JSON.stringify(payload),
-            });
-            const json = await res.json();
-            if (res.ok) {
-                const input = document.getElementById('ai2-seo-title');
-                if (input) input.value = json.value || '';
+        } else if (target.dataset.regenField) {
+            await regenerateField(target.dataset.regenField, target.dataset.draftPath || '', target);
+        } else if (target.dataset.regenSection) {
+            await regenerateSection(target.dataset.regenSection, target);
+        }
+    });
+
+    body.addEventListener('input', (e) => {
+        const target = e.target;
+        if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLTextAreaElement)) return;
+        const draftPath = target.dataset?.draftPath;
+        if (!draftPath) return;
+        const type = target.dataset?.draftType || 'input';
+        let value = target.value;
+        if (type === 'json') {
+            try {
+                value = JSON.parse(target.value || '[]');
+            } catch (_err) {
+                // Keep last valid JSON state until user fixes syntax.
+                return;
             }
         }
+        setByPath(state.draftGenerated, draftPath, value);
+        state.dirtyFields.add(draftPath);
+        target.classList.remove('border-slate-300', 'bg-white');
+        target.classList.add('border-amber-400', 'bg-amber-50');
     });
 }
 

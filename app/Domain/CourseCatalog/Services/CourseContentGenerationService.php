@@ -39,6 +39,24 @@ class CourseContentGenerationService
     }
 
     /**
+     * @param  array<string, mixed>  $input
+     * @param  list<string>  $selectedKeywords
+     * @return array<string, mixed>
+     */
+    public function regenerateSection(string $section, array $input, array $selectedKeywords): array
+    {
+        $allowed = ['seo', 'base', 'details'];
+        if (!in_array($section, $allowed, true)) {
+            return [];
+        }
+
+        $generated = $this->generate($input, $selectedKeywords);
+        $result = $generated[$section] ?? [];
+
+        return is_array($result) ? $result : [];
+    }
+
+    /**
      * @param  array<string, mixed>  $generated
      * @param  array<string, mixed>  $input
      * @param  list<string>  $selectedKeywords

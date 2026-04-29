@@ -118,6 +118,7 @@
             data-keyword-discovery-url="{{ route('admin.course-catalog.ai-wizard.keyword-discovery') }}"
             data-save-selection-url="{{ route('admin.course-catalog.ai-wizard.save-selection') }}"
             data-regenerate-field-url="{{ route('admin.course-catalog.ai-wizard.regenerate-field') }}"
+            data-regenerate-section-url="{{ route('admin.course-catalog.ai-wizard.regenerate-section') }}"
             data-category-search-url="{{ route('admin.taxonomy.categories.options') }}"
             data-tag-quick-url="{{ route('admin.taxonomy.tags.quick-store') }}"
             data-audience-quick-url="{{ route('admin.taxonomy.audiences.quick-store') }}"
