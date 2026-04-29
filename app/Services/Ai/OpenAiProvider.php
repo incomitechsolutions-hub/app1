@@ -134,8 +134,19 @@ class OpenAiProvider implements AiProviderInterface
         $candidates = [
             $decoded['value'] ?? null,
             $decoded['title'] ?? null,
+            $decoded['subtitle'] ?? null,
             $decoded['text'] ?? null,
             $decoded['output_text'] ?? null,
+            $decoded['short_description'] ?? null,
+            $decoded['long_description'] ?? null,
+            $decoded['meta_description'] ?? null,
+            $decoded['seo_title'] ?? null,
+            $decoded['focus_keyword'] ?? null,
+            $decoded['tags_csv'] ?? null,
+            $decoded['target_audience_text'] ?? null,
+            $decoded['prerequisites_text'] ?? null,
+            $decoded['description'] ?? null,
+            $decoded['content'] ?? null,
             data_get($decoded, 'data.value'),
             data_get($decoded, 'result.value'),
             data_get($rawJson, 'choices.0.message.content'),
@@ -148,9 +159,17 @@ class OpenAiProvider implements AiProviderInterface
             }
         }
 
+        // If response is an object, pick the first readable string value as a last structured fallback.
+        foreach ($decoded as $value) {
+            $resolved = $this->normalizeFieldValue($value);
+            if ($resolved !== null) {
+                return $resolved;
+            }
+        }
+
         // Last resort: accept plain text responses by stripping code fences.
         $plain = trim(preg_replace('/^```(?:json)?|```$/m', '', $content) ?? '');
-        if ($plain !== '' && ! str_starts_with($plain, '{')) {
+        if ($plain !== '' && ! str_starts_with($plain, '{') && ! str_starts_with($plain, '[')) {
             return $plain;
         }
 
@@ -169,11 +188,30 @@ class OpenAiProvider implements AiProviderInterface
             if (str_starts_with($trimmed, '{') && str_ends_with($trimmed, '}')) {
                 $json = json_decode($trimmed, true);
                 if (is_array($json)) {
-                    foreach (['value', 'title', 'text', 'output_text'] as $key) {
+                    foreach ([
+                        'value',
+                        'title',
+                        'subtitle',
+                        'text',
+                        'output_text',
+                        'short_description',
+                        'long_description',
+                        'meta_description',
+                        'seo_title',
+                        'focus_keyword',
+                        'tags_csv',
+                        'target_audience_text',
+                        'prerequisites_text',
+                        'description',
+                        'content',
+                    ] as $key) {
                         if (isset($json[$key]) && is_string($json[$key]) && trim($json[$key]) !== '') {
                             return trim($json[$key]);
                         }
                     }
+
+                    // Prevent raw JSON blobs from being inserted into text fields.
+                    return null;
                 }
             }
 
