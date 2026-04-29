@@ -2,6 +2,7 @@
 
 namespace App\Services\Ai;
 
+use App\Domain\Ai\Models\AiSetting;
 use Illuminate\Support\Facades\Http;
 
 class OpenAiProvider implements AiProviderInterface
@@ -56,13 +57,25 @@ class OpenAiProvider implements AiProviderInterface
      */
     private function chatJson(string $prompt): array
     {
-        $apiKey = (string) env('OPENAI_API_KEY', '');
+        $apiKey = trim((string) env('OPENAI_API_KEY', ''));
+        $baseUrl = rtrim((string) env('OPENAI_BASE_URL', 'https://api.openai.com/v1'), '/');
+        $model = (string) env('OPENAI_MODEL', 'gpt-4o-mini');
+
+        // Prefer .env for local/dev overrides, but fall back to stored admin AI settings.
+        if ($apiKey === '') {
+            try {
+                $settings = AiSetting::singleton();
+                $apiKey = trim((string) ($settings->openai_api_key ?? ''));
+                $baseUrl = rtrim((string) ($settings->openai_base_url ?: 'https://api.openai.com/v1'), '/');
+                $model = (string) ($settings->default_model ?: 'gpt-4o-mini');
+            } catch (\Throwable) {
+                // Keep defaults; missing settings should gracefully fall through.
+            }
+        }
+
         if ($apiKey === '') {
             return [];
         }
-
-        $baseUrl = rtrim((string) env('OPENAI_BASE_URL', 'https://api.openai.com/v1'), '/');
-        $model = (string) env('OPENAI_MODEL', 'gpt-4o-mini');
 
         try {
             $response = Http::withToken($apiKey)
