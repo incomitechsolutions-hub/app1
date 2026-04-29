@@ -53,9 +53,28 @@ class AiCourseWizardControllerTest extends TestCase
     public function test_authenticated_user_can_regenerate_ai2_field(): void
     {
         $user = User::factory()->create();
+        $analysis = CourseKeywordAnalysis::query()->create([
+            'topic' => 'Prompting',
+            'subtopics' => ['Grundlagen'],
+            'raw_google_response' => [],
+            'raw_ai_response' => [],
+            'selected_primary_keyword' => 'prompt engineering kurs',
+            'selected_keywords' => ['prompt engineering kurs'],
+            'selected_clusters' => [],
+            'seo_opportunity_score' => 10,
+            'created_by' => $user->id,
+        ]);
 
         $response = $this->actingAs($user)->postJson(route('admin.course-catalog.ai-wizard.regenerate-field'), [
             'field_name' => 'seo_title',
+            'field_path' => 'seo.seo_title',
+            'analysis_id' => $analysis->id,
+            'generation_input' => [
+                'topic' => 'Prompting',
+                'target_audience' => 'Einsteiger',
+                'level' => 'basic',
+                'duration_days' => 2,
+            ],
             'current_context' => [
                 'topic' => 'Prompting',
                 'selected_primary_keyword' => 'prompt engineering kurs',
@@ -169,9 +188,23 @@ class AiCourseWizardControllerTest extends TestCase
     public function test_regenerate_field_can_store_inline_prompt_in_library(): void
     {
         $user = User::factory()->create();
+        $analysis = CourseKeywordAnalysis::query()->create([
+            'topic' => 'Prompting',
+            'subtopics' => [],
+            'raw_google_response' => [],
+            'raw_ai_response' => [],
+            'selected_primary_keyword' => 'prompt engineering kurs',
+            'selected_keywords' => ['prompt engineering kurs'],
+            'selected_clusters' => [],
+            'seo_opportunity_score' => 10,
+            'created_by' => $user->id,
+        ]);
 
         $response = $this->actingAs($user)->postJson(route('admin.course-catalog.ai-wizard.regenerate-field'), [
             'field_name' => 'seo_title',
+            'field_path' => 'seo.seo_title',
+            'analysis_id' => $analysis->id,
+            'generation_input' => ['topic' => 'Prompting'],
             'current_context' => [
                 'topic' => 'Prompting',
                 'selected_primary_keyword' => 'prompt engineering kurs',
@@ -193,6 +226,17 @@ class AiCourseWizardControllerTest extends TestCase
     public function test_regenerate_field_accepts_prompt_id_from_library(): void
     {
         $user = User::factory()->create();
+        $analysis = CourseKeywordAnalysis::query()->create([
+            'topic' => 'Prompting',
+            'subtopics' => [],
+            'raw_google_response' => [],
+            'raw_ai_response' => [],
+            'selected_primary_keyword' => 'prompt engineering kurs',
+            'selected_keywords' => ['prompt engineering kurs'],
+            'selected_clusters' => [],
+            'seo_opportunity_score' => 10,
+            'created_by' => $user->id,
+        ]);
         $prompt = AiPrompt::query()->create([
             'title' => 'Prompt from Library',
             'slug' => 'prompt-from-library',
@@ -206,6 +250,9 @@ class AiCourseWizardControllerTest extends TestCase
 
         $response = $this->actingAs($user)->postJson(route('admin.course-catalog.ai-wizard.regenerate-field'), [
             'field_name' => 'subtitle',
+            'field_path' => 'base.subtitle',
+            'analysis_id' => $analysis->id,
+            'generation_input' => ['topic' => 'Prompting'],
             'current_context' => [
                 'topic' => 'Prompting',
                 'selected_primary_keyword' => 'prompt engineering kurs',
@@ -218,6 +265,52 @@ class AiCourseWizardControllerTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('field_name', 'subtitle');
         $this->assertNotSame('', (string) $response->json('value'));
+    }
+
+    public function test_regenerate_field_requires_analysis_context(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->postJson(route('admin.course-catalog.ai-wizard.regenerate-field'), [
+            'field_name' => 'title',
+            'field_path' => 'base.title',
+        ])->assertStatus(422);
+    }
+
+    public function test_regenerate_field_accepts_prompt_title_with_160_characters(): void
+    {
+        $user = User::factory()->create();
+        $analysis = CourseKeywordAnalysis::query()->create([
+            'topic' => 'Prompting',
+            'subtopics' => [],
+            'raw_google_response' => [],
+            'raw_ai_response' => [],
+            'selected_primary_keyword' => 'prompt engineering kurs',
+            'selected_keywords' => ['prompt engineering kurs'],
+            'selected_clusters' => [],
+            'seo_opportunity_score' => 10,
+            'created_by' => $user->id,
+        ]);
+
+        $title160 = str_repeat('a', 160);
+
+        $response = $this->actingAs($user)->postJson(route('admin.course-catalog.ai-wizard.regenerate-field'), [
+            'field_name' => 'title',
+            'field_path' => 'base.title',
+            'analysis_id' => $analysis->id,
+            'generation_input' => ['topic' => 'Prompting'],
+            'selected_keywords' => ['prompt engineering kurs'],
+            'course_context' => [],
+            'prompt_text' => 'Gib eine klare, kurze Formulierung.',
+            'save_prompt' => true,
+            'prompt_title' => $title160,
+        ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('ai_prompts', [
+            'title' => $title160,
+            'use_case' => 'course-wizard-regenerate',
+        ]);
     }
 }
 

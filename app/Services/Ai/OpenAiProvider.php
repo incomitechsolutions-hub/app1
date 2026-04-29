@@ -39,7 +39,10 @@ class OpenAiProvider implements AiProviderInterface
      */
     public function regenerateField(array $context): array
     {
+        $fieldName = (string) ($context['field_name'] ?? data_get($context, 'current_context.field_name', ''));
+        $fieldPath = (string) ($context['field_path'] ?? data_get($context, 'current_context.field_path', ''));
         $prompt = "Gib valides JSON mit key value zurück.\n".
+            "Zielfeld: {$fieldName} ({$fieldPath})\n".
             'Kontext: '.json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if (is_string($context['prompt_text'] ?? null) && trim((string) $context['prompt_text']) !== '') {
             $prompt = "Zusatzanweisung fuer Regenerate:\n".trim((string) $context['prompt_text'])."\n\n".$prompt;

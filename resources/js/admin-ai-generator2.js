@@ -354,7 +354,12 @@ function initAiGenerator2() {
         if (res.status === 419) throw new Error('Sitzung abgelaufen. Bitte Seite neu laden.');
         if (res.status === 401 || res.status === 403) throw new Error('Keine Berechtigung fuer diese Aktion.');
         if (res.status === 429) throw new Error('Zu viele Anfragen. Bitte kurz warten und erneut versuchen.');
-        if (res.status === 422) throw new Error(data.message || 'Eingaben sind ungueltig.');
+        if (res.status === 422) {
+            const firstValidationError = data?.errors && typeof data.errors === 'object'
+                ? Object.values(data.errors).flat().find((entry) => typeof entry === 'string')
+                : null;
+            throw new Error(firstValidationError || data.message || 'Eingaben sind ungueltig.');
+        }
         if (res.status >= 500) throw new Error('Serverfehler bei der AI-Verarbeitung.');
 
         throw new Error(data.message || 'Anfrage fehlgeschlagen.');
@@ -611,7 +616,19 @@ function initAiGenerator2() {
         };
     }
 
+    function buildGenerationInput() {
+        return {
+            topic: state.topic,
+            subtopics: state.subtopics.split(',').map((item) => item.trim()).filter(Boolean),
+            target_audience: state.targetAudience,
+            level: state.level,
+            duration_days: state.durationDays ? Number(state.durationDays) : null,
+            focus: state.focus,
+        };
+    }
+
     async function regenerateField(fieldName, draftPath, trigger) {
+        const previousValue = getByPath(state.draftGenerated, draftPath);
         const context = {
             topic: state.topic,
             selected_primary_keyword: state.selected[0] || state.topic,
@@ -621,15 +638,23 @@ function initAiGenerator2() {
         try {
             const json = await request(endpoint.regenerateField, {
                 field_name: fieldName,
+                field_path: draftPath,
+                analysis_id: state.analysisId,
+                generation_input: buildGenerationInput(),
                 current_context: context,
                 selected_keywords: state.selected,
                 course_context: state.draftGenerated,
                 ...buildPromptPayload(draftPath),
             });
-            setByPath(state.draftGenerated, draftPath, json.value || '');
+            const regeneratedValue = json.value || '';
+            setByPath(state.draftGenerated, draftPath, regeneratedValue);
             state.dirtyFields.delete(draftPath);
             render();
-            setFeedback(`Feld "${fieldName}" wurde aktualisiert.`, 'ok');
+            if (String(previousValue ?? '') === String(regeneratedValue ?? '')) {
+                setFeedback('Kein neuer Vorschlag - Prompt/Context anpassen.', 'warn');
+            } else {
+                setFeedback(`Feld "${fieldName}" wurde aktualisiert.`, 'ok');
+            }
         } catch (e) {
             setFeedback(e.message || 'Feld-Update fehlgeschlagen.', 'error');
         } finally {
@@ -644,14 +669,7 @@ function initAiGenerator2() {
                 analysis_id: state.analysisId,
                 section,
                 selected_keywords: state.selected,
-                generation_input: {
-                    topic: state.topic,
-                    subtopics: state.subtopics.split(',').map((item) => item.trim()).filter(Boolean),
-                    target_audience: state.targetAudience,
-                    level: state.level,
-                    duration_days: state.durationDays ? Number(state.durationDays) : null,
-                    focus: state.focus,
-                },
+                generation_input: buildGenerationInput(),
             });
             const payload = json.payload && typeof json.payload === 'object' ? json.payload : {};
             setByPath(state.draftGenerated, section, payload);

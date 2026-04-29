@@ -17,6 +17,7 @@ class FieldRegenerationService
         if ($provider) {
             $payload = [
                 'field_name' => $fieldName,
+                'field_path' => (string) ($context['field_path'] ?? ''),
                 'current_context' => $context,
             ];
             if (is_string($context['prompt_text'] ?? null) && trim((string) $context['prompt_text']) !== '') {

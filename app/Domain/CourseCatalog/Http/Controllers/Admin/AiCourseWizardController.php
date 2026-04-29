@@ -124,8 +124,12 @@ class AiCourseWizardController extends Controller
 
         $data = $request->validate([
             'field_name' => ['required', 'string', 'max:100'],
+            'field_path' => ['required', 'string', 'max:150'],
+            'analysis_id' => ['required', 'integer', 'exists:course_keyword_analyses,id'],
+            'generation_input' => ['nullable', 'array'],
             'current_context' => ['nullable', 'array'],
             'selected_keywords' => ['nullable', 'array'],
+            'selected_keywords.*' => ['string', 'max:255'],
             'course_context' => ['nullable', 'array'],
             'prompt_id' => ['nullable', 'integer', 'exists:ai_prompts,id'],
             'prompt_text' => ['nullable', 'string', 'max:12000'],
@@ -133,9 +137,31 @@ class AiCourseWizardController extends Controller
             'prompt_title' => ['nullable', 'string', 'max:160'],
         ]);
 
+        $analysis = CourseKeywordAnalysis::query()->findOrFail((int) $data['analysis_id']);
+        $analysisSelected = CourseKeyword::query()
+            ->where('analysis_id', $analysis->id)
+            ->where('selected', true)
+            ->pluck('keyword')
+            ->map(static fn ($keyword) => (string) $keyword)
+            ->values()
+            ->all();
+
+        $requestedSelected = is_array($data['selected_keywords'] ?? null) ? array_values($data['selected_keywords']) : [];
+        $resolvedSelected = $requestedSelected !== [] ? $requestedSelected : $analysisSelected;
+
+        $baseContext = [
+            'topic' => $analysis->topic,
+            'subtopics' => is_array($analysis->subtopics) ? $analysis->subtopics : [],
+            'selected_keywords' => $resolvedSelected,
+            'selected_primary_keyword' => $resolvedSelected[0] ?? $analysis->selected_primary_keyword,
+            'field_path' => (string) $data['field_path'],
+            'field_name' => (string) $data['field_name'],
+        ];
+
         $context = array_merge(
+            $baseContext,
+            is_array($data['generation_input'] ?? null) ? $data['generation_input'] : [],
             is_array($data['current_context'] ?? null) ? $data['current_context'] : [],
-            ['selected_keywords' => is_array($data['selected_keywords'] ?? null) ? $data['selected_keywords'] : []],
             is_array($data['course_context'] ?? null) ? $data['course_context'] : []
         );
 
