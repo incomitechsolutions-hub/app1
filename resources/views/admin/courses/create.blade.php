@@ -117,6 +117,8 @@
         <div id="ai-generator-2-root"
             data-keyword-discovery-url="{{ route('admin.course-catalog.ai-wizard.keyword-discovery') }}"
             data-save-selection-url="{{ route('admin.course-catalog.ai-wizard.save-selection') }}"
+            data-generate-concept-url="{{ route('admin.course-catalog.ai-wizard.generate-concept') }}"
+            data-generate-fields-url="{{ route('admin.course-catalog.ai-wizard.generate-fields') }}"
             data-regenerate-field-url="{{ route('admin.course-catalog.ai-wizard.regenerate-field') }}"
             data-regenerate-section-url="{{ route('admin.course-catalog.ai-wizard.regenerate-section') }}"
             data-prompt-library-url="{{ route('admin.course-catalog.ai-wizard.prompt-library') }}"

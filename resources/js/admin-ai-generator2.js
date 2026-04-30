@@ -211,10 +211,12 @@ function initAiGenerator2() {
 
     const state = {
         step: 1,
-        totalSteps: 4,
+        totalSteps: 5,
         analysisId: null,
         generated: {},
         draftGenerated: {},
+        seoStrategy: {},
+        courseConcept: {},
         keywords: [],
         selected: [],
         dirtyFields: new Set(),
@@ -232,6 +234,8 @@ function initAiGenerator2() {
     const endpoint = {
         keywordDiscovery: root.dataset.keywordDiscoveryUrl,
         saveSelection: root.dataset.saveSelectionUrl,
+        generateConcept: root.dataset.generateConceptUrl,
+        generateFields: root.dataset.generateFieldsUrl,
         regenerateField: root.dataset.regenerateFieldUrl,
         regenerateSection: root.dataset.regenerateSectionUrl,
         promptLibrary: root.dataset.promptLibraryUrl,
@@ -499,16 +503,74 @@ function initAiGenerator2() {
                         <input id="ai2-seo-slug" class="w-full rounded border px-2 py-1" value="${(state.draftGenerated.base || {}).slug || ''}" placeholder="Slug">
                     </div>
                 </div>`;
-            nextBtn.textContent = 'Weiter zur Vorschau';
+            nextBtn.textContent = 'SEO Strategie & Konzept erstellen';
             return;
         }
 
         if (state.step === 3) {
+            const strategy = state.seoStrategy || {};
+            body.innerHTML = `
+                <h3 class="text-lg font-semibold">3 Schulungskonzept</h3>
+                <p class="text-sm text-slate-600">Pruefen und bearbeiten Sie zuerst SEO-Strategie und Konzept. Erst nach Freigabe werden die Feldwerte erzeugt.</p>
+                <section class="rounded border border-slate-200 p-3 space-y-2">
+                    <h4 class="font-semibold">SEO Strategie</h4>
+                    <div class="grid gap-2 md:grid-cols-2">
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Primary Keyword</label>
+                            <input data-concept-path="seo_strategy.primary_keyword" class="w-full rounded border px-2 py-1 text-sm" value="${escapeHtml(strategy.primary_keyword || '')}">
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Search Intent</label>
+                            <input data-concept-path="seo_strategy.search_intent" class="w-full rounded border px-2 py-1 text-sm" value="${escapeHtml(strategy.search_intent || '')}">
+                        </div>
+                    </div>
+                </section>
+                <section class="rounded border border-slate-200 p-3 space-y-2">
+                    <h4 class="font-semibold">Konzeptvorschau</h4>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Positionierung</label>
+                        <textarea data-concept-path="course_concept.positioning" rows="2" class="w-full rounded border px-2 py-1 text-sm">${conceptValue('positioning')}</textarea>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Lernversprechen</label>
+                        <textarea data-concept-path="course_concept.learning_promise" rows="2" class="w-full rounded border px-2 py-1 text-sm">${conceptValue('learning_promise')}</textarea>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Zielgruppe</label>
+                        <textarea data-concept-path="course_concept.target_audience_summary" rows="2" class="w-full rounded border px-2 py-1 text-sm">${conceptValue('target_audience_summary')}</textarea>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Didaktischer Ansatz</label>
+                        <textarea data-concept-path="course_concept.didactic_angle" rows="2" class="w-full rounded border px-2 py-1 text-sm">${conceptValue('didactic_angle')}</textarea>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">SEO Angle</label>
+                        <textarea data-concept-path="course_concept.seo_angle" rows="2" class="w-full rounded border px-2 py-1 text-sm">${conceptValue('seo_angle')}</textarea>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Module (JSON)</label>
+                        <textarea data-concept-json="course_concept.modules" rows="4" class="w-full rounded border px-2 py-1 text-sm">${escapeHtml(JSON.stringify(state.courseConcept?.modules ?? [], null, 2))}</textarea>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Lernziele (JSON)</label>
+                        <textarea data-concept-json="course_concept.learning_objectives" rows="4" class="w-full rounded border px-2 py-1 text-sm">${escapeHtml(JSON.stringify(state.courseConcept?.learning_objectives ?? [], null, 2))}</textarea>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Voraussetzungen (JSON)</label>
+                        <textarea data-concept-json="course_concept.prerequisites" rows="4" class="w-full rounded border px-2 py-1 text-sm">${escapeHtml(JSON.stringify(state.courseConcept?.prerequisites ?? [], null, 2))}</textarea>
+                    </div>
+                </section>
+            `;
+            nextBtn.textContent = 'Konzept freigeben und Felder generieren';
+            return;
+        }
+
+        if (state.step === 4) {
             const seoFields = DRAFT_FIELD_CONFIG.filter((field) => field.section === 'seo').map(renderDraftField).join('');
             const baseFields = DRAFT_FIELD_CONFIG.filter((field) => field.section === 'base').map(renderDraftField).join('');
             const detailFields = DRAFT_FIELD_CONFIG.filter((field) => field.section === 'details').map(renderDraftField).join('');
             body.innerHTML = `
-                <h3 class="text-lg font-semibold">3 Vorschau & Bearbeiten</h3>
+                <h3 class="text-lg font-semibold">4 Feldvorschau & Bearbeiten</h3>
                 <p class="text-sm text-slate-600">Hier koennen Inhalte bearbeitet oder neu generiert werden. Gelb markierte Felder wurden manuell geaendert.</p>
                 <div class="space-y-4">
                     <section class="rounded border border-slate-200 p-3">
@@ -536,7 +598,7 @@ function initAiGenerator2() {
             nextBtn.textContent = 'Weiter';
             return;
         }
-        body.innerHTML = `<h3 class="text-lg font-semibold">4 Uebernehmen</h3>
+        body.innerHTML = `<h3 class="text-lg font-semibold">5 Uebernehmen</h3>
             <p class="text-sm text-slate-600">Die Werte werden erst jetzt in das Kursformular geschrieben. Danach koennen Sie ausserhalb des Wizards weiter anpassen und normal speichern.</p>`;
         nextBtn.textContent = 'In Formular uebernehmen';
     };
@@ -659,6 +721,43 @@ function initAiGenerator2() {
         };
     }
 
+    function conceptValue(key, fallback = '') {
+        return escapeHtml(state.courseConcept?.[key] ?? fallback);
+    }
+
+    function parseJsonInput(value, fallback = []) {
+        try {
+            const parsed = JSON.parse(String(value || '[]'));
+            return Array.isArray(parsed) ? parsed : fallback;
+        } catch (_err) {
+            return fallback;
+        }
+    }
+
+    async function generateConcept() {
+        const json = await request(endpoint.generateConcept, {
+            analysis_id: state.analysisId,
+            selected_keywords: state.selected,
+            generation_input: buildGenerationInput(),
+        });
+        state.seoStrategy = json.seo_strategy && typeof json.seo_strategy === 'object' ? json.seo_strategy : {};
+        state.courseConcept = json.concept && typeof json.concept === 'object' ? json.concept : {};
+    }
+
+    async function generateFieldsFromConcept() {
+        const json = await request(endpoint.generateFields, {
+            analysis_id: state.analysisId,
+            selected_keywords: state.selected,
+            generation_input: buildGenerationInput(),
+            seo_strategy: state.seoStrategy,
+            approved_concept: state.courseConcept,
+        });
+        state.generated = json.generated || {};
+        state.draftGenerated = deepClone(state.generated);
+        state.dirtyFields = new Set();
+        syncSeoFromSelectedKeywords();
+    }
+
     async function regenerateField(fieldName, draftPath, trigger) {
         const previousValue = getByPath(state.draftGenerated, draftPath);
         const context = {
@@ -675,7 +774,11 @@ function initAiGenerator2() {
                 generation_input: buildGenerationInput(),
                 current_context: context,
                 selected_keywords: state.selected,
-                course_context: state.draftGenerated,
+                course_context: {
+                    generated_fields: state.draftGenerated,
+                    seo_strategy: state.seoStrategy,
+                    approved_course_concept: state.courseConcept,
+                },
                 ...buildPromptPayload(draftPath),
             });
             const regeneratedValue = json.value || '';
@@ -705,6 +808,8 @@ function initAiGenerator2() {
                 section,
                 selected_keywords: state.selected,
                 generation_input: buildGenerationInput(),
+                seo_strategy: state.seoStrategy,
+                approved_concept: state.courseConcept,
             });
             const payload = json.payload && typeof json.payload === 'object' ? json.payload : {};
             setByPath(state.draftGenerated, section, payload);
@@ -727,6 +832,8 @@ function initAiGenerator2() {
         state.analysisId = null;
         state.generated = {};
         state.draftGenerated = {};
+        state.seoStrategy = {};
+        state.courseConcept = {};
         state.keywords = [];
         state.selected = [];
         state.dirtyFields = new Set();
@@ -773,11 +880,24 @@ function initAiGenerator2() {
             }
             try {
                 await persistSelection();
+                await generateConcept();
             } catch (e) {
                 setFeedback(e.message || 'Fehler', 'error');
                 return;
             }
             state.step = 3;
+            await loadPromptLibrary();
+            render();
+            return;
+        }
+        if (state.step === 3) {
+            try {
+                await generateFieldsFromConcept();
+            } catch (e) {
+                setFeedback(e.message || 'Felder konnten nicht erzeugt werden.', 'error');
+                return;
+            }
+            state.step = 4;
             await loadPromptLibrary();
             render();
             return;
@@ -843,6 +963,28 @@ function initAiGenerator2() {
     body.addEventListener('input', (e) => {
         const target = e.target;
         if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLTextAreaElement)) return;
+        if (target.dataset?.conceptPath) {
+            const path = String(target.dataset.conceptPath || '');
+            if (path.startsWith('seo_strategy.')) {
+                const key = path.replace('seo_strategy.', '');
+                state.seoStrategy[key] = target.value;
+                return;
+            }
+            if (path.startsWith('course_concept.')) {
+                const key = path.replace('course_concept.', '');
+                state.courseConcept[key] = target.value;
+                return;
+            }
+        }
+        if (target.dataset?.conceptJson) {
+            const path = String(target.dataset.conceptJson || '');
+            const parsed = parseJsonInput(target.value, []);
+            if (path.startsWith('course_concept.')) {
+                const key = path.replace('course_concept.', '');
+                state.courseConcept[key] = parsed;
+            }
+            return;
+        }
         const draftPath = target.dataset?.draftPath;
         if (!draftPath) return;
         const type = target.dataset?.draftType || 'input';

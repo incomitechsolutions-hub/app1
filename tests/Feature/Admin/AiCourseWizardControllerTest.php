@@ -89,6 +89,91 @@ class AiCourseWizardControllerTest extends TestCase
         $this->assertNotSame('', (string) $response->json('value'));
     }
 
+    public function test_authenticated_user_can_generate_concept_after_keyword_selection(): void
+    {
+        $user = User::factory()->create();
+        $analysis = CourseKeywordAnalysis::query()->create([
+            'topic' => 'Prompt Engineering',
+            'subtopics' => ['Grundlagen'],
+            'raw_google_response' => [],
+            'raw_ai_response' => [],
+            'selected_primary_keyword' => 'prompt engineering kurs',
+            'selected_keywords' => ['prompt engineering kurs', 'prompt workshop'],
+            'selected_clusters' => [],
+            'seo_opportunity_score' => 20,
+            'created_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('admin.course-catalog.ai-wizard.generate-concept'), [
+            'analysis_id' => $analysis->id,
+            'selected_keywords' => ['prompt engineering kurs', 'prompt workshop'],
+            'generation_input' => [
+                'topic' => 'Prompt Engineering',
+                'target_audience' => 'Produktteams',
+            ],
+        ]);
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'seo_strategy' => ['primary_keyword', 'search_intent', 'target_density'],
+                'concept' => ['positioning', 'learning_promise', 'modules', 'learning_objectives'],
+            ]);
+    }
+
+    public function test_authenticated_user_can_generate_fields_from_approved_concept(): void
+    {
+        $user = User::factory()->create();
+        $analysis = CourseKeywordAnalysis::query()->create([
+            'topic' => 'Prompt Engineering',
+            'subtopics' => ['Grundlagen'],
+            'raw_google_response' => [],
+            'raw_ai_response' => [],
+            'selected_primary_keyword' => 'prompt engineering kurs',
+            'selected_keywords' => ['prompt engineering kurs'],
+            'selected_clusters' => [],
+            'seo_opportunity_score' => 20,
+            'created_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('admin.course-catalog.ai-wizard.generate-fields'), [
+            'analysis_id' => $analysis->id,
+            'selected_keywords' => ['prompt engineering kurs'],
+            'generation_input' => [
+                'topic' => 'Prompt Engineering',
+                'target_audience' => 'Produktteams',
+            ],
+            'seo_strategy' => [
+                'primary_keyword' => 'prompt engineering kurs',
+            ],
+            'approved_concept' => [
+                'positioning' => 'Praxisnahe Prompt-Schulung fuer Teams.',
+                'learning_promise' => 'Teilnehmende erstellen reproduzierbare Prompts.',
+                'target_audience_summary' => 'Produktteams und Fachbereiche.',
+                'modules' => [
+                    ['title' => 'Grundlagen', 'description' => 'Prompt-Bausteine', 'duration_hours' => 2, 'sort_order' => 0],
+                ],
+                'learning_objectives' => [
+                    ['objective_text' => 'Prompt-Struktur anwenden', 'sort_order' => 0],
+                ],
+                'prerequisites' => [
+                    ['prerequisite_text' => 'Interesse an KI', 'sort_order' => 0],
+                ],
+            ],
+        ]);
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'generated' => [
+                    'seo' => ['focus_keyword', 'seo_title'],
+                    'base' => ['title', 'subtitle'],
+                    'details' => ['short_description', 'modules', 'objectives'],
+                ],
+            ])
+            ->assertJsonPath('generated.seo.focus_keyword', 'prompt engineering kurs')
+            ->assertJsonPath('generated.base.subtitle', 'Praxisnahe Prompt-Schulung fuer Teams.')
+            ->assertJsonPath('generated.details.short_description', 'Teilnehmende erstellen reproduzierbare Prompts.');
+    }
+
     public function test_regenerate_section_rejects_unknown_section(): void
     {
         $user = User::factory()->create();

@@ -69,6 +69,12 @@ Route::middleware(['web', 'auth', 'module.enabled:course_catalog'])->prefix('adm
     Route::post('ai-course-wizard/save-selection', [AiCourseWizardController::class, 'saveSelection'])
         ->middleware('throttle:20,1')
         ->name('ai-wizard.save-selection');
+    Route::post('ai-course-wizard/generate-concept', [AiCourseWizardController::class, 'generateConcept'])
+        ->middleware('throttle:20,1')
+        ->name('ai-wizard.generate-concept');
+    Route::post('ai-course-wizard/generate-fields', [AiCourseWizardController::class, 'generateFields'])
+        ->middleware('throttle:20,1')
+        ->name('ai-wizard.generate-fields');
     Route::post('ai-course-wizard/regenerate-field', [AiCourseWizardController::class, 'regenerateField'])
         ->middleware('throttle:30,1')
         ->name('ai-wizard.regenerate-field');

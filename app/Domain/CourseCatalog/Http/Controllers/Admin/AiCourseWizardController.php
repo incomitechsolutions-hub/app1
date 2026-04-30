@@ -192,6 +192,148 @@ class AiCourseWizardController extends Controller
         ]);
     }
 
+    public function generateConcept(Request $request): JsonResponse
+    {
+        $this->authorize('create', Course::class);
+
+        $data = $request->validate([
+            'analysis_id' => ['required', 'integer', 'exists:course_keyword_analyses,id'],
+            'selected_keywords' => ['nullable', 'array'],
+            'selected_keywords.*' => ['string', 'max:255'],
+            'generation_input' => ['nullable', 'array'],
+            'prompt_id' => ['nullable', 'integer', 'exists:ai_prompts,id'],
+            'prompt_text' => ['nullable', 'string', 'max:12000'],
+        ]);
+
+        $analysis = CourseKeywordAnalysis::query()->findOrFail((int) $data['analysis_id']);
+        $input = [
+            'topic' => $analysis->topic,
+            'subtopics' => is_array($analysis->subtopics) ? $analysis->subtopics : [],
+        ];
+        $input = array_merge($input, is_array($data['generation_input'] ?? null) ? $data['generation_input'] : []);
+
+        $selectedKeywords = is_array($data['selected_keywords'] ?? null) && $data['selected_keywords'] !== []
+            ? array_values($data['selected_keywords'])
+            : (is_array($analysis->selected_keywords) ? array_values($analysis->selected_keywords) : []);
+
+        $promptText = $this->resolvePromptText($data['prompt_id'] ?? null, $data['prompt_text'] ?? null);
+        if ($promptText !== null) {
+            $input['prompt_text'] = $promptText;
+        }
+
+        $generated = $this->contentGeneration->generate($input, $selectedKeywords);
+        $keywordRows = CourseKeyword::query()
+            ->where('analysis_id', $analysis->id)
+            ->whereIn('keyword', $selectedKeywords)
+            ->get(['keyword', 'type']);
+
+        $primaryKeyword = $analysis->selected_primary_keyword ?: ($selectedKeywords[0] ?? $analysis->topic);
+        $seoStrategy = [
+            'primary_keyword' => $primaryKeyword,
+            'secondary_keywords' => $keywordRows->where('type', 'related')->pluck('keyword')->values()->all(),
+            'longtail_keywords' => $keywordRows->where('type', 'longtail')->pluck('keyword')->values()->all(),
+            'semantic_keywords' => $keywordRows->where('type', 'semantic')->pluck('keyword')->values()->all(),
+            'search_intent' => 'commercial',
+            'target_density' => [
+                'primary_keyword' => '1.0-1.5%',
+                'secondary_keywords' => 'natuerlich verteilt',
+            ],
+            'notes' => [
+                'Primary Keyword in SEO Titel, Titel und frueher Beschreibung nutzen.',
+                'Keyword-Varianten natuerlich und ohne Keyword-Stuffing einsetzen.',
+            ],
+        ];
+
+        $base = is_array($generated['base'] ?? null) ? $generated['base'] : [];
+        $details = is_array($generated['details'] ?? null) ? $generated['details'] : [];
+        $concept = [
+            'positioning' => trim((string) ($base['subtitle'] ?? 'Praxisorientierte Weiterbildung fuer Unternehmen.')),
+            'learning_promise' => trim((string) ($details['short_description'] ?? 'Teilnehmende setzen das Gelernte direkt im Arbeitsalltag um.')),
+            'target_audience_summary' => trim((string) ($details['target_audience_text'] ?? ($input['target_audience'] ?? 'Fachkraefte und Teams.'))),
+            'didactic_angle' => 'Kompakte Theorie, viele Praxisbeispiele, Transfer in den Unternehmenskontext.',
+            'seo_angle' => 'Das Primary Keyword wird natuerlich in Titel, Kurzbeschreibung und SEO-Metadaten integriert.',
+            'modules' => is_array($details['modules'] ?? null) ? $details['modules'] : [],
+            'learning_objectives' => is_array($details['objectives'] ?? null) ? $details['objectives'] : [],
+            'prerequisites' => is_array($details['prerequisites'] ?? null) ? $details['prerequisites'] : [],
+            'faq_angles' => is_array($details['faqs'] ?? null) ? $details['faqs'] : [],
+        ];
+
+        return response()->json([
+            'seo_strategy' => $seoStrategy,
+            'concept' => $concept,
+        ]);
+    }
+
+    public function generateFields(Request $request): JsonResponse
+    {
+        $this->authorize('create', Course::class);
+
+        $data = $request->validate([
+            'analysis_id' => ['required', 'integer', 'exists:course_keyword_analyses,id'],
+            'selected_keywords' => ['nullable', 'array'],
+            'selected_keywords.*' => ['string', 'max:255'],
+            'generation_input' => ['nullable', 'array'],
+            'seo_strategy' => ['nullable', 'array'],
+            'approved_concept' => ['required', 'array'],
+            'prompt_id' => ['nullable', 'integer', 'exists:ai_prompts,id'],
+            'prompt_text' => ['nullable', 'string', 'max:12000'],
+        ]);
+
+        $analysis = CourseKeywordAnalysis::query()->findOrFail((int) $data['analysis_id']);
+        $input = [
+            'topic' => $analysis->topic,
+            'subtopics' => is_array($analysis->subtopics) ? $analysis->subtopics : [],
+        ];
+        $input = array_merge($input, is_array($data['generation_input'] ?? null) ? $data['generation_input'] : []);
+
+        $selectedKeywords = is_array($data['selected_keywords'] ?? null) && $data['selected_keywords'] !== []
+            ? array_values($data['selected_keywords'])
+            : (is_array($analysis->selected_keywords) ? array_values($analysis->selected_keywords) : []);
+
+        $promptText = $this->resolvePromptText($data['prompt_id'] ?? null, $data['prompt_text'] ?? null);
+        if ($promptText !== null) {
+            $input['prompt_text'] = $promptText;
+        }
+
+        $generated = $this->contentGeneration->generate($input, $selectedKeywords);
+        $concept = is_array($data['approved_concept'] ?? null) ? $data['approved_concept'] : [];
+        $strategy = is_array($data['seo_strategy'] ?? null) ? $data['seo_strategy'] : [];
+        $primaryKeyword = (string) ($strategy['primary_keyword'] ?? ($selectedKeywords[0] ?? $analysis->topic));
+
+        if (is_array($generated['base'] ?? null)) {
+            $generated['base']['subtitle'] = (string) ($concept['positioning'] ?? ($generated['base']['subtitle'] ?? ''));
+            if (trim((string) ($concept['learning_promise'] ?? '')) !== '') {
+                $generated['base']['title'] = trim((string) ($generated['base']['title'] ?? '')).($primaryKeyword !== '' ? ' - '.$primaryKeyword : '');
+            }
+        }
+        if (is_array($generated['details'] ?? null)) {
+            $generated['details']['short_description'] = (string) ($concept['learning_promise'] ?? ($generated['details']['short_description'] ?? ''));
+            $generated['details']['target_audience_text'] = (string) ($concept['target_audience_summary'] ?? ($generated['details']['target_audience_text'] ?? ''));
+            if (is_array($concept['modules'] ?? null) && $concept['modules'] !== []) {
+                $generated['details']['modules'] = $concept['modules'];
+            }
+            if (is_array($concept['learning_objectives'] ?? null) && $concept['learning_objectives'] !== []) {
+                $generated['details']['objectives'] = $concept['learning_objectives'];
+            }
+            if (is_array($concept['prerequisites'] ?? null) && $concept['prerequisites'] !== []) {
+                $generated['details']['prerequisites'] = $concept['prerequisites'];
+            }
+            if (is_array($concept['faq_angles'] ?? null) && $concept['faq_angles'] !== []) {
+                $generated['details']['faqs'] = $concept['faq_angles'];
+            }
+        }
+        if (is_array($generated['seo'] ?? null)) {
+            $generated['seo']['focus_keyword'] = $primaryKeyword;
+            if ($selectedKeywords !== []) {
+                $generated['seo']['tags_csv'] = implode(', ', array_slice($selectedKeywords, 0, 10));
+            }
+        }
+
+        return response()->json([
+            'generated' => $generated,
+        ]);
+    }
+
     public function regenerateSection(Request $request): JsonResponse
     {
         $this->authorize('create', Course::class);
@@ -202,6 +344,8 @@ class AiCourseWizardController extends Controller
             'selected_keywords' => ['nullable', 'array'],
             'selected_keywords.*' => ['string', 'max:255'],
             'generation_input' => ['nullable', 'array'],
+            'seo_strategy' => ['nullable', 'array'],
+            'approved_concept' => ['nullable', 'array'],
             'prompt_id' => ['nullable', 'integer', 'exists:ai_prompts,id'],
             'prompt_text' => ['nullable', 'string', 'max:12000'],
             'save_prompt' => ['nullable', 'boolean'],
@@ -214,6 +358,12 @@ class AiCourseWizardController extends Controller
             'subtopics' => is_array($analysis->subtopics) ? $analysis->subtopics : [],
         ];
         $input = array_merge($input, is_array($data['generation_input'] ?? null) ? $data['generation_input'] : []);
+        if (is_array($data['seo_strategy'] ?? null)) {
+            $input['seo_strategy'] = $data['seo_strategy'];
+        }
+        if (is_array($data['approved_concept'] ?? null)) {
+            $input['approved_concept'] = $data['approved_concept'];
+        }
 
         $selectedKeywords = is_array($data['selected_keywords'] ?? null) && $data['selected_keywords'] !== []
             ? array_values($data['selected_keywords'])
