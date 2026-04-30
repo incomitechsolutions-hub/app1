@@ -217,8 +217,11 @@ function initAiGenerator2() {
         draftGenerated: {},
         seoStrategy: {},
         courseConcept: {},
+        conceptJsonErrors: {},
         keywords: [],
         selected: [],
+        keywordRatings: {},
+        keywordSort: 'score_desc',
         dirtyFields: new Set(),
         customKeywords: [],
         promptLibrary: [],
@@ -293,6 +296,39 @@ function initAiGenerator2() {
             customSet.set(normalized, cleaned);
         });
         return Array.from(customSet.values());
+    };
+
+    const getManualRating = (keyword) => {
+        const normalized = normalizeKeyword(keyword);
+        const value = Number(state.keywordRatings[normalized] ?? 0);
+        return Number.isFinite(value) ? Math.max(0, Math.min(5, value)) : 0;
+    };
+
+    const getAdjustedKeywordScore = (keywordRow) => {
+        const base = Number(keywordRow?.final_score ?? keywordRow?.course_fit_score ?? 0);
+        const rating = getManualRating(keywordRow?.keyword || '');
+        return Math.max(0, Math.min(100, base + (rating * 3)));
+    };
+
+    const scoreBadgeClass = (score) => {
+        if (score >= 80) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        if (score >= 65) return 'bg-sky-100 text-sky-800 border-sky-200';
+        if (score >= 50) return 'bg-amber-100 text-amber-800 border-amber-200';
+        return 'bg-rose-100 text-rose-800 border-rose-200';
+    };
+
+    const sortedKeywordsForType = (type) => {
+        const list = state.keywords.filter((k) => (k.type || 'related') === type);
+        const sorted = [...list];
+        const sort = state.keywordSort;
+        sorted.sort((a, b) => {
+            if (sort === 'score_desc') return getAdjustedKeywordScore(b) - getAdjustedKeywordScore(a);
+            if (sort === 'score_asc') return getAdjustedKeywordScore(a) - getAdjustedKeywordScore(b);
+            if (sort === 'relevance_desc') return Number(b.relevance_score || 0) - Number(a.relevance_score || 0);
+            if (sort === 'commercial_desc') return Number(b.commercial_score || 0) - Number(a.commercial_score || 0);
+            return 0;
+        });
+        return sorted;
     };
 
     const ensureFieldPromptState = (path) => {
@@ -460,21 +496,46 @@ function initAiGenerator2() {
         if (state.step === 2) {
             const groups = ['primary', 'longtail', 'semantic', 'related', 'custom'];
             const html = groups.map((g) => {
-                const list = state.keywords.filter((k) => (k.type || 'related') === g);
+                const list = sortedKeywordsForType(g);
                 if (!list.length) return '';
-                return `<h4 class="mt-3 font-semibold">${g}</h4>` + list.map((k, idx) => `
-                    <label class="flex items-center gap-2 rounded border p-2 text-sm">
+                return `<h4 class="mt-3 font-semibold">${g}</h4>` + list.map((k) => {
+                    const adjustedScore = getAdjustedKeywordScore(k);
+                    const badgeClass = scoreBadgeClass(adjustedScore);
+                    const normalized = normalizeKeyword(k.keyword);
+                    const rating = getManualRating(k.keyword);
+                    return `
+                    <div class="flex items-center gap-2 rounded border p-2 text-sm">
                         <input type="checkbox" data-kw-keyword="${escapeHtml(k.keyword)}" ${state.selected.includes(k.keyword) ? 'checked' : ''}>
                         <span class="font-medium">${k.keyword}</span>
-                        <span class="ml-auto text-xs text-slate-500">${k.intent || ''} | R${k.relevance_score} C${k.commercial_score}</span>
-                    </label>`).join('');
+                        <span class="rounded border px-2 py-0.5 text-xs ${badgeClass}">Score ${adjustedScore}</span>
+                        <span class="text-xs text-slate-500">R${k.relevance_score} C${k.commercial_score} | ${k.intent || ''}</span>
+                        <span class="ml-auto flex items-center gap-1 text-xs text-slate-600">
+                            <label class="text-slate-500" for="ai2-rating-${normalized}">Rating</label>
+                            <select id="ai2-rating-${normalized}" data-kw-rating="${escapeHtml(k.keyword)}" class="rounded border px-1 py-0.5 text-xs">
+                                <option value="0" ${rating === 0 ? 'selected' : ''}>-</option>
+                                <option value="1" ${rating === 1 ? 'selected' : ''}>1</option>
+                                <option value="2" ${rating === 2 ? 'selected' : ''}>2</option>
+                                <option value="3" ${rating === 3 ? 'selected' : ''}>3</option>
+                                <option value="4" ${rating === 4 ? 'selected' : ''}>4</option>
+                                <option value="5" ${rating === 5 ? 'selected' : ''}>5</option>
+                            </select>
+                        </span>
+                    </div>`;
+                }).join('');
             }).join('');
             const seo = state.draftGenerated.seo || {};
             body.innerHTML = `
                 <h3 class="text-lg font-semibold">2 Keyword SEO</h3>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     <button type="button" id="ai2-select-recommended" class="rounded border px-2 py-1 text-xs">Empfohlene</button>
                     <button type="button" id="ai2-reset" class="rounded border px-2 py-1 text-xs">Reset</button>
+                    <label class="ml-auto text-xs text-slate-600">Sortierung</label>
+                    <select id="ai2-keyword-sort" class="rounded border px-2 py-1 text-xs">
+                        <option value="score_desc" ${state.keywordSort === 'score_desc' ? 'selected' : ''}>Score absteigend</option>
+                        <option value="score_asc" ${state.keywordSort === 'score_asc' ? 'selected' : ''}>Score aufsteigend</option>
+                        <option value="relevance_desc" ${state.keywordSort === 'relevance_desc' ? 'selected' : ''}>Relevanz</option>
+                        <option value="commercial_desc" ${state.keywordSort === 'commercial_desc' ? 'selected' : ''}>Commercial</option>
+                    </select>
                 </div>
                 <div class="rounded border border-slate-200 p-2">
                     <label class="block text-xs font-semibold text-slate-600">Eigenes Keyword hinzufügen</label>
@@ -484,23 +545,26 @@ function initAiGenerator2() {
                     </div>
                 </div>
                 <div class="max-h-80 space-y-2 overflow-auto">${html}</div>
-                <div class="mt-3 space-y-2 rounded border border-slate-200 p-3">
-                    <h4 class="text-sm font-semibold text-slate-700">SEO Vorschau</h4>
-                    <div>
-                        <label for="ai2-seo-title" class="mb-1 block text-xs font-medium text-slate-600">SEO Titel</label>
-                        <input id="ai2-seo-title" class="w-full rounded border px-2 py-1" value="${seo.seo_title || ''}" placeholder="SEO Titel">
-                    </div>
-                    <div>
-                        <label for="ai2-seo-desc" class="mb-1 block text-xs font-medium text-slate-600">Meta Description</label>
-                        <textarea id="ai2-seo-desc" class="w-full rounded border px-2 py-1" rows="2" placeholder="Meta Description">${seo.meta_description || ''}</textarea>
-                    </div>
-                    <div>
-                        <label for="ai2-focus-keyword" class="mb-1 block text-xs font-medium text-slate-600">Focus Keyword</label>
-                        <input id="ai2-focus-keyword" class="w-full rounded border px-2 py-1" value="${seo.focus_keyword || ''}" placeholder="Focus Keyword">
-                    </div>
-                    <div>
-                        <label for="ai2-seo-slug" class="mb-1 block text-xs font-medium text-slate-600">Slug</label>
-                        <input id="ai2-seo-slug" class="w-full rounded border px-2 py-1" value="${(state.draftGenerated.base || {}).slug || ''}" placeholder="Slug">
+                <p class="text-xs text-slate-500">Auswahl: ${state.selected.length}/5 Keywords</p>
+                <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50/40 p-4">
+                    <h4 class="mb-3 text-base font-semibold text-slate-900">SEO Vorschau</h4>
+                    <div class="space-y-3">
+                        <div class="rounded border border-slate-200 bg-white p-3">
+                            <label for="ai2-seo-title" class="mb-1.5 block text-sm font-semibold text-slate-800">SEO Titel</label>
+                            <input id="ai2-seo-title" class="w-full rounded border border-slate-300 px-3 py-2 text-sm" value="${seo.seo_title || ''}" placeholder="SEO Titel">
+                        </div>
+                        <div class="rounded border border-slate-200 bg-white p-3">
+                            <label for="ai2-seo-desc" class="mb-1.5 block text-sm font-semibold text-slate-800">Meta Description</label>
+                            <textarea id="ai2-seo-desc" class="w-full rounded border border-slate-300 px-3 py-2 text-sm" rows="2" placeholder="Meta Description">${seo.meta_description || ''}</textarea>
+                        </div>
+                        <div class="rounded border border-slate-200 bg-white p-3">
+                            <label for="ai2-focus-keyword" class="mb-1.5 block text-sm font-semibold text-slate-800">Focus Keyword</label>
+                            <input id="ai2-focus-keyword" class="w-full rounded border border-slate-300 px-3 py-2 text-sm" value="${seo.focus_keyword || ''}" placeholder="Focus Keyword">
+                        </div>
+                        <div class="rounded border border-slate-200 bg-white p-3">
+                            <label for="ai2-seo-slug" class="mb-1.5 block text-sm font-semibold text-slate-800">Slug</label>
+                            <input id="ai2-seo-slug" class="w-full rounded border border-slate-300 px-3 py-2 text-sm" value="${(state.draftGenerated.base || {}).slug || ''}" placeholder="Slug">
+                        </div>
                     </div>
                 </div>`;
             nextBtn.textContent = 'SEO Strategie & Konzept erstellen';
@@ -509,11 +573,14 @@ function initAiGenerator2() {
 
         if (state.step === 3) {
             const strategy = state.seoStrategy || {};
+            const jsonError = (path) => state.conceptJsonErrors[path] || '';
+            const jsonHint = 'Erwartet wird ein JSON-Array, z. B. [{"title":"Modul 1"}].';
+            const jsonClass = (path) => jsonError(path) ? 'border-red-300 bg-red-50' : 'border-slate-300 bg-white';
             body.innerHTML = `
                 <h3 class="text-lg font-semibold">3 Schulungskonzept</h3>
                 <p class="text-sm text-slate-600">Pruefen und bearbeiten Sie zuerst SEO-Strategie und Konzept. Erst nach Freigabe werden die Feldwerte erzeugt.</p>
-                <section class="rounded border border-slate-200 p-3 space-y-2">
-                    <h4 class="font-semibold">SEO Strategie</h4>
+                <section class="rounded-lg border border-slate-200 bg-slate-50/40 p-4 space-y-3">
+                    <h4 class="font-semibold text-slate-800">SEO Strategie</h4>
                     <div class="grid gap-2 md:grid-cols-2">
                         <div>
                             <label class="mb-1 block text-xs font-medium text-slate-600">Primary Keyword</label>
@@ -525,8 +592,8 @@ function initAiGenerator2() {
                         </div>
                     </div>
                 </section>
-                <section class="rounded border border-slate-200 p-3 space-y-2">
-                    <h4 class="font-semibold">Konzeptvorschau</h4>
+                <section class="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+                    <h4 class="font-semibold text-slate-800">Konzeptvorschau (vor Freigabe editierbar)</h4>
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-600">Positionierung</label>
                         <textarea data-concept-path="course_concept.positioning" rows="2" class="w-full rounded border px-2 py-1 text-sm">${conceptValue('positioning')}</textarea>
@@ -549,15 +616,21 @@ function initAiGenerator2() {
                     </div>
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-600">Module (JSON)</label>
-                        <textarea data-concept-json="course_concept.modules" rows="4" class="w-full rounded border px-2 py-1 text-sm">${escapeHtml(JSON.stringify(state.courseConcept?.modules ?? [], null, 2))}</textarea>
+                        <textarea data-concept-json="course_concept.modules" rows="4" class="w-full rounded border ${jsonClass('course_concept.modules')} px-2 py-1 text-sm">${escapeHtml(JSON.stringify(state.courseConcept?.modules ?? [], null, 2))}</textarea>
+                        <p class="mt-1 text-xs text-slate-500">${jsonHint}</p>
+                        ${jsonError('course_concept.modules') ? `<p class="mt-1 text-xs font-medium text-red-700">${escapeHtml(jsonError('course_concept.modules'))}</p>` : ''}
                     </div>
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-600">Lernziele (JSON)</label>
-                        <textarea data-concept-json="course_concept.learning_objectives" rows="4" class="w-full rounded border px-2 py-1 text-sm">${escapeHtml(JSON.stringify(state.courseConcept?.learning_objectives ?? [], null, 2))}</textarea>
+                        <textarea data-concept-json="course_concept.learning_objectives" rows="4" class="w-full rounded border ${jsonClass('course_concept.learning_objectives')} px-2 py-1 text-sm">${escapeHtml(JSON.stringify(state.courseConcept?.learning_objectives ?? [], null, 2))}</textarea>
+                        <p class="mt-1 text-xs text-slate-500">${jsonHint}</p>
+                        ${jsonError('course_concept.learning_objectives') ? `<p class="mt-1 text-xs font-medium text-red-700">${escapeHtml(jsonError('course_concept.learning_objectives'))}</p>` : ''}
                     </div>
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-600">Voraussetzungen (JSON)</label>
-                        <textarea data-concept-json="course_concept.prerequisites" rows="4" class="w-full rounded border px-2 py-1 text-sm">${escapeHtml(JSON.stringify(state.courseConcept?.prerequisites ?? [], null, 2))}</textarea>
+                        <textarea data-concept-json="course_concept.prerequisites" rows="4" class="w-full rounded border ${jsonClass('course_concept.prerequisites')} px-2 py-1 text-sm">${escapeHtml(JSON.stringify(state.courseConcept?.prerequisites ?? [], null, 2))}</textarea>
+                        <p class="mt-1 text-xs text-slate-500">${jsonHint}</p>
+                        ${jsonError('course_concept.prerequisites') ? `<p class="mt-1 text-xs font-medium text-red-700">${escapeHtml(jsonError('course_concept.prerequisites'))}</p>` : ''}
                     </div>
                 </section>
             `;
@@ -629,11 +702,13 @@ function initAiGenerator2() {
             const json = await request(endpoint.keywordDiscovery, payload);
             state.analysisId = json.analysis_id;
             state.keywords = Array.isArray(json.keywords) ? json.keywords : [];
-            state.selected = state.keywords.filter((k) => k.selected).map((k) => k.keyword);
+            state.selected = state.keywords.filter((k) => k.selected).map((k) => k.keyword).slice(0, 5);
             state.generated = json.generated || {};
             state.draftGenerated = deepClone(state.generated);
             state.dirtyFields = new Set();
             state.customKeywords = [];
+            state.keywordRatings = {};
+            state.keywordSort = 'score_desc';
             syncSeoFromSelectedKeywords();
             return true;
         } catch (e) {
@@ -728,9 +803,12 @@ function initAiGenerator2() {
     function parseJsonInput(value, fallback = []) {
         try {
             const parsed = JSON.parse(String(value || '[]'));
-            return Array.isArray(parsed) ? parsed : fallback;
+            if (!Array.isArray(parsed)) {
+                return { valid: false, value: fallback, message: 'Bitte ein JSON-Array angeben (z. B. [ ... ]).' };
+            }
+            return { valid: true, value: parsed, message: '' };
         } catch (_err) {
-            return fallback;
+            return { valid: false, value: fallback, message: 'Ungueltiges JSON-Format. Bitte Syntax pruefen.' };
         }
     }
 
@@ -834,8 +912,11 @@ function initAiGenerator2() {
         state.draftGenerated = {};
         state.seoStrategy = {};
         state.courseConcept = {};
+        state.conceptJsonErrors = {};
         state.keywords = [];
         state.selected = [];
+        state.keywordRatings = {};
+        state.keywordSort = 'score_desc';
         state.dirtyFields = new Set();
         state.customKeywords = [];
         state.promptLibrary = [];
@@ -874,6 +955,10 @@ function initAiGenerator2() {
                     if (keyword !== '') state.selected.push(keyword);
                 }
             });
+            if (state.selected.length > 5) {
+                setFeedback('Bitte maximal 5 Keywords auswaehlen.', 'warn');
+                return;
+            }
             if (!state.selected.length) {
                 setFeedback('Bitte mindestens ein Keyword auswaehlen.', 'warn');
                 return;
@@ -891,6 +976,10 @@ function initAiGenerator2() {
             return;
         }
         if (state.step === 3) {
+            if (Object.keys(state.conceptJsonErrors).length > 0) {
+                setFeedback('Bitte zuerst alle JSON-Fehler im Konzept korrigieren.', 'warn');
+                return;
+            }
             try {
                 await generateFieldsFromConcept();
             } catch (e) {
@@ -919,7 +1008,10 @@ function initAiGenerator2() {
             return;
         }
         if (target.id === 'ai2-select-recommended') {
-            state.selected = state.keywords.filter((k) => k.selected).map((k) => k.keyword);
+            state.selected = state.keywords.filter((k) => k.selected).map((k) => k.keyword).slice(0, 5);
+            if (state.keywords.filter((k) => k.selected).length > 5) {
+                setFeedback('Maximal 5 Keywords koennen ausgewaehlt werden. Es wurden die Top 5 gesetzt.', 'warn');
+            }
             syncSeoFromSelectedKeywords();
             render();
         } else if (target.id === 'ai2-reset') {
@@ -931,10 +1023,13 @@ function initAiGenerator2() {
             const raw = input ? input.value : '';
             raw.split(',').map((part) => part.trim()).filter(Boolean).forEach((keyword) => {
                 upsertKeyword(keyword, 'custom', true, ['custom']);
-                if (!state.selected.includes(keyword)) {
+                if (!state.selected.includes(keyword) && state.selected.length < 5) {
                     state.selected.push(keyword);
                 }
             });
+            if (state.selected.length >= 5) {
+                setFeedback('Maximal 5 Keywords koennen ausgewaehlt werden.', 'warn');
+            }
             state.customKeywords = collectCustomKeywords();
             syncSeoFromSelectedKeywords();
             if (input) input.value = '';
@@ -981,7 +1076,16 @@ function initAiGenerator2() {
             const parsed = parseJsonInput(target.value, []);
             if (path.startsWith('course_concept.')) {
                 const key = path.replace('course_concept.', '');
-                state.courseConcept[key] = parsed;
+                if (parsed.valid) {
+                    state.courseConcept[key] = parsed.value;
+                    delete state.conceptJsonErrors[path];
+                    target.classList.remove('border-red-300', 'bg-red-50');
+                    target.classList.add('border-slate-300', 'bg-white');
+                } else {
+                    state.conceptJsonErrors[path] = parsed.message;
+                    target.classList.remove('border-slate-300', 'bg-white');
+                    target.classList.add('border-red-300', 'bg-red-50');
+                }
             }
             return;
         }
@@ -1016,10 +1120,29 @@ function initAiGenerator2() {
             promptState.savePrompt = target.checked;
             return;
         }
+        if (target.id === 'ai2-keyword-sort' && target instanceof HTMLSelectElement) {
+            state.keywordSort = target.value || 'score_desc';
+            render();
+            return;
+        }
+        if (target.dataset.kwRating && target instanceof HTMLSelectElement) {
+            const keyword = String(target.dataset.kwRating || '').trim();
+            if (!keyword) return;
+            const normalized = normalizeKeyword(keyword);
+            const value = Number(target.value || 0);
+            state.keywordRatings[normalized] = Number.isFinite(value) ? Math.max(0, Math.min(5, value)) : 0;
+            render();
+            return;
+        }
         if (target.matches('input[data-kw-keyword]') && target instanceof HTMLInputElement) {
             const keyword = String(target.getAttribute('data-kw-keyword') || '').trim();
             if (!keyword) return;
             if (target.checked && !state.selected.includes(keyword)) {
+                if (state.selected.length >= 5) {
+                    target.checked = false;
+                    setFeedback('Maximal 5 Keywords koennen ausgewaehlt werden.', 'warn');
+                    return;
+                }
                 state.selected.push(keyword);
             } else if (!target.checked) {
                 state.selected = state.selected.filter((item) => item !== keyword);

@@ -49,7 +49,7 @@ class AiCourseWizardController extends Controller
 
         $data = $request->validate([
             'analysis_id' => ['required', 'integer', 'exists:course_keyword_analyses,id'],
-            'selected_keywords' => ['nullable', 'array'],
+            'selected_keywords' => ['nullable', 'array', 'max:5'],
             'selected_keywords.*' => ['string', 'max:255'],
             'selected_primary_keyword' => ['nullable', 'string', 'max:255'],
             'selected_clusters' => ['nullable', 'array'],
@@ -128,7 +128,7 @@ class AiCourseWizardController extends Controller
             'analysis_id' => ['required', 'integer', 'exists:course_keyword_analyses,id'],
             'generation_input' => ['nullable', 'array'],
             'current_context' => ['nullable', 'array'],
-            'selected_keywords' => ['nullable', 'array'],
+            'selected_keywords' => ['nullable', 'array', 'max:5'],
             'selected_keywords.*' => ['string', 'max:255'],
             'course_context' => ['nullable', 'array'],
             'prompt_id' => ['nullable', 'integer', 'exists:ai_prompts,id'],
@@ -198,7 +198,7 @@ class AiCourseWizardController extends Controller
 
         $data = $request->validate([
             'analysis_id' => ['required', 'integer', 'exists:course_keyword_analyses,id'],
-            'selected_keywords' => ['nullable', 'array'],
+            'selected_keywords' => ['nullable', 'array', 'max:5'],
             'selected_keywords.*' => ['string', 'max:255'],
             'generation_input' => ['nullable', 'array'],
             'prompt_id' => ['nullable', 'integer', 'exists:ai_prompts,id'],
@@ -270,7 +270,7 @@ class AiCourseWizardController extends Controller
 
         $data = $request->validate([
             'analysis_id' => ['required', 'integer', 'exists:course_keyword_analyses,id'],
-            'selected_keywords' => ['nullable', 'array'],
+            'selected_keywords' => ['nullable', 'array', 'max:5'],
             'selected_keywords.*' => ['string', 'max:255'],
             'generation_input' => ['nullable', 'array'],
             'seo_strategy' => ['nullable', 'array'],
@@ -341,7 +341,7 @@ class AiCourseWizardController extends Controller
         $data = $request->validate([
             'analysis_id' => ['required', 'integer', 'exists:course_keyword_analyses,id'],
             'section' => ['required', 'string', 'in:seo,base,details'],
-            'selected_keywords' => ['nullable', 'array'],
+            'selected_keywords' => ['nullable', 'array', 'max:5'],
             'selected_keywords.*' => ['string', 'max:255'],
             'generation_input' => ['nullable', 'array'],
             'seo_strategy' => ['nullable', 'array'],

@@ -232,6 +232,28 @@ class AiCourseWizardControllerTest extends TestCase
         ]);
     }
 
+    public function test_save_selection_rejects_more_than_five_selected_keywords(): void
+    {
+        $user = User::factory()->create();
+        $analysis = CourseKeywordAnalysis::query()->create([
+            'topic' => 'KI',
+            'subtopics' => [],
+            'raw_google_response' => [],
+            'raw_ai_response' => [],
+            'selected_primary_keyword' => null,
+            'selected_keywords' => [],
+            'selected_clusters' => [],
+            'seo_opportunity_score' => 10,
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)->postJson(route('admin.course-catalog.ai-wizard.save-selection'), [
+            'analysis_id' => $analysis->id,
+            'selected_keywords' => ['k1', 'k2', 'k3', 'k4', 'k5', 'k6'],
+            'selected_primary_keyword' => 'k1',
+        ])->assertStatus(422);
+    }
+
     public function test_prompt_library_endpoints_list_and_store_prompts(): void
     {
         $user = User::factory()->create();

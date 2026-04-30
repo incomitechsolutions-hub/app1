@@ -78,18 +78,33 @@ class AiCourseWizardService
     private function classifyKeywords(array $keywords, string $topic): array
     {
         $out = [];
+        $topicTokens = $this->tokenize($topic);
         foreach ($keywords as $k) {
             $kw = trim((string) $k);
             if ($kw === '') {
                 continue;
             }
 
-            $wordCount = count(array_filter(preg_split('/\s+/', mb_strtolower($kw)) ?: []));
-            $commercial = $this->containsCommercialToken($kw) ? 9 : 4;
-            $relevance = str_contains(mb_strtolower($kw), mb_strtolower($topic)) ? 9 : 5;
-            $fit = min(10, (int) round(($commercial + $relevance) / 2));
+            $kwTokens = $this->tokenize($kw);
+            $wordCount = count($kwTokens);
+            $commercialRaw = $this->scoreCommercialIntent($kw);
+            $relevanceRaw = $this->scoreTopicRelevance($kwTokens, $topicTokens);
+            $specificityRaw = $this->scoreSpecificity($wordCount);
+            $clarityRaw = $this->scoreClarity($kwTokens);
+
+            // Weighted 0-100 score to provide more meaningful prioritization.
+            $finalScore = (int) round(
+                ($commercialRaw * 0.35)
+                + ($relevanceRaw * 0.35)
+                + ($specificityRaw * 0.20)
+                + ($clarityRaw * 0.10)
+            );
+            $commercial = (int) max(1, min(10, round($commercialRaw / 10)));
+            $relevance = (int) max(1, min(10, round($relevanceRaw / 10)));
+            $fit = (int) max(1, min(10, round($finalScore / 10)));
             $type = $this->resolveType($kw, $wordCount);
             $intent = $commercial >= 7 ? 'commercial' : ($wordCount >= 3 ? 'transactional' : 'informational');
+            $confidence = $this->resolveConfidence($kwTokens, $topicTokens, $finalScore);
 
             $out[] = [
                 'keyword' => $kw,
@@ -99,13 +114,109 @@ class AiCourseWizardService
                 'relevance_score' => $relevance,
                 'commercial_score' => $commercial,
                 'course_fit_score' => $fit,
-                'selected' => $commercial >= 7 || $relevance >= 8,
+                'final_score' => $finalScore,
+                'confidence' => $confidence,
+                'score_breakdown' => [
+                    'commercial_intent' => $commercialRaw,
+                    'topic_relevance' => $relevanceRaw,
+                    'specificity' => $specificityRaw,
+                    'clarity' => $clarityRaw,
+                ],
+                'selected' => $finalScore >= 64 || ($commercial >= 7 && $relevance >= 7),
             ];
         }
 
-        usort($out, fn ($a, $b) => [$b['course_fit_score'], $b['commercial_score']] <=> [$a['course_fit_score'], $a['commercial_score']]);
+        usort($out, fn ($a, $b) => [$b['final_score'], $b['course_fit_score'], $b['commercial_score']] <=> [$a['final_score'], $a['course_fit_score'], $a['commercial_score']]);
 
         return array_slice($out, 0, 80);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tokenize(string $value): array
+    {
+        return array_values(array_filter(preg_split('/[^a-z0-9äöüß]+/iu', mb_strtolower($value)) ?: []));
+    }
+
+    private function scoreCommercialIntent(string $keyword): int
+    {
+        $tokens = ['kurs', 'schulung', 'seminar', 'training', 'workshop', 'online', 'inhouse', 'zertifikat', 'anbieter', 'buchen'];
+        $lower = mb_strtolower($keyword);
+        $hits = 0;
+        foreach ($tokens as $token) {
+            if (str_contains($lower, $token)) {
+                $hits++;
+            }
+        }
+
+        return (int) min(100, 30 + ($hits * 20));
+    }
+
+    /**
+     * @param  list<string>  $keywordTokens
+     * @param  list<string>  $topicTokens
+     */
+    private function scoreTopicRelevance(array $keywordTokens, array $topicTokens): int
+    {
+        if ($keywordTokens === [] || $topicTokens === []) {
+            return 45;
+        }
+
+        $overlap = count(array_intersect($keywordTokens, $topicTokens));
+        $ratio = $overlap / max(1, count($topicTokens));
+
+        return (int) max(35, min(100, round(35 + ($ratio * 65))));
+    }
+
+    private function scoreSpecificity(int $wordCount): int
+    {
+        if ($wordCount <= 1) {
+            return 35;
+        }
+        if ($wordCount === 2) {
+            return 62;
+        }
+        if ($wordCount === 3) {
+            return 80;
+        }
+        if ($wordCount <= 5) {
+            return 92;
+        }
+
+        return 70;
+    }
+
+    /**
+     * @param  list<string>  $keywordTokens
+     */
+    private function scoreClarity(array $keywordTokens): int
+    {
+        if ($keywordTokens === []) {
+            return 30;
+        }
+
+        $unique = count(array_unique($keywordTokens));
+        $ratio = $unique / max(1, count($keywordTokens));
+
+        return (int) max(40, min(100, round($ratio * 100)));
+    }
+
+    /**
+     * @param  list<string>  $keywordTokens
+     * @param  list<string>  $topicTokens
+     */
+    private function resolveConfidence(array $keywordTokens, array $topicTokens, int $finalScore): string
+    {
+        $overlap = count(array_intersect($keywordTokens, $topicTokens));
+        if ($finalScore >= 75 && $overlap >= 1) {
+            return 'high';
+        }
+        if ($finalScore >= 55) {
+            return 'medium';
+        }
+
+        return 'low';
     }
 
     /**
