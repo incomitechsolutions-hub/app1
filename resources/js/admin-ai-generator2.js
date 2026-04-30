@@ -393,9 +393,15 @@ function initAiGenerator2() {
             ? escapeHtml(JSON.stringify(current ?? [], null, 2))
             : escapeHtml(current ?? '');
 
+        const actionRow = `
+            <div class="mt-1 mb-1 flex items-center justify-between gap-2">
+                <button type="button" data-prompt-toggle="${field.path}" class="rounded border px-2 py-1 text-xs">${promptState.open ? 'Prompt ausblenden' : 'Prompt fuer dieses Feld'}</button>
+                <button type="button" data-regen-field="${field.fieldName}" data-draft-path="${field.path}" class="rounded border px-2 py-1 text-xs">Feld neu generieren</button>
+            </div>
+        `;
+
         const promptPanel = `
             <div class="mt-2">
-                <button type="button" data-prompt-toggle="${field.path}" class="rounded border px-2 py-1 text-xs">${promptState.open ? 'Prompt ausblenden' : 'Prompt für dieses Feld'}</button>
                 <div class="${promptState.open ? 'mt-2 block' : 'hidden'}" data-prompt-panel="${field.path}">
                     <div class="rounded border border-slate-200 p-2 space-y-2">
                         <select data-field-prompt-select="${field.path}" class="w-full rounded border px-2 py-1 text-xs">
@@ -416,20 +422,16 @@ function initAiGenerator2() {
         if (field.type === 'textarea' || field.type === 'json') {
             return `
                 <label class="block text-xs font-semibold text-slate-600">${field.label}</label>
+                ${actionRow}
                 <textarea data-draft-path="${field.path}" data-draft-type="${field.type}" rows="${field.rows || 3}" class="w-full rounded border ${dirtyClass} px-3 py-2 text-sm">${value}</textarea>
-                <div class="mt-1 flex justify-end">
-                    <button type="button" data-regen-field="${field.fieldName}" data-draft-path="${field.path}" class="rounded border px-2 py-1 text-xs">Feld neu generieren</button>
-                </div>
                 ${promptPanel}
             `;
         }
 
         return `
             <label class="block text-xs font-semibold text-slate-600">${field.label}</label>
-            <div class="flex gap-2">
-                <input data-draft-path="${field.path}" data-draft-type="${field.type}" class="flex-1 rounded border ${dirtyClass} px-3 py-2 text-sm" value="${value}">
-                <button type="button" data-regen-field="${field.fieldName}" data-draft-path="${field.path}" class="rounded border px-2 py-1 text-xs">Neu</button>
-            </div>
+            ${actionRow}
+            <input data-draft-path="${field.path}" data-draft-type="${field.type}" class="w-full rounded border ${dirtyClass} px-3 py-2 text-sm" value="${value}">
             ${promptPanel}
         `;
     };
@@ -478,11 +480,24 @@ function initAiGenerator2() {
                     </div>
                 </div>
                 <div class="max-h-80 space-y-2 overflow-auto">${html}</div>
-                <div class="mt-3 grid gap-2">
-                    <input id="ai2-seo-title" class="rounded border px-2 py-1" value="${seo.seo_title || ''}" placeholder="SEO Titel">
-                    <textarea id="ai2-seo-desc" class="rounded border px-2 py-1" rows="2" placeholder="Meta Description">${seo.meta_description || ''}</textarea>
-                    <input id="ai2-focus-keyword" class="rounded border px-2 py-1" value="${seo.focus_keyword || ''}" placeholder="Fokus Keyword">
-                    <div class="flex gap-2"><input id="ai2-seo-slug" class="flex-1 rounded border px-2 py-1" value="${(state.draftGenerated.base || {}).slug || ''}" placeholder="Slug"></div>
+                <div class="mt-3 space-y-2 rounded border border-slate-200 p-3">
+                    <h4 class="text-sm font-semibold text-slate-700">SEO Vorschau</h4>
+                    <div>
+                        <label for="ai2-seo-title" class="mb-1 block text-xs font-medium text-slate-600">SEO Titel</label>
+                        <input id="ai2-seo-title" class="w-full rounded border px-2 py-1" value="${seo.seo_title || ''}" placeholder="SEO Titel">
+                    </div>
+                    <div>
+                        <label for="ai2-seo-desc" class="mb-1 block text-xs font-medium text-slate-600">Meta Description</label>
+                        <textarea id="ai2-seo-desc" class="w-full rounded border px-2 py-1" rows="2" placeholder="Meta Description">${seo.meta_description || ''}</textarea>
+                    </div>
+                    <div>
+                        <label for="ai2-focus-keyword" class="mb-1 block text-xs font-medium text-slate-600">Focus Keyword</label>
+                        <input id="ai2-focus-keyword" class="w-full rounded border px-2 py-1" value="${seo.focus_keyword || ''}" placeholder="Focus Keyword">
+                    </div>
+                    <div>
+                        <label for="ai2-seo-slug" class="mb-1 block text-xs font-medium text-slate-600">Slug</label>
+                        <input id="ai2-seo-slug" class="w-full rounded border px-2 py-1" value="${(state.draftGenerated.base || {}).slug || ''}" placeholder="Slug">
+                    </div>
                 </div>`;
             nextBtn.textContent = 'Weiter zur Vorschau';
             return;
